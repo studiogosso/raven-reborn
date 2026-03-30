@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAVEN REBORN v1.10</title>
+<title>RAVEN REBORN v1.11</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#0a0a12;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
@@ -382,6 +382,9 @@ body{background:#0a0a12;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
       <input type="range" id="settings-se-vol" min="0" max="100" value="30" style="width:150px;margin-left:10px" oninput="setSEVol(this.value)">
     </div>
     <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
+      <div style="font-size:12px;color:#888;margin-bottom:6px">シード: <span id="settings-seed" style="color:#ffcc44;font-weight:bold;cursor:pointer" onclick="navigator.clipboard&&navigator.clipboard.writeText(gameSeed+'');showToast('シードをコピーしました')"></span></div>
+    </div>
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
       <a href="review_app.html" target="_blank" style="color:#44ddff;font-size:13px;text-decoration:none">📋 レビューアプリを開く ↗</a>
     </div>
     <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
@@ -495,6 +498,9 @@ body{background:#0a0a12;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
 // v1.7: Bot null guard, turn end requires explicit confirm (no auto-execute), shop card detail popup, mobile responsive
 // v1.8: Boss phase system, noise zone attraction, card info hierarchy, echo+lightning synergy,
 //        path preview, action-blocked tooltips, decoy+scythe combo, bot AI memory
+// v1.11: Mob melee restore (50%), 10-card deck fix, room diversity guarantee, scout VP,
+//         auto-end turn, MP cost preview, trapper class, post-game stats, synergy bonus,
+//         expanded combo, grass fire, terrain SFX, longer card popup, game seed
 // ========================================================
 
 let MAP_W=40,MAP_H=40,VIEWPORT=13,VP_WIN=30;
@@ -616,6 +622,10 @@ const CLASSES = [
   {id:'merchant', name:'商人', desc:'購入+1、経済特化', color:'#ffcc44',
     deckMod: {remove:['miharashi'], add:['gyoushounin','douka']},
     statMod: {buys:1}},
+  // v1.11: Trapper class - trap specialist
+  {id:'trapper', name:'罠師', desc:'罠+1ダメ、罠特化', color:'#ff8844',
+    deckMod: {remove:['miharashi','onmitsu'], add:['gabyou','gabyou','togenowana']},
+    statMod: {trapBonus:1}},
 ];
 
 // ===== MOB DEFINITIONS =====
@@ -794,10 +804,11 @@ function showCardPopup(card, isBot) {
     popup.style.transform = 'translate(-50%,-50%) scale(1)';
   });
   clearTimeout(popup._timer);
+  const popupDuration = isBot ? 1500 : 2500; // v1.11: longer popup for player cards
   popup._timer = setTimeout(() => {
     popup.style.opacity = '0';
     popup.style.transform = 'translate(-50%,-50%) scale(0.9)';
-  }, 1500);
+  }, popupDuration);
 }
 
 // v1.7: Shop card detail popup (hover/click shows enlarged card with deck count)
@@ -845,6 +856,10 @@ const SFX={
   vpGain(){playOsc(1500,'sine',0.1,0.15,2500);playOsc(2000,'sine',0.15,0.12,3000,0.1);},
   fuse(){playOsc(440,'sine',0.1,0.2,880);playOsc(660,'sine',0.1,0.2,1320,0.1);playOsc(880,'sine',0.2,0.25,1760,0.2);},
   meteor(){playOsc(60,'sawtooth',0.6,0.2,40);playNoiseSFX(0.4,0.15,1000);},
+  // v1.11: Terrain sound effects
+  waterStep(){playNoiseSFX(0.1,0.12,1500);playOsc(200,'sine',0.08,0.08,300);},
+  grassStep(){playNoiseSFX(0.06,0.06,800);},
+  fireStep(){playNoiseSFX(0.08,0.15,3000);playOsc(600,'sawtooth',0.05,0.1,200);},
 };
 
 function getAllEnemyTargets(){
@@ -1162,9 +1177,18 @@ function generateMap(){
   map[playerStartY][playerStartX]=TILE_FLOOR;
   map[botStartY][botStartX]=TILE_FLOOR;
 
-  // v1.3: Assign random room effects
-  for(const room of rooms.slice(1)){ // skip boss room
-    room.effect = ROOM_EFFECTS[randInt(0, ROOM_EFFECTS.length-1)];
+  // v1.11: Guarantee room effect diversity - ensure at least 1 heal, 1 silence, 1 altar, 1 echo
+  const nonBossRooms = rooms.slice(1);
+  const guaranteedEffects = ['heal','silence','altar','echo'];
+  const guaranteedSlots = shuffle([...Array(nonBossRooms.length).keys()]).slice(0, guaranteedEffects.length);
+  for(let ri=0;ri<nonBossRooms.length;ri++){
+    const room = nonBossRooms[ri];
+    const gIdx = guaranteedSlots.indexOf(ri);
+    if(gIdx >= 0){
+      room.effect = ROOM_EFFECTS.find(e=>e.id===guaranteedEffects[gIdx]);
+    } else {
+      room.effect = ROOM_EFFECTS[randInt(0, ROOM_EFFECTS.length-1)];
+    }
     room.effectUsed = false;
     room.effectRevealed = false;
   }
@@ -1234,6 +1258,27 @@ function isOccupied(x,y,exclude){
   if(boss&&boss.alive&&boss.x===x&&boss.y===y)return true;
   if(mobs.some(m=>m.alive&&m.x===x&&m.y===y))return true;
   return false;
+}
+
+// v1.11: Grass fire mechanic - lightning/fire on grass creates burning tiles
+function igniteGrass(x,y){
+  if(map[y]&&map[y][x]===TILE_GRASS){
+    // Check if already burning
+    if(burningTiles.some(bt=>bt.x===x&&bt.y===y)) return;
+    burningTiles.push({x,y,turnsLeft:3,dmg:1});
+    map[y][x]=TILE_FLOOR; // grass burns away to floor
+    addLog(`草原が炎上! (${x},${y}) 3ターン持続`,'dmg');
+    // Spread to adjacent grass tiles (50% chance)
+    for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){
+      const nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&map[ny][nx]===TILE_GRASS&&Math.random()<0.5){
+        if(!burningTiles.some(bt=>bt.x===nx&&bt.y===ny)){
+          burningTiles.push({x:nx,y:ny,turnsLeft:2,dmg:1});
+          map[ny][nx]=TILE_FLOOR;
+        }
+      }
+    }
+  }
 }
 
 // v1.3: Get which room a tile belongs to
@@ -1329,7 +1374,7 @@ function generateSupply(){
 }
 
 // ===== INITIAL DECK =====
-// 初期デッキ10枚: 弱いカードで構成
+// v1.11: 初期デッキ10枚: 弱いカードで構成 (yakusou追加で正確に10枚)
 function makeInitialDeck(){
   const cards=[
     {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,desc:'XP+1',xpGain:1,starter:true},
@@ -1341,6 +1386,7 @@ function makeInitialDeck(){
     {id:'miharashi',name:'見張り台',type:'道具',ap:1,noise:0,desc:'ソナーピン',sonar:true,starter:true},
     {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,desc:'XP+1',xpGain:1,starter:true},
     {id:'onmitsu',name:'隠密',type:'道具',ap:0,noise:0,desc:'30%の確率で次の行動のノイズ無効',stealth30:true,starter:true},
+    {id:'yakusou',name:'薬草',type:'道具',ap:1,noise:0,desc:'HP+2回復',healPower:2,starter:true},
   ];
   return cards.map(c=>({...c,uid:Math.random()}));
 }
@@ -1370,6 +1416,8 @@ function initEntities(){
     leveledUpThisTurn:false,
     hourglassCooldown:0,
     lastNoiseEventIdx:0, // v25: global noise event tracking
+    roomsDiscovered:0, // v1.11: scout VP counter
+    totalDistance:0, totalNoiseGenerated:0, totalCardsPlayed:0, // v1.11: post-game stats
   };
   bot={
     x:botStartX,y:botStartY,
@@ -1421,6 +1469,7 @@ function calcVP(entity){
   vp+=entity.flagVP;
   vp+=entity.kills*3;
   vp+=entity.bossKill*5;
+  vp+=(entity.roomsDiscovered||0); // v1.11: scout VP (1 per room discovered)
   return vp;
 }
 
@@ -1444,6 +1493,7 @@ function emitNoise(entity,amount){
     if(entityRoom.effect.id === 'silence') amount = 0;
   }
   entity.turnNoise+=amount;
+  if(humanPlayers && humanPlayers.includes(entity) && amount>0) entity.totalNoiseGenerated=(entity.totalNoiseGenerated||0)+amount; // v1.11: stats
   if(amount>0 && noiseHeatmap.length>0){
     // v1.5 Bug1: Guard against dummy objects (non-entity) passed to emitNoise
     const isHumanEntity = humanPlayers && humanPlayers.includes(entity);
@@ -1511,7 +1561,9 @@ function updateNoiseIndicator(){
 
 // ===== TRAP SYSTEM =====
 function placeTrap(owner,x,y,dmg,noise,freeze,aoe,type,trapEcho){
-  traps.push({x,y,owner,dmg:dmg===0?0:(dmg||1),noise:noise||0,freeze:freeze||0,aoe:aoe||0,type:type||'画鋲',trapEcho:trapEcho||0});
+  // v1.11: Trapper class bonus damage
+  const bonusDmg = (owner===player && player.trapDmgBonus && dmg>0) ? player.trapDmgBonus : 0;
+  traps.push({x,y,owner,dmg:dmg===0?0:((dmg||1)+bonusDmg),noise:noise||0,freeze:freeze||0,aoe:aoe||0,type:type||'画鋲',trapEcho:trapEcho||0});
 }
 
 function checkTraps(entity){
@@ -1727,6 +1779,7 @@ function tryFreeMove(dx,dy){
 
   player.x=nx;player.y=ny;
   player.mp--;
+  player.totalDistance=(player.totalDistance||0)+1; // v1.11: stats tracking
   // v1.8: Record player movement direction for bot AI memory
   playerMoveHistory.push({dx,dy});
   if(playerMoveHistory.length>20) playerMoveHistory.shift();
@@ -1735,12 +1788,14 @@ function tryFreeMove(dx,dy){
   if(skipNoise) player.nextMoveNoNoise=false;
   // v1.1: Terrain effects
   const movedTile=map[ny][nx];
-  if(movedTile===TILE_WATER){if(!skipNoise){emitNoise(player,2);addLog('水場! ノイズ+2','info');}}
+  if(movedTile===TILE_WATER){if(!skipNoise){emitNoise(player,2);addLog('水場! ノイズ+2','info');}SFX.waterStep();}
   else if(!skipNoise){
     emitNoise(player,1); // 移動1歩につきノイズ+1
   }
   // v1.5 Bug2: Grass sets flag for NEXT move
-  if(movedTile===TILE_GRASS){player.nextMoveNoNoise=true;}
+  if(movedTile===TILE_GRASS){player.nextMoveNoNoise=true;SFX.grassStep();}
+  // v1.11: burning tile sound
+  if(burningTiles.some(bt=>bt.x===nx&&bt.y===ny)){SFX.fireStep();}
 
   // v1.5: Footprints
   footprints.push({x:player.x, y:player.y, turnsLeft:10, owner:player.name});
@@ -1753,6 +1808,7 @@ function tryFreeMove(dx,dy){
   // Check flag pickup
   if(flagPos&&flagPos.x===player.x&&flagPos.y===player.y&&!player.hasFlag){
     player.hasFlag=true;flagPos=null;
+    turnCombo.flags=(turnCombo.flags||0)+1; // v1.11: combo count
     SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を取得! 全員にバレる!','flag');
   }
   // Check flag delivery - start defense (v25: per-player start position)
@@ -1784,9 +1840,16 @@ function tryFreeMove(dx,dy){
   if(room && room.effect){
     if(!room.effectRevealed){
       room.effectRevealed = true;
+      // v1.11: Scout VP - 1 VP per new room discovered
+      player.roomsDiscovered = (player.roomsDiscovered||0) + 1;
+      turnCombo.rooms = (turnCombo.rooms||0) + 1; // v1.11: combo count
+      addLog(`新部屋発見! 偵察VP+1 (計${player.roomsDiscovered})`, 'vp');
+      SFX.vpGain();
       if(room.effect.id !== 'none'){
         addLog(`${room.effect.icon} ${room.effect.name}を発見! ${room.effect.desc}`, 'info');
         showToast(`${room.effect.icon} ${room.effect.name}`);
+      } else {
+        showToast('新部屋発見! VP+1');
       }
     }
     // Apply effects only for non-none
@@ -1830,6 +1893,8 @@ function tryFreeMove(dx,dy){
 
   updateUI();render();
   checkWinCondition();
+  // v1.11: auto-end turn
+  checkAutoEndTurn();
 }
 
 // Keyboard input
@@ -1919,7 +1984,11 @@ async function playCard(index){
   // AP消費
   if(card.ap>0)player.ap-=card.ap;
   player.cardsPlayedThisTurn++;
+  player.totalCardsPlayed=(player.totalCardsPlayed||0)+1; // v1.11: stats
   turnCombo.cards++; // v1.5: combo counter
+  // v1.11: Track card types for synergy bonus
+  if(!turnCombo.typesPlayed) turnCombo.typesPlayed = new Set();
+  turnCombo.typesPlayed.add(card.type);
 
   // ノイズ発生
   emitNoise(player,card.noise);
@@ -2267,7 +2336,7 @@ async function playCard(index){
 
   // === Tier3-5 新カード効果 ===
   if(card.scytheAoe){addLog('闇の大鎌: 周囲8マス全てに攻撃!','dmg');screenShake();const scytheAtkBonus=player.levels.atk;/* v1.8: Decoy+Scythe combo check */let scytheComboBonus=0;const nearbyDecoy=decoys.find(d=>d.owner===player.name&&dist(player.x,player.y,d.x,d.y)<=1);if(nearbyDecoy){let adjEnemies=0;for(const t of getAllEnemyTargets()){if(dist(nearbyDecoy.x,nearbyDecoy.y,t.x,t.y)<=1)adjEnemies++;}if(adjEnemies>=3){scytheComboBonus=1;addLog('誘引殲滅コンボ! ダメージ+1!','dmg');}}for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dx===0&&dy===0)continue;const ex=player.x+dx,ey=player.y+dy;if(ex<0||ex>=MAP_W||ey<0||ey>=MAP_H||!isWalkable(ex,ey))continue;for(const t of getAllEnemyTargets())if(t.x===ex&&t.y===ey)dealDamageToEntity(t,card.power+scytheAtkBonus+scytheComboBonus,player);}addAoeAttackFade(player.x,player.y,3);player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
-  if(card.lightning){const cnt=card.lightningTargets||3,dmg=card.lightningDmg||2,tgts=shuffle([...getAllEnemyTargets()]).slice(0,cnt);addLog('雷の巻物: ランダム'+cnt+'体に各'+dmg+'ダメ!','dmg');screenShake();for(const t of tgts){dealDamageToEntity(t,dmg,player,false,'lightning');/* v1.5: Water spread */if(map[t.y]&&map[t.y][t.x]===TILE_WATER)spreadWaterDamage(t.x,t.y,dmg);}if(!tgts.length)addLog('対象がいない!','info');player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.lightning){const cnt=card.lightningTargets||3,dmg=card.lightningDmg||2,tgts=shuffle([...getAllEnemyTargets()]).slice(0,cnt);addLog('雷の巻物: ランダム'+cnt+'体に各'+dmg+'ダメ!','dmg');screenShake();for(const t of tgts){dealDamageToEntity(t,dmg,player,false,'lightning');/* v1.5: Water spread */if(map[t.y]&&map[t.y][t.x]===TILE_WATER)spreadWaterDamage(t.x,t.y,dmg);/* v1.11: Grass fire */if(map[t.y]&&map[t.y][t.x]===TILE_GRASS)igniteGrass(t.x,t.y);}if(!tgts.length)addLog('対象がいない!','info');player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
   if(card.deathBreath){const r=card.deathBreathRange||2,dmg=card.deathBreathDmg||2;addLog('死の吐息: 周囲'+r+'マス全てに'+dmg+'ダメ!','dmg');screenShake();for(const t of getAllEnemyTargets())if(dist(player.x,player.y,t.x,t.y)<=r)dealDamageToEntity(t,dmg,player);player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
   if(card.meteor){const cnt=card.meteorCount||3,dmg=card.meteorDmg||3;addLog('隕石の巻物: '+cnt+'箇所に3x3で'+dmg+'ダメ!','dmg');screenShake();for(let m=0;m<cnt;m++){const cx=randInt(1,MAP_W-2),cy=randInt(1,MAP_H-2);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const ex=cx+dx,ey=cy+dy;if(ex<0||ex>=MAP_W||ey<0||ey>=MAP_H)continue;for(const t of getAllEnemyTargets())if(t.x===ex&&t.y===ey)dealDamageToEntity(t,dmg,player);}}player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
   if(card.divineStrike){const dmg=card.divineStrikeDmg||3;addLog('天罰の雷! 全敵に'+dmg+'ダメージ!','dmg');screenShake();for(const t of getAllEnemyTargets())dealDamageToEntity(t,dmg,player);player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
@@ -2300,6 +2369,8 @@ async function playCard(index){
   checkWinCondition();
   updateUI();
   render();
+  // v1.11: auto-end turn
+  checkAutoEndTurn();
 }
 
 // ===== MAP CLICK HANDLING =====
@@ -2452,10 +2523,9 @@ function handleAoeClick(tx,ty){
     if((card.id==='kaminari'||card.name.includes('雷'))&&map[ey]&&map[ey][ex]===TILE_WATER){
       spreadWaterDamage(ex, ey, card.aoeDmg || 2);
     }
-    // v1.5: Fire on grass burns
-    if((card.id==='gouka'||card.id==='daigouka'||card.id==='shoumen'||card.name.includes('火')||card.name.includes('炎')||card.name.includes('業火'))&&map[ey]&&map[ey][ex]===TILE_GRASS){
-      burningTiles.push({x:ex, y:ey, turnsLeft:3, dmg:1});
-      addLog('草地が炎上! 3T持続','dmg');
+    // v1.11: Fire on grass burns (any fire/thunder AOE)
+    if(map[ey]&&map[ey][ex]===TILE_GRASS){
+      igniteGrass(ex,ey);
     }
   }
   addAoeAttackFade(tx, ty, card.aoeSize); // v22: attack fade effect
@@ -2588,7 +2658,8 @@ function checkRoomResonance(){
 
 // v1.5: Combo counter check
 function checkCombo(){
-  const total = turnCombo.cards + turnCombo.kills;
+  // v1.11: Expanded combo criteria - include room discoveries and flag actions
+  const total = turnCombo.cards + turnCombo.kills + (turnCombo.rooms||0) + (turnCombo.flags||0);
   if(total >= 4){
     addLog('ULTRA COMBO! XP x2','vp');
     player.xp = Math.floor(player.xp * 2);
@@ -2597,6 +2668,30 @@ function checkCombo(){
     addLog('COMBO! XP x1.5','vp');
     player.xp = Math.floor(player.xp * 1.5);
     showToast('COMBO!');
+  }
+  // v1.11: Synergy bonuses - check card type combinations used this turn
+  checkSynergyBonus();
+}
+
+// v1.11: Synergy Bonus system
+function checkSynergyBonus(){
+  if(!turnCombo.typesPlayed) return;
+  const types = turnCombo.typesPlayed;
+  // Weapon + Trap = Ambush Combo: +2 XP
+  if(types.has('武器') && types.has('罠')){
+    player.xp += 2;
+    addLog('伏兵シナジー! (武器+罠) XP+2','vp');
+    showToast('伏兵シナジー! XP+2');
+  }
+  // Draw + Treasure = Fortune Combo: +1 buy
+  if(types.has('道具') && types.has('財宝')){
+    player.buys += 1;
+    addLog('財運シナジー! (道具+財宝) 購入+1','buy');
+  }
+  // Scroll + Staff = Arcane Combo: +1 AP next turn
+  if(types.has('巻物') && types.has('杖')){
+    player._arcaneBonus = true;
+    addLog('秘術シナジー! (巻物+杖) 次ターンAP+1','card');
   }
 }
 
@@ -3327,7 +3422,8 @@ async function mobsTurn(){
     // v21: mimics don't move in mobsTurn either, only attack if adjacent
     if(m.isMimic){
       let mimicAttacked=false;
-      for(const p of humanPlayers){if(p.alive&&dist(m.x,m.y,p.x,p.y)<=1){dealDamageToEntity(p,m.atk,m);mimicAttacked=true;break;}}
+      // v1.11: mimics deal 50% damage to humans
+      for(const p of humanPlayers){if(p.alive&&dist(m.x,m.y,p.x,p.y)<=1){const hDmg=Math.max(1,Math.floor(m.atk*0.5));dealDamageToEntity(p,hDmg,m);mimicAttacked=true;break;}}
       if(!mimicAttacked){for(const b of botPlayers){if(b.alive&&dist(m.x,m.y,b.x,b.y)<=1){dealDamageToEntity(b,m.atk,m);break;}}}
       continue;
     }
@@ -3355,8 +3451,9 @@ async function mobsTurn(){
     }
 
     // v17: move OR attack, not both
+    // v1.11: mobs deal 50% damage to humans, full to bots
     let attacked=false;
-    if(nearestTarget&&nearestDist<=1){dealDamageToEntity(nearestTarget,m.atk,m);attacked=true;}
+    if(nearestTarget&&nearestDist<=1){const isHumanT=humanPlayers.includes(nearestTarget);const mobDmg=isHumanT?Math.max(1,Math.floor(m.atk*0.5)):m.atk;dealDamageToEntity(nearestTarget,mobDmg,m);attacked=true;}
     if(!attacked){
       let tx=null,ty=null;
       // v1.1: If decoy is closer than player, go toward decoy
@@ -3440,8 +3537,9 @@ function stepMobs(){
     if(!m.alive)continue;
     // v21: mimics don't move, only attack if adjacent
     if(m.isMimic){
-      // v1.10: mimics only attack bots, not human players
+      // v1.11: mimics attack bots at full, humans at 50%
       for(const b of botPlayers){if(b.alive&&dist(m.x,m.y,b.x,b.y)<=1){dealDamageToEntity(b,m.atk,m);break;}}
+      for(const p of humanPlayers){if(p.alive&&dist(m.x,m.y,p.x,p.y)<=1){const halfDmg=Math.max(1,Math.floor(m.atk*0.5));dealDamageToEntity(p,halfDmg,m);break;}}
       continue;
     }
 
@@ -3468,13 +3566,15 @@ function stepMobs(){
     }
 
     // v17: move OR attack, not both
-    // v1.10: mobs only attack bots, not human players
+    // v1.11: mobs attack humans at 50% atk, bots at full atk
     const isHumanTarget = stepTarget && humanPlayers.includes(stepTarget);
     if(stepTarget&&stepDist<=1&&!isHumanTarget){
-      // Adjacent to bot target: attack only, don't move
+      // Adjacent to bot target: attack at full damage
       dealDamageToEntity(stepTarget,m.atk,m);
     }else if(stepTarget&&stepDist<=1&&isHumanTarget){
-      // Adjacent to human: don't attack, just stay (mobs won't hurt players during mob step)
+      // v1.11: Adjacent to human: attack at 50% damage (restored mob threat)
+      const halfDmg=Math.max(1,Math.floor(m.atk*0.5));
+      dealDamageToEntity(stepTarget,halfDmg,m);
     }else{
       // Not adjacent: try to move toward target
       let tx,ty;
@@ -3605,6 +3705,8 @@ function startPlayerTurn(){
   // v25b: Ambient noise removed - mobs patrolling generates natural noise
   turnNumber++;
   player.ap=1;
+  // v1.11: Arcane synergy bonus from previous turn
+  if(player._arcaneBonus){player.ap+=1;player._arcaneBonus=false;addLog('秘術シナジー効果! AP+1','card');}
   player.buys=1+(player.classBuysBonus||0);
   player.mp=BASE_MP+player.levels.mp+(player.classMpBonus||0);SFX.turnStart(); // 毎ターンMP リセット (レベル+クラス補正込み)
   player.xp = Math.max(0, player.xp - 1); // lose 1 XP per turn instead of full reset
@@ -3677,7 +3779,7 @@ function startPlayerTurn(){
   }
 
   // v1.5: Reset combo counter
-  turnCombo={cards:0,kills:0};
+  turnCombo={cards:0,kills:0,rooms:0,flags:0,typesPlayed:new Set()};
 
   // v1.4: Decay flag trails
   for(let i=flagTrails.length-1;i>=0;i--){
@@ -3717,6 +3819,26 @@ function startPlayerTurn(){
 
   updateUI();
   render();
+}
+
+// v1.11: Auto-end turn when AP=0, MP=0, and no playable cards
+function checkAutoEndTurn(){
+  if(enemyTurnActive||gameOver||targetMode||fuseMode) return;
+  if(!player.alive) return;
+  if(player.ap<=0 && player.mp<=0){
+    // Check if any playable cards exist (AP0 cards can still be played)
+    const hasPlayable = player.hand.some(c=>canPlayCard(c));
+    if(!hasPlayable){
+      showToast('行動終了 - ターン自動終了');
+      setTimeout(()=>{
+        if(!gameOver && !enemyTurnActive){
+          turnEndPending=false;
+          const cb=document.getElementById('turn-confirm-banner');if(cb)cb.remove();
+          endTurnFull();
+        }
+      }, 600);
+    }
+  }
 }
 
 // v1.6: Turn end confirmation (also used by button)
@@ -3858,8 +3980,15 @@ function showGameOver(playerWon,pVP,bVP){
   title.textContent=playerWon?'勝利!':'敗北...';
   title.className=playerWon?'win':'lose';
   document.getElementById('game-over-detail').textContent=`あなた: ${pVP}VP | ボット: ${bVP}VP`;
-  document.getElementById('game-over-scores').textContent=
-    `キル: ${player.kills} | 旗VP: ${player.flagVP} | ボス: ${player.bossKill}`;
+  // v1.11: Post-game stats screen
+  const statsLines = [
+    `ターン数: ${turnNumber}`,
+    `キル: ${player.kills} | 旗VP: ${player.flagVP} | ボス撃破: ${player.bossKill}`,
+    `探索部屋数: ${player.roomsDiscovered||0} | 総移動距離: ${player.totalDistance||0}歩`,
+    `使用カード数: ${player.totalCardsPlayed||0} | 総ノイズ: ${Math.floor(player.totalNoiseGenerated||0)}`,
+    `デッキ枚数: ${getAllCards(player).length} | シード: ${gameSeed}`,
+  ];
+  document.getElementById('game-over-scores').innerHTML = statsLines.map(l=>`<div>${l}</div>`).join('');
 }
 
 // ===== RENDERING =====
@@ -3963,6 +4092,18 @@ function render(){
       const alpha = ft.turnsLeft / 3 * 0.4;
       ctx.fillStyle=`rgba(255,215,0,${alpha})`;
       ctx.fillRect(sx*tileSize+tileSize/4, sy*tileSize+tileSize/4, tileSize/2, tileSize/2);
+    }
+  }
+
+  // v1.11: Draw burning tiles
+  for(const bt of burningTiles){
+    const sx=bt.x-camX, sy=bt.y-camY;
+    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+      const pulse = 0.3 + 0.2*Math.sin(Date.now()/200);
+      ctx.fillStyle=`rgba(255,100,20,${pulse})`;
+      ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);
+      ctx.fillStyle='#ff4400';ctx.font='bold 12px sans-serif';
+      ctx.fillText('火',sx*tileSize+12,sy*tileSize+24);
     }
   }
 
@@ -4335,15 +4476,30 @@ function render(){
         ctx.fill();
       }
     }
-    // Show MP cost at endpoint
+    // v1.11: Enhanced MP cost display at endpoint with background
     const endNode = pp[pp.length-1];
     const esx=endNode.x-camX, esy=endNode.y-camY;
     if(esx>=0&&esx<vpW&&esy>=0&&esy<vpH){
       const mpCost = pp.length - 1;
       const canAfford = mpCost <= player.mp;
+      // Draw background pill
+      ctx.fillStyle = canAfford ? 'rgba(20,60,40,0.85)' : 'rgba(60,20,20,0.85)';
+      ctx.beginPath();
+      if(ctx.roundRect) ctx.roundRect(esx*tileSize+1, esy*tileSize+1, tileSize-2, 16, 4);
+      else ctx.rect(esx*tileSize+1, esy*tileSize+1, tileSize-2, 16);
+      ctx.fill();
       ctx.fillStyle = canAfford ? '#44ffaa' : '#ff4444';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.fillText(mpCost+'MP', esx*tileSize+2, esy*tileSize+12);
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText(mpCost+'MP', esx*tileSize+4, esy*tileSize+13);
+      // Draw path step numbers along the path
+      for(let pi=1;pi<pp.length;pi++){
+        const psx=pp[pi].x-camX, psy=pp[pi].y-camY;
+        if(psx>=0&&psx<vpW&&psy>=0&&psy<vpH && pi<=player.mp){
+          ctx.fillStyle='rgba(68,136,255,0.6)';
+          ctx.font='bold 9px sans-serif';
+          ctx.fillText(''+pi, psx*tileSize+tileSize-12, psy*tileSize+tileSize-4);
+        }
+      }
     }
   }
 
@@ -4733,7 +4889,7 @@ function updateUI(){
 
   const pCardVP=getAllCards(player).reduce((s,c)=>s+(c.vpValue||0)+(c.garden?Math.floor(getAllCards(player).length/5):0)-(c.id==='noroi'?1:0),0);
   const bCardVP=(bot&&bot.alive)?getAllCards(bot).reduce((s,c)=>s+(c.vpValue||0)+(c.garden?Math.floor(getAllCards(bot).length/5):0)-(c.id==='noroi'?1:0),0):0; // v1.7: guard bot null
-  document.getElementById('score-player-detail').textContent=`旗:${player.flagVP} カード:${pCardVP} キル:${player.kills*3} ボス:${player.bossKill*5}`;
+  document.getElementById('score-player-detail').textContent=`旗:${player.flagVP} カード:${pCardVP} キル:${player.kills*3} ボス:${player.bossKill*5} 探索:${player.roomsDiscovered||0}`;
   if(bot&&bot.alive){
     document.getElementById('score-bot-detail').textContent=`旗:${bot.flagVP} カード:${bCardVP} キル:${bot.kills*3} ボス:${bot.bossKill*5}`;
   }
@@ -4889,6 +5045,7 @@ function placeInitialTraps(){
 let bossSpawned=false;
 let shopDiscountActive=false;
 let currentEvent=null; // {name, desc, turnsLeft}
+let gameSeed=0; // v1.11: game seed for reproducibility
 
 function showEventPopup(name,desc){
   const popup=document.getElementById('event-popup');
@@ -5041,7 +5198,8 @@ function createPlayerObj(x, y){
     defendingFlag:false, defendTurns:0, hourglassCooldown:0,
     doubleCastNext:false, nextMoveNoNoise:false,
     pendingRespawn:false, name:'P1', color:'#4488ff',
-    lastNoiseEventIdx:0 // v25: global noise event tracking
+    lastNoiseEventIdx:0, // v25: global noise event tracking
+    roomsDiscovered:0, totalDistance:0, totalNoiseGenerated:0, totalCardsPlayed:0, // v1.11: stats
   };
 }
 
@@ -5152,6 +5310,9 @@ function openSettings(){
   document.getElementById('settings-se-vol').value=audioSettings.seVol;
   document.getElementById('settings-debug').checked=debugMode;
   document.getElementById('debug-controls').style.display=debugMode?'block':'none';
+  // v1.11: Show seed
+  const seedEl=document.getElementById('settings-seed');
+  if(seedEl) seedEl.textContent=gameSeed;
 }
 function closeSettings(){document.getElementById('settings-modal').classList.remove('active');}
 
@@ -5242,6 +5403,7 @@ function selectClass(classId){
   if(cls.statMod.hp){ player.maxHp+=cls.statMod.hp; player.hp=player.maxHp; }
   if(cls.statMod.mp){ player.classMpBonus = cls.statMod.mp; }
   if(cls.statMod.buys){ player.classBuysBonus = cls.statMod.buys; }
+  if(cls.statMod.trapBonus){ player.trapDmgBonus = cls.statMod.trapBonus; } // v1.11: trapper class
 
   // Apply deck mods
   if(cls.deckMod.remove){
@@ -5277,6 +5439,8 @@ function selectMode(mode){
 
 // ===== GAME INIT =====
 function initGame(){
+  // v1.11: Generate game seed for reproducibility display
+  gameSeed = Math.floor(Math.random()*999999);
   generateMap();
   exploredMap=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
   initNoiseHeatmap();
@@ -5291,7 +5455,7 @@ function initGame(){
   burningTiles=[]; // v1.5: reset burning tiles
   footprints=[]; // v1.5: reset footprints
   tombstones=[]; // v1.5: reset tombstones
-  turnCombo={cards:0,kills:0}; // v1.5: reset combo
+  turnCombo={cards:0,kills:0,rooms:0,flags:0,typesPlayed:new Set()}; // v1.5: reset combo
   generateSupply();
   initEntities();
 
@@ -5301,6 +5465,7 @@ function initGame(){
   if(botClass.statMod.hp){ bot.maxHp+=botClass.statMod.hp; bot.hp=bot.maxHp; }
   if(botClass.statMod.mp){ bot.classMpBonus = botClass.statMod.mp; }
   if(botClass.statMod.buys){ bot.classBuysBonus = botClass.statMod.buys; }
+  if(botClass.statMod.trapBonus){ bot.trapDmgBonus = botClass.statMod.trapBonus; } // v1.11
   if(botClass.deckMod.remove){
     for(const id of botClass.deckMod.remove){
       const idx=bot.deck.findIndex(c=>c.id===id);
@@ -5342,9 +5507,9 @@ function initGame(){
   turnNumber=1;
   drawCards(player,HAND_SIZE);
 
-  addLog('RAVEN REBORN v1.7 開始!','system');
-  addLog('v1.5: 地形コンボ・崩壊通路・足跡・墓標・共鳴・コンボ・旗ドラマ','system');
-  addLog(`モード: ${gameMode==='sprint'?'スプリント (25x25, 15VP)':'通常 (40x40, 30VP)'}`, 'system');
+  addLog('RAVEN REBORN v1.11 開始!','system');
+  addLog('v1.11: モブ復活・偵察VP・シナジー・草火・罠師・自動ターン終了','system');
+  addLog(`モード: ${gameMode==='sprint'?'スプリント (25x25, 15VP)':'通常 (40x40, 30VP)'} | シード: ${gameSeed}`, 'system');
   addLog('WASD/矢印キー/クリックで移動 (MP消費、ノイズ+1/歩)','system');
   addLog('旗は敵拠点に! 持ち帰ったら3ターン防衛で10VP!','flag');
   addLog(`${VP_WIN}VP で勝利。旗持ち帰り=10VP、キル=3VP、ボス=5VP`,'system');
