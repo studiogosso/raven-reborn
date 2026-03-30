@@ -1,0 +1,17 @@
+{
+  "name": "RAVEN REBORN",
+  "short_name": "RAVEN",
+  "description": "Card-based tactical roguelike",
+  "start_url": "/raven-reborn/",
+  "display": "standalone",
+  "background_color": "#0a0a12",
+  "theme_color": "#2a1a4a",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0a12'/><text x='50' y='62' font-size='50' text-anchor='middle' fill='%23ddccff'>R</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
