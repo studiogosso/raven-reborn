@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>RAVEN REBORN v1.14</title>
+<title>RAVEN REBORN v1.15</title>
 <meta name="theme-color" content="#0a0a16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1990,6 +1990,31 @@ function tryFreeMove(dx,dy){
   checkAutoEndTurn();
 }
 
+// v1.15: Auto-move along path (click anywhere within MP range)
+let autoMoving=false;
+async function autoMoveAlongPath(path){
+  if(autoMoving)return;
+  autoMoving=true;
+  // path[0] is current position, path[1..n] are steps
+  for(let i=1;i<path.length;i++){
+    if(!player.alive||gameOver||enemyTurnActive||player.mp<=0||player.frozenTurns>0){break;}
+    const step=path[i];
+    const dx=step.x-player.x;
+    const dy=step.y-player.y;
+    // Check if next step is still walkable and unoccupied (mobs may have moved)
+    if(!isWalkable(step.x,step.y)||isOccupied(step.x,step.y,player)){
+      addLog('経路がブロックされました','info');
+      break;
+    }
+    tryFreeMove(dx,dy);
+    render();
+    // Small delay between steps for visual feedback
+    await new Promise(r=>setTimeout(r,80));
+  }
+  autoMoving=false;
+  updateUI();render();
+}
+
 // Keyboard input
 document.addEventListener('keydown',(e)=>{
   if(e.key==='Escape'){
@@ -2492,10 +2517,25 @@ canvas.addEventListener('click',(e)=>{
   }else if(targetMode==='swap'){
     handleSwapClick(tx,ty);
   }else{
-    // v7B: クリックでも自由移動（隣接マスのみ）
+    // v1.15: クリックでMP範囲内の任意マスへ自動移動（経路探索）
+    if(enemyTurnActive||gameOver||!player.alive||player.frozenTurns>0)return;
     const dx=tx-player.x,dy=ty-player.y;
+    if(dx===0&&dy===0)return;
+    // 隣接マスは従来通り即移動
     if(Math.abs(dx)+Math.abs(dy)===1){
       tryFreeMove(dx,dy);
+    }else{
+      // MP範囲内なら経路探索して自動移動
+      const path=findPath(player.x,player.y,tx,ty);
+      if(path&&path.length>1){
+        const steps=path.length-1; // 最初のマスはプレイヤー現在位置
+        if(steps<=player.mp){
+          // 非同期で1歩ずつ移動（アニメーション効果）
+          autoMoveAlongPath(path);
+        }else{
+          addLog('MP不足! (必要:'+steps+' 残り:'+player.mp+')','info');
+        }
+      }
     }
   }
 });
@@ -5222,39 +5262,36 @@ let audioSettings={bgmOn:true,bgmVol:30,seOn:true,seVol:30};
 try{const saved=localStorage.getItem('rp_audio_settings');if(saved)audioSettings={...audioSettings,...JSON.parse(saved)};}catch(e){}
 function saveAudioSettings(){try{localStorage.setItem('rp_audio_settings',JSON.stringify(audioSettings));}catch(e){}}
 
-let bgmPlaying=false,bgmNodes=[];
-function startBGM(type){
+// v1.15: BGM - WAV file playback (random select, loop)
+let bgmPlaying=false;
+let bgmAudio=null;
+const BGM_FILES=['../BGM/Pixel Dungeon Loop1.wav','../BGM/Pixel Dungeon Loop2.wav'];
+function startBGM(){
   stopBGM();
   if(!audioSettings.bgmOn)return;
-  if(!ensureAudio())return;
-  const vol=audioSettings.bgmVol*0.003;
-  // Create ambient drone with oscillators
-  const freqs=type==='event'?[110,165,220]:[55,82.5,110];
-  for(const freq of freqs){
-    const osc=audioCtx.createOscillator();
-    const gain=audioCtx.createGain();
-    const lfo=audioCtx.createOscillator();
-    const lfoGain=audioCtx.createGain();
-    osc.type='sine';osc.frequency.value=freq;
-    lfo.type='sine';lfo.frequency.value=0.1+Math.random()*0.2;
-    lfoGain.gain.value=freq*0.02;
-    lfo.connect(lfoGain);lfoGain.connect(osc.frequency);
-    gain.gain.value=vol;
-    osc.connect(gain);gain.connect(audioCtx.destination);
-    osc.start();lfo.start();
-    bgmNodes.push({osc,gain,lfo,lfoGain});
-  }
-  bgmPlaying=true;
+  try{
+    const pick=BGM_FILES[Math.floor(Math.random()*BGM_FILES.length)];
+    bgmAudio=new Audio(pick);
+    bgmAudio.loop=true;
+    bgmAudio.volume=audioSettings.bgmVol/100;
+    bgmAudio.play().catch(()=>{});
+    bgmPlaying=true;
+    // When track ends naturally (shouldn't with loop, but safety), pick another
+    bgmAudio.addEventListener('error',()=>{
+      // If file not found, try the other one
+      const other=BGM_FILES.find(f=>f!==pick);
+      if(other){bgmAudio.src=other;bgmAudio.play().catch(()=>{});}
+    });
+  }catch(e){bgmPlaying=false;}
 }
 function stopBGM(){
-  for(const n of bgmNodes){try{n.osc.stop();n.lfo.stop();}catch(e){}}
-  bgmNodes=[];bgmPlaying=false;
+  if(bgmAudio){try{bgmAudio.pause();bgmAudio.currentTime=0;}catch(e){}}
+  bgmAudio=null;bgmPlaying=false;
 }
 function updateBGMVolume(){
-  const vol=audioSettings.bgmVol*0.003;
-  for(const n of bgmNodes){try{n.gain.gain.value=vol;}catch(e){}}
+  if(bgmAudio)bgmAudio.volume=audioSettings.bgmVol/100;
 }
-function toggleBGM(on){audioSettings.bgmOn=on;saveAudioSettings();if(on&&!bgmPlaying)startBGM('normal');else if(!on)stopBGM();}
+function toggleBGM(on){audioSettings.bgmOn=on;saveAudioSettings();if(on&&!bgmPlaying)startBGM();else if(!on)stopBGM();}
 function setBGMVol(v){audioSettings.bgmVol=parseInt(v);saveAudioSettings();updateBGMVolume();}
 function toggleSE(on){audioSettings.seOn=on;soundEnabled=on;saveAudioSettings();}
 function setSEVol(v){audioSettings.seVol=parseInt(v);saveAudioSettings();if(masterGain)masterGain.gain.value=v/100;}
@@ -5647,7 +5684,7 @@ window.addEventListener('resize',()=>{
 document.getElementById('mode-select-modal').classList.add('active');
 // v17: Start BGM on first user interaction
 document.addEventListener('click',function bgmStart(){
-  if(!bgmPlaying&&audioSettings.bgmOn)startBGM('normal');
+  if(!bgmPlaying&&audioSettings.bgmOn)startBGM();
   if(masterGain)masterGain.gain.value=audioSettings.seVol/100;
   soundEnabled=audioSettings.seOn;
   document.removeEventListener('click',bgmStart);
