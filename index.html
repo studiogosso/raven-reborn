@@ -2,11 +2,17 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RAVEN REBORN v1.11</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RAVEN REBORN v1.12</title>
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="RAVEN REBORN - ローグライク戦略カードゲーム">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUkFWRU4gUkVCT1JOIiwic2hvcnRfbmFtZSI6IlJBVkVOIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwYTBhMTYiLCJ0aGVtZV9jb2xvciI6IiMwYTBhMTYifQ==">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a12;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
 #top-bar{background:#0e0e1a;border-bottom:1px solid #2a1a4a;padding:6px 15px;display:flex;align-items:center;gap:20px;font-size:13px;min-height:36px;flex-wrap:wrap}
 .top-item{display:flex;align-items:center;gap:6px}
 .top-label{color:#8888aa}
@@ -5507,7 +5513,7 @@ function initGame(){
   turnNumber=1;
   drawCards(player,HAND_SIZE);
 
-  addLog('RAVEN REBORN v1.11 開始!','system');
+  addLog('RAVEN REBORN v1.12 開始!','system');
   addLog('v1.11: モブ復活・偵察VP・シナジー・草火・罠師・自動ターン終了','system');
   addLog(`モード: ${gameMode==='sprint'?'スプリント (25x25, 15VP)':'通常 (40x40, 30VP)'} | シード: ${gameSeed}`, 'system');
   addLog('WASD/矢印キー/クリックで移動 (MP消費、ノイズ+1/歩)','system');
