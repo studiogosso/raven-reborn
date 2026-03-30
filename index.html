@@ -861,31 +861,97 @@ function hideShopDetailPopup() {
   setTimeout(() => { popup.style.display = 'none'; }, 200);
 }
 
-// ===== WEB AUDIO SFX =====
-let audioCtx=null,soundEnabled=true,masterGain=null;
-function initAudio(){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();masterGain=audioCtx.createGain();masterGain.gain.value=0.3;masterGain.connect(audioCtx.destination);}catch(e){soundEnabled=false;}}
-function ensureAudio(){if(!audioCtx)initAudio();if(!audioCtx)return false;if(audioCtx.state==='suspended')audioCtx.resume();return soundEnabled;}
-function playOsc(freq,type,dur,vol=0.3,freqEnd=null,del=0){if(!ensureAudio())return;const t=audioCtx.currentTime+del;const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(freqEnd!==null)o.frequency.linearRampToValueAtTime(freqEnd,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(masterGain);o.start(t);o.stop(t+dur);}
-function playNoiseSFX(dur,vol=0.2,fFreq=4000,del=0){if(!ensureAudio())return;const t=audioCtx.currentTime+del;const bs=Math.ceil(audioCtx.sampleRate*dur);const buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<bs;i++)d[i]=Math.random()*2-1;const src=audioCtx.createBufferSource();src.buffer=buf;const f=audioCtx.createBiquadFilter();f.type='lowpass';f.frequency.value=fFreq;const g=audioCtx.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);src.connect(f);f.connect(g);g.connect(masterGain);src.start(t);src.stop(t+dur);}
+// ===== WAV SFX SYSTEM (Pixel Magic Sound Effects Pack) =====
+let soundEnabled=true;
+const SFX_PATH='../BGM/Pixel Magic Sound Effects Pack/';
+const SFX_FILES={
+  // Combat
+  attack:'PM_GENERIC_Slash01.wav',
+  staffShoot:'PM_SPELL_Cast07_Bright.wav',
+  cardUse:'PM_SPELL_Cast07_Bright.wav',
+  cardBuy:'PM_UI_ITEM_Use.wav',
+  takeDamage:'PM_GENERIC_Impact01v1.wav',
+  kill:'PM_GENERIC_Death_Monster01.wav',
+  death:'PM_GENERIC_Death_Boss01.wav',
+  miss:'PM_GENERIC_Miss01.wav',
+  // Buffs / Heals
+  heal:'PM_UI_ITEM_Heal01.wav',
+  levelUp:'PM_SPELL_Buff27_Epic.wav',
+  vpGain:'PM_SPELL_Buff10_Sparkle.wav',
+  fuse:'PM_SPELL_Buff09_Transform.wav',
+  // UI
+  turnStart:'PM_UI_Button_Select.wav',
+  flagCapture:'PM_ELEM_Light08_Epic_Heal_FULL.wav',
+  // Movement / Terrain
+  move:'PM_GENERIC_Dash01.wav',
+  waterStep:'PM_ELEM_Water01_Aqua_Breath_FULL.wav',
+  fireStep:'PM_ELEM_Fire01_Burst_FULL.wav',
+  grassStep:'PM_ELEM_Wind01_Gust.wav',
+  // Special
+  meteor:'PM_GENERIC_Explosion_Single01.wav',
+  bossEntrance:'PM_ELEM_Dark11_Doom_01_FULL.wav',
+  stealth:'PM_SPELL_Cast22_Vanish_FULL.wav',
+  freeze:'PM_ELEM_Ice01_Freeze_FULL.wav',
+  lightning:'PM_ELEM_Electric02_Lightning_Storm.wav',
+  teleport:'PM_SPELL_Cast27_Portal_Open.wav',
+  combo:'PM_SPELL_Buff10_Sparkle.wav',
+  gameOver:'PM_ELEM_Dark12_Doom_02.wav',
+  victory:'PM_ELEM_Light08_Epic_Heal_FULL.wav',
+  drawCard:'PM_SPELL_Cast30_Subtle_Light_Beam.wav',
+  trap:'PM_GENERIC_Needles_FULL.wav',
+  screenShake:'PM_GENERIC_Explosion_Single01.wav',
+};
+
+// Pre-load audio pool for each SFX (3 instances for overlapping sounds)
+const sfxPool={};
+let sfxPoolReady=false;
+function initSFXPool(){
+  for(const [key,file] of Object.entries(SFX_FILES)){
+    sfxPool[key]=[];
+    for(let i=0;i<3;i++){
+      const a=new Audio(SFX_PATH+file);
+      a.preload='auto';
+      a.volume=audioSettings.seVol/100;
+      sfxPool[key].push(a);
+    }
+  }
+  sfxPoolReady=true;
+}
+function playSFX(name){
+  if(!audioSettings.seOn||!soundEnabled)return;
+  if(!sfxPoolReady)initSFXPool();
+  const pool=sfxPool[name];
+  if(!pool||pool.length===0)return;
+  const a=pool.find(x=>x.paused||x.ended)||pool[0];
+  a.volume=audioSettings.seVol/100;
+  a.currentTime=0;
+  a.play().catch(()=>{});
+}
+function updateSFXPoolVolume(){
+  for(const pool of Object.values(sfxPool)){
+    for(const a of pool)a.volume=audioSettings.seVol/100;
+  }
+}
+
+// Legacy SFX object for backward compatibility (delegates to playSFX)
 const SFX={
-  move(){playNoiseSFX(0.06,0.1,2000);},
-  attack(){playOsc(1200,'sawtooth',0.08,0.2,2400);playNoiseSFX(0.05,0.1,6000);},
-  staffShoot(){playOsc(400,'sine',0.15,0.2,1200);},
-  takeDamage(){playNoiseSFX(0.08,0.2,3000);playOsc(150,'square',0.1,0.15,80);},
-  heal(){for(let i=0;i<4;i++)playOsc(800+i*200,'sine',0.12,0.12,1200+i*200,i*0.08);},
-  cardUse(){playOsc(600,'sine',0.08,0.15,1200);},
-  cardBuy(){playOsc(2000,'sine',0.06,0.15);playOsc(2500,'sine',0.06,0.15,null,0.08);},
-  kill(){playOsc(523,'sine',0.15,0.2);playOsc(659,'sine',0.15,0.2,null,0.15);playOsc(784,'sine',0.25,0.25,null,0.3);},
-  death(){playOsc(300,'sawtooth',0.4,0.2,80);},
-  turnStart(){playOsc(800,'sine',0.04,0.15);},
-  flagCapture(){playOsc(523,'sine',0.12,0.2);playOsc(659,'sine',0.12,0.2,null,0.12);playOsc(784,'sine',0.12,0.2,null,0.24);playOsc(1047,'sine',0.3,0.25,null,0.36);},
-  vpGain(){playOsc(1500,'sine',0.1,0.15,2500);playOsc(2000,'sine',0.15,0.12,3000,0.1);},
-  fuse(){playOsc(440,'sine',0.1,0.2,880);playOsc(660,'sine',0.1,0.2,1320,0.1);playOsc(880,'sine',0.2,0.25,1760,0.2);},
-  meteor(){playOsc(60,'sawtooth',0.6,0.2,40);playNoiseSFX(0.4,0.15,1000);},
-  // v1.11: Terrain sound effects
-  waterStep(){playNoiseSFX(0.1,0.12,1500);playOsc(200,'sine',0.08,0.08,300);},
-  grassStep(){playNoiseSFX(0.06,0.06,800);},
-  fireStep(){playNoiseSFX(0.08,0.15,3000);playOsc(600,'sawtooth',0.05,0.1,200);},
+  move(){playSFX('move');},
+  attack(){playSFX('attack');},
+  staffShoot(){playSFX('staffShoot');},
+  takeDamage(){playSFX('takeDamage');},
+  heal(){playSFX('heal');},
+  cardUse(){playSFX('cardUse');},
+  cardBuy(){playSFX('cardBuy');},
+  kill(){playSFX('kill');},
+  death(){playSFX('death');},
+  turnStart(){playSFX('turnStart');},
+  flagCapture(){playSFX('flagCapture');},
+  vpGain(){playSFX('vpGain');},
+  fuse(){playSFX('fuse');},
+  meteor(){playSFX('meteor');},
+  waterStep(){playSFX('waterStep');},
+  grassStep(){playSFX('grassStep');},
+  fireStep(){playSFX('fireStep');},
 };
 
 // ===== v1.14: PARTICLE SYSTEM =====
@@ -5294,7 +5360,7 @@ function updateBGMVolume(){
 function toggleBGM(on){audioSettings.bgmOn=on;saveAudioSettings();if(on&&!bgmPlaying)startBGM();else if(!on)stopBGM();}
 function setBGMVol(v){audioSettings.bgmVol=parseInt(v);saveAudioSettings();updateBGMVolume();}
 function toggleSE(on){audioSettings.seOn=on;soundEnabled=on;saveAudioSettings();}
-function setSEVol(v){audioSettings.seVol=parseInt(v);saveAudioSettings();if(masterGain)masterGain.gain.value=v/100;}
+function setSEVol(v){audioSettings.seVol=parseInt(v);saveAudioSettings();updateSFXPoolVolume();}
 // ===== v23: DEBUG MODE SYSTEM =====
 // v24: Per-player map management
 function savePlayerMaps(p){
@@ -5685,7 +5751,7 @@ document.getElementById('mode-select-modal').classList.add('active');
 // v17: Start BGM on first user interaction
 document.addEventListener('click',function bgmStart(){
   if(!bgmPlaying&&audioSettings.bgmOn)startBGM();
-  if(masterGain)masterGain.gain.value=audioSettings.seVol/100;
+  if(!sfxPoolReady)initSFXPool();
   soundEnabled=audioSettings.seOn;
   document.removeEventListener('click',bgmStart);
 },{once:true});
