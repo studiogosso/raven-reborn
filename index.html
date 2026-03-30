@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>RAVEN REBORN v1.12</title>
+<title>RAVEN REBORN v1.13</title>
 <meta name="theme-color" content="#0a0a16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -507,6 +507,8 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
 // v1.11: Mob melee restore (50%), 10-card deck fix, room diversity guarantee, scout VP,
 //         auto-end turn, MP cost preview, trapper class, post-game stats, synergy bonus,
 //         expanded combo, grass fire, terrain SFX, longer card popup, game seed
+// v1.13: Trapper class buff (+2 trap dmg, HP+1), auto-end 300ms, burning tile step damage,
+//         scout class desc update
 // ========================================================
 
 let MAP_W=40,MAP_H=40,VIEWPORT=13,VP_WIN=30;
@@ -619,7 +621,7 @@ const ROOM_EFFECTS = [
 
 // ===== v1.3: CHARACTER CLASSES =====
 const CLASSES = [
-  {id:'scout', name:'斥候', desc:'MP+1、ステルス特化', color:'#44ff88',
+  {id:'scout', name:'斥候', desc:'MP+1、偵察VP特化', color:'#44ff88',
     deckMod: {remove:['kogatana'], add:['shinobiashi','teisatsu']},
     statMod: {mp:1}},
   {id:'warrior', name:'戦士', desc:'HP+2、攻撃特化', color:'#ff6644',
@@ -628,10 +630,10 @@ const CLASSES = [
   {id:'merchant', name:'商人', desc:'購入+1、経済特化', color:'#ffcc44',
     deckMod: {remove:['miharashi'], add:['gyoushounin','douka']},
     statMod: {buys:1}},
-  // v1.11: Trapper class - trap specialist
-  {id:'trapper', name:'罠師', desc:'罠+1ダメ、罠特化', color:'#ff8844',
+  // v1.13: Trapper class buffed - trap specialist with +2 trap damage and HP+1
+  {id:'trapper', name:'罠師', desc:'HP+1、罠+2ダメ、罠特化', color:'#ff8844',
     deckMod: {remove:['miharashi','onmitsu'], add:['gabyou','gabyou','togenowana']},
-    statMod: {trapBonus:1}},
+    statMod: {hp:1, trapBonus:2}},
 ];
 
 // ===== MOB DEFINITIONS =====
@@ -1800,8 +1802,9 @@ function tryFreeMove(dx,dy){
   }
   // v1.5 Bug2: Grass sets flag for NEXT move
   if(movedTile===TILE_GRASS){player.nextMoveNoNoise=true;SFX.grassStep();}
-  // v1.11: burning tile sound
-  if(burningTiles.some(bt=>bt.x===nx&&bt.y===ny)){SFX.fireStep();}
+  // v1.13: burning tile damage on step + sound
+  const steppedFire=burningTiles.find(bt=>bt.x===nx&&bt.y===ny);
+  if(steppedFire){SFX.fireStep();player.hp-=steppedFire.dmg;addLog(`炎上タイルを踏んだ! HP-${steppedFire.dmg}`,'dmg');flashScreen('rgba(255,100,0,0.2)',0.15);}
 
   // v1.5: Footprints
   footprints.push({x:player.x, y:player.y, turnsLeft:10, owner:player.name});
@@ -3842,7 +3845,7 @@ function checkAutoEndTurn(){
           const cb=document.getElementById('turn-confirm-banner');if(cb)cb.remove();
           endTurnFull();
         }
-      }, 600);
+      }, 300);
     }
   }
 }
