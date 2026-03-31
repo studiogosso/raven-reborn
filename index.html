@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>RAVEN REBORN v1.15</title>
+<title>RAVEN REBORN v1.16</title>
 <meta name="theme-color" content="#0a0a16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -216,6 +216,7 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
     <div class="mini-bar-wrap"><span style="color:#ffd700">VP</span><div class="mini-bar"><div class="mini-bar-fill vp" id="mini-vp-bar" style="width:0%"></div></div></div>
   </div>
   <div class="top-item" style="margin-left:auto"><span class="top-val" style="color:#44ffaa;font-size:11px">WASD移動 | 1-5カード | E終了 | Q店 | R山 | M地図</span></div>
+  <div class="top-item"><button class="btn" onclick="openHelp()" style="padding:3px 8px;font-size:14px;min-width:28px;color:#44ddff">?</button></div>
   <div class="top-item"><button class="btn" onclick="openSettings()" style="padding:3px 8px;font-size:14px;min-width:28px">&#9881;</button></div>
 </div>
 
@@ -390,6 +391,81 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
   <div class="modal" style="max-width:500px;text-align:center">
     <h2 style="color:#aa88ff;margin-bottom:16px">流派を選択</h2>
     <div id="class-options" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"></div>
+  </div>
+</div>
+
+<!-- v1.16: Help modal - game guide -->
+<div class="modal-overlay" id="help-modal">
+  <div class="modal" style="max-width:480px;max-height:80vh;overflow-y:auto">
+    <button class="modal-close" onclick="document.getElementById('help-modal').classList.remove('active')">閉じる</button>
+    <h2 style="color:#44ddff">ゲームガイド</h2>
+
+    <div style="margin:12px 0">
+      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🗺️ マップの見方</h3>
+      <div style="font-size:12px;color:#aaa;line-height:1.8">
+        <div><span style="display:inline-block;width:16px;height:16px;background:#0c0c14;border:1px solid #2a1a1a;vertical-align:middle;margin-right:6px"></span><b style="color:#ccc">壁</b> — 通行不可。暗い色でレンガ模様</div>
+        <div><span style="display:inline-block;width:16px;height:16px;background:#2a2a48;border:1px solid #1e1e3a;vertical-align:middle;margin-right:6px"></span><b style="color:#ccc">通路</b> — 通行可能。灰青色</div>
+        <div><span style="display:inline-block;width:16px;height:16px;background:#35305a;border:1px solid #1e1e3a;vertical-align:middle;margin-right:6px"></span><b style="color:#ccc">部屋</b> — 通路より少し明るい紫。部屋効果あり</div>
+        <div><span style="display:inline-block;width:16px;height:16px;background:#0a1a2a;border:1px solid #3388cc;vertical-align:middle;margin-right:6px"></span><b style="color:#3388cc">水場~</b> — ノイズ+2。移動注意</div>
+        <div><span style="display:inline-block;width:16px;height:16px;background:#0a1a0a;border:1px solid #44cc66;vertical-align:middle;margin-right:6px"></span><b style="color:#44cc66">草地,</b> — 次の移動ノイズ0。ステルス向き</div>
+        <div><span style="display:inline-block;width:16px;height:16px;background:#1a0a2a;border:1px solid #5a2a8a;vertical-align:middle;margin-right:6px"></span><b style="color:#aa66ff">ボス部屋◇</b> — ボスが出現する特殊エリア</div>
+      </div>
+    </div>
+
+    <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
+      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">⚔️ コンボシステム</h3>
+      <div style="font-size:12px;color:#aaa;line-height:1.8">
+        <div>1ターン内の行動数でコンボが発動:</div>
+        <div style="margin:4px 0;padding:4px 8px;background:#1a1a3a;border-radius:4px">
+          <b style="color:#ffdd44">3アクション</b> = COMBO! (XP x1.5)
+        </div>
+        <div style="margin:4px 0;padding:4px 8px;background:#1a1a3a;border-radius:4px">
+          <b style="color:#ff6644">4アクション+</b> = ULTRA COMBO! (XP x2)
+        </div>
+        <div style="margin-top:4px;color:#888">カウント対象: カード使用, キル, 部屋発見, 旗奪取</div>
+      </div>
+    </div>
+
+    <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
+      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🔗 シナジーボーナス</h3>
+      <div style="font-size:12px;color:#aaa;line-height:1.8">
+        <div>1ターンで特定タイプのカードを組み合わせると発動:</div>
+        <div style="margin:4px 0;padding:4px 8px;background:#2a1a1a;border-radius:4px">
+          <b style="color:#ff6644">伏兵</b>: 武器 + 罠 → XP+2
+        </div>
+        <div style="margin:4px 0;padding:4px 8px;background:#1a2a1a;border-radius:4px">
+          <b style="color:#44dd66">財運</b>: 道具 + 財宝 → 購入+1
+        </div>
+        <div style="margin:4px 0;padding:4px 8px;background:#1a1a2a;border-radius:4px">
+          <b style="color:#44aaff">秘術</b>: 巻物 + 杖 → 次ターンAP+1
+        </div>
+      </div>
+    </div>
+
+    <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
+      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🏠 部屋効果</h3>
+      <div style="font-size:12px;color:#aaa;line-height:1.8">
+        <div>部屋に入ると特殊効果が発動（初回のみ偵察VP+1）:</div>
+        <div>💚 <b style="color:#44dd88">回復の間</b> — HP回復</div>
+        <div>🔇 <b style="color:#888">沈黙の間</b> — ノイズリセット</div>
+        <div>⛪ <b style="color:#ffdd44">祭壇の間</b> — XPボーナス</div>
+        <div>🔊 <b style="color:#ff8844">反響の間</b> — 音が響く（ノイズ増加）</div>
+      </div>
+    </div>
+
+    <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
+      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">⌨️ 操作</h3>
+      <div style="font-size:12px;color:#aaa;line-height:1.8">
+        <div><b style="color:#44ddff">WASD/矢印</b> — 1歩移動(MP消費)</div>
+        <div><b style="color:#44ddff">クリック</b> — MP範囲内の任意マスへ自動移動</div>
+        <div><b style="color:#44ddff">1-5</b> — カード選択/再押しで使用</div>
+        <div><b style="color:#44ddff">E</b> — ターン終了</div>
+        <div><b style="color:#44ddff">Q</b> — ショップ / <b style="color:#44ddff">R</b> — 山札 / <b style="color:#44ddff">M</b> — 大マップ</div>
+        <div><b style="color:#44ddff">スワイプ</b> — モバイル移動</div>
+      </div>
+    </div>
+
+    <button class="btn" onclick="document.getElementById('help-modal').classList.remove('active')" style="margin-top:12px;width:100%">閉じる</button>
   </div>
 </div>
 
@@ -4233,38 +4309,50 @@ function render(){
     }
 
     if(tile===TILE_WALL){
-      ctx.fillStyle='#1a1a28';ctx.fillRect(px,py,tileSize,tileSize);
-      // Wall texture: subtle brick pattern
-      ctx.strokeStyle='#6a2a2a';ctx.lineWidth=0.5;
+      // v1.16: Walls are clearly dark with strong border
+      ctx.fillStyle='#0c0c14';ctx.fillRect(px,py,tileSize,tileSize);
+      // Brick pattern - more visible
+      ctx.strokeStyle='#2a1a1a';ctx.lineWidth=0.8;
       ctx.strokeRect(px+2,py+2,tileSize/2-2,tileSize/2-2);
       ctx.strokeRect(px+tileSize/2+1,py+tileSize/2+1,tileSize/2-3,tileSize/2-3);
       ctx.lineWidth=1;
+      // Wall edge highlight (makes wall boundaries clear)
+      const wx=camX+x,wy=camY+y;
+      if(wy>0&&map[wy-1]&&map[wy-1][wx]!==TILE_WALL){ctx.fillStyle='#4a3a2a';ctx.fillRect(px,py,tileSize,2);}
+      if(wy<MAP_H-1&&map[wy+1]&&map[wy+1][wx]!==TILE_WALL){ctx.fillStyle='#4a3a2a';ctx.fillRect(px,py+tileSize-2,tileSize,2);}
+      if(wx>0&&map[wy][wx-1]!==TILE_WALL){ctx.fillStyle='#4a3a2a';ctx.fillRect(px,py,2,tileSize);}
+      if(wx<MAP_W-1&&map[wy][wx+1]!==TILE_WALL){ctx.fillStyle='#4a3a2a';ctx.fillRect(px+tileSize-2,py,2,tileSize);}
     } else if(tile===TILE_BOSS_FLOOR){
+      // Boss room: purple glow
       ctx.fillStyle='#1a0a2a';ctx.fillRect(px,py,tileSize,tileSize);
-      ctx.strokeStyle='#3a1a5a';ctx.strokeRect(px+1,py+1,tileSize-2,tileSize-2);
-      // Boss room: diamond pattern
-      ctx.strokeStyle='#2a1040';ctx.beginPath();
+      ctx.strokeStyle='#5a2a8a';ctx.strokeRect(px+1,py+1,tileSize-2,tileSize-2);
+      ctx.strokeStyle='#3a1060';ctx.beginPath();
       ctx.moveTo(px+tileSize/2,py+2);ctx.lineTo(px+tileSize-2,py+tileSize/2);
       ctx.lineTo(px+tileSize/2,py+tileSize-2);ctx.lineTo(px+2,py+tileSize/2);ctx.closePath();ctx.stroke();
     } else if(tile===TILE_WATER){
-      // v1.1: Water terrain
-      ctx.fillStyle='#1a2a3a';ctx.fillRect(px,py,tileSize,tileSize);
-      ctx.fillStyle='rgba(40,100,180,0.15)';ctx.fillRect(px,py,tileSize,tileSize);
-      ctx.fillStyle='#28648880';ctx.font='8px sans-serif';ctx.fillText('~',px+tileSize/2-3,py+tileSize/2+3);
+      // v1.16: Water - brighter blue
+      ctx.fillStyle='#0a1a2a';ctx.fillRect(px,py,tileSize,tileSize);
+      ctx.fillStyle='rgba(40,120,220,0.2)';ctx.fillRect(px,py,tileSize,tileSize);
+      ctx.fillStyle='#3388ccaa';ctx.font='10px sans-serif';ctx.fillText('~',px+tileSize/2-4,py+tileSize/2+3);
     } else if(tile===TILE_GRASS){
-      // v1.1: Grass terrain
-      ctx.fillStyle='#1a2a1a';ctx.fillRect(px,py,tileSize,tileSize);
-      ctx.fillStyle='rgba(40,180,80,0.1)';ctx.fillRect(px,py,tileSize,tileSize);
-      ctx.fillStyle='#28b45020';ctx.font='8px sans-serif';ctx.fillText(',',px+tileSize/2-2,py+tileSize/2+2);
+      // v1.16: Grass - brighter green
+      ctx.fillStyle='#0a1a0a';ctx.fillRect(px,py,tileSize,tileSize);
+      ctx.fillStyle='rgba(40,200,80,0.15)';ctx.fillRect(px,py,tileSize,tileSize);
+      ctx.fillStyle='#44cc6644';ctx.font='10px sans-serif';ctx.fillText(',',px+tileSize/2-3,py+tileSize/2+3);
     } else {
-      // Floor: bright with subtle dot pattern
+      // v1.16: Floor - clearly brighter than walls, warm tone for rooms
       ctx.fillStyle='#2a2a48';ctx.fillRect(px,py,tileSize,tileSize);
-      // Small dot in center for floor texture
-      ctx.fillStyle='#333360';
+      // Check if inside a room (warmer) vs corridor (cooler)
+      const inRoom=rooms&&rooms.some(r=>camX+x>=r.x&&camX+x<r.x+r.w&&camY+y>=r.y&&camY+y<r.y+r.h);
+      if(inRoom){
+        ctx.fillStyle='rgba(60,50,80,0.3)';ctx.fillRect(px,py,tileSize,tileSize);
+      }
+      ctx.fillStyle='#3a3a60';
       ctx.fillRect(px+tileSize/2-1,py+tileSize/2-1,2,2);
     }
 
-    ctx.strokeStyle='#14142a';ctx.strokeRect(px,py,tileSize,tileSize);
+    // v1.16: Grid lines - lighter for rooms, darker for walls
+    ctx.strokeStyle=tile===TILE_WALL?'#080810':'#1e1e3a';ctx.strokeRect(px,py,tileSize,tileSize);
   }
 
   // v1.3: Draw room effect overlays for revealed rooms
@@ -5501,6 +5589,8 @@ function debugRestart(){
   addLog('デバッグ: ゲーム再起動','system');
 }
 
+// v1.16: Help modal
+function openHelp(){document.getElementById('help-modal').classList.add('active');}
 function openSettings(){
   const modal=document.getElementById('settings-modal');
   modal.classList.add('active');
