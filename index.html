@@ -271,7 +271,7 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
 </div>
 
 <!-- ===== GAME CONTAINER (solo + multi shared) ===== -->
-<div id="game-wrapper" style="display:none">
+<div id="game-wrapper" style="display:none;flex-direction:column;height:100vh;width:100%">
 
 <canvas id="particle-canvas"></canvas>
 <div id="boss-entrance-overlay"><div class="boss-entrance-text"></div><div class="boss-entrance-sub"></div></div>
@@ -720,7 +720,7 @@ function enterSoloMode() {
   appMode = 'solo';
   document.getElementById('main-menu').style.display = 'none';
   document.getElementById('mp-lobby').style.display = 'none';
-  document.getElementById('game-wrapper').style.display = 'block';
+  document.getElementById('game-wrapper').style.display = 'flex';
   document.getElementById('mp-menu-return').style.display = 'block';
   document.getElementById('mp-opponent-bar').style.display = 'none';
   document.getElementById('mp-turn-timer').style.display = 'none';
@@ -1087,7 +1087,7 @@ function mpApplyState(state) {
 
 function mpEnterGame() {
   document.getElementById('mp-lobby').style.display = 'none';
-  document.getElementById('game-wrapper').style.display = 'block';
+  document.getElementById('game-wrapper').style.display = 'flex';
   document.getElementById('mp-menu-return').style.display = 'block';
   document.getElementById('mp-opponent-bar').style.display = 'block';
   document.getElementById('mp-turn-timer').style.display = 'block';
@@ -1639,7 +1639,7 @@ function hideShopDetailPopup() {
 
 // ===== WAV SFX SYSTEM (Pixel Magic Sound Effects Pack) =====
 let soundEnabled=true;
-const SFX_PATH='./BGM/Pixel Magic Sound Effects Pack/';
+const SFX_PATH='../BGM/Pixel Magic Sound Effects Pack/';
 const SFX_FILES={
   // Combat
   attack:'PM_GENERIC_Slash01.wav',
@@ -6192,7 +6192,7 @@ function saveAudioSettings(){try{localStorage.setItem('rp_audio_settings',JSON.s
 // v1.15: BGM - WAV file playback (random select, loop)
 let bgmPlaying=false;
 let bgmAudio=null;
-const BGM_FILES=['./BGM/Pixel Dungeon Loop1.wav','./BGM/Pixel Dungeon Loop2.wav'];
+const BGM_FILES=['../BGM/Pixel Dungeon Loop1.wav','../BGM/Pixel Dungeon Loop2.wav'];
 function startBGM(){
   stopBGM();
   if(!audioSettings.bgmOn)return;
