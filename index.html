@@ -347,7 +347,7 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
     <button class="btn btn-end" id="btn-fuse-cancel" onclick="cancelFuseMode()" style="display:none">合成取消</button>
     <button class="btn btn-shop" id="btn-shop" onclick="openShop()">サプライ確認</button>
     <button class="btn btn-deck" id="btn-deck" onclick="openDeck()">デッキ確認</button>
-    <button class="btn" id="btn-investigate" onclick="investigateRoom()" style="border-color:#ffaa44;color:#ffaa44">調べる (F)</button>
+    <button class="btn" id="btn-investigate" onclick="destroySymbol()" style="border-color:#ffaa44;color:#ffaa44">破壊 (F)</button>
     <button class="btn" id="btn-levelup" onclick="openLevelUp()" style="border-color:#44ff88;color:#44ff88">レベルアップ</button>
     <button class="btn btn-end" id="btn-end-turn" onclick="requestEndTurn()">ターン終了</button>
   </div>
@@ -490,15 +490,15 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
     </div>
 
     <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
-      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🏠 部屋効果</h3>
+      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🔮 シンボル</h3>
       <div style="font-size:12px;color:#aaa;line-height:1.8">
-        <div>部屋に入ると発見（偵察VP+1）。<b style="color:#ffaa44">Fキーまたは「調べる」ボタン</b>で効果発動:</div>
-        <div>💚 <b style="color:#44dd88">回復の泉</b> — HP+2回復（1回限り）</div>
-        <div>☠️ <b style="color:#cc44ff">毒沼</b> — HP-1（何度でも）</div>
-        <div>🔇 <b style="color:#6688ff">静寂の部屋</b> — この部屋内のノイズ0</div>
-        <div>🔊 <b style="color:#ff8844">反響の部屋</b> — この部屋内のノイズ2倍</div>
-        <div>⛪ <b style="color:#ffd700">祭壇</b> — カード1枚除外（1回限り）</div>
-        <div>🛒 <b style="color:#ffcc44">隠れ商人</b> — 購入+1（1回限り）</div>
+        <div>部屋の中央に光るシンボルが配置されている。上に乗って<b style="color:#ffaa44">Fキーまたは「破壊」ボタン</b>で効果発動:</div>
+        <div>💚 <b style="color:#44dd88">回復の泉</b> — HP+2回復</div>
+        <div>☠️ <b style="color:#cc44ff">毒沼</b> — HP-1ダメージ</div>
+        <div>🔇 <b style="color:#6688ff">静寂</b> — 部屋のノイズ0効果を解除</div>
+        <div>🔊 <b style="color:#ff8844">反響</b> — 部屋のノイズ2倍効果を解除</div>
+        <div>⛪ <b style="color:#ffd700">祭壇</b> — カード1枚除外</div>
+        <div>🛒 <b style="color:#ffcc44">隠れ商人</b> — 購入+1</div>
       </div>
     </div>
 
@@ -508,7 +508,7 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
         <div><b style="color:#44ddff">WASD/矢印</b> — 1歩移動(MP消費)</div>
         <div><b style="color:#44ddff">クリック</b> — MP範囲内の任意マスへ自動移動</div>
         <div><b style="color:#44ddff">1-5</b> — カード選択/再押しで使用</div>
-        <div><b style="color:#44ddff">F</b> — 部屋を調べる（部屋効果発動）</div>
+        <div><b style="color:#44ddff">F</b> — シンボル破壊（効果発動）</div>
         <div><b style="color:#44ddff">E</b> — ターン終了</div>
         <div><b style="color:#44ddff">Q</b> — ショップ / <b style="color:#44ddff">R</b> — 山札 / <b style="color:#44ddff">M</b> — 大マップ</div>
         <div><b style="color:#44ddff">スワイプ</b> — モバイル移動</div>
@@ -1418,7 +1418,7 @@ const MOB_DEFS=[
 const RANK_COLORS={E:'#cccccc',D:'#44dd66',C:'#ff8844',B:'#ff4444'};
 
 // ===== GAME STATE =====
-let map=[],rooms=[],player,bot;
+let map=[],rooms=[],symbols=[],player,bot;
 let exploredMap=[];
 let perPlayerExplored={}; // v24: per-player explored maps {playerName: 2D array}
 let perPlayerNoise={}; // v24: per-player noise heatmaps
@@ -1996,7 +1996,7 @@ function executeFuse(){
 
 // ===== MAP GENERATION (25x25 ring) =====
 function generateMap(){
-  map=[];rooms=[];
+  map=[];rooms=[];symbols=[];
   for(let y=0;y<MAP_H;y++){map[y]=[];for(let x=0;x<MAP_W;x++)map[y][x]=TILE_WALL;}
   const cx=Math.floor(MAP_W/2),cy=Math.floor(MAP_H/2);
   const bossW=6,bossH=6;
@@ -2105,6 +2105,12 @@ function generateMap(){
 
   // v1.5: Check room resonance after effect assignment
   checkRoomResonance();
+  // v2.1: シンボルオブジェクト生成（部屋の中央に配置）
+  symbols = [];
+  for(const r of rooms){
+    if(!r.effect || r.effect.id === 'none' || r.effect.id === 'boss') continue;
+    symbols.push({ x: r.cx, y: r.cy, effect: r.effect, room: r, destroyed: false });
+  }
 }
 
 function connectWide(a,b){
@@ -2882,10 +2888,10 @@ document.addEventListener('keydown',(e)=>{
     updateUI(); render();
     return;
   }
-  // F = 部屋を調べる
+  // F = シンボル破壊
   if(key==='f'){
     e.preventDefault();
-    investigateRoom();
+    destroySymbol();
     return;
   }
   // WASD / Arrow keys
@@ -3595,52 +3601,51 @@ function spreadWaterDamage(startX, startY, dmg){
   addLog('水が電気を伝導! 接続水域に'+waterDmg+'ダメージ(3倍)!','dmg');
 }
 
-// v2.0: 部屋を調べるアクション（Fキー）
-function investigateRoom(){
+// v2.1: シンボル破壊アクション（Fキー）
+function destroySymbol(){
   if(enemyTurnActive||gameOver||!player.alive)return;
-  const room = getRoomAt(player.x, player.y);
-  if(!room || !room.effect || room.effect.id === 'none'){
-    addLog('ここには調べるものがない','info');
+  const sym = symbols.find(s => !s.destroyed && s.x === player.x && s.y === player.y);
+  if(!sym){
+    addLog('ここにシンボルはない','info');
     return;
   }
-  if(room.effectUsed){
-    addLog(`${room.effect.icon} ${room.effect.name} — すでに使用済み`,'info');
-    return;
-  }
+  const eff = sym.effect;
+  const room = sym.room;
+  sym.destroyed = true;
+  SFX.attack();
+  showScorePopup(player.x, player.y, eff.icon + ' 破壊!', eff.color || '#fff');
   // 効果発動
-  if(room.effect.id === 'heal'){
-    room.effectUsed = true;
+  if(eff.id === 'heal'){
     const healAmt = room.resonant ? 4 : 2;
     player.hp = Math.min(player.maxHp, player.hp + healAmt);
-    addLog(`${room.effect.icon} 回復の泉: HP+${healAmt}!${room.resonant?' (共鳴)':''}`, 'heal');
+    addLog(`${eff.icon} 回復の泉を破壊! HP+${healAmt}${room.resonant?' (共鳴)':''}`, 'heal');
     SFX.heal();
-  } else if(room.effect.id === 'poison'){
+  } else if(eff.id === 'poison'){
     const poisonAmt = room.resonant ? 2 : 1;
     player.hp = Math.max(1, player.hp - poisonAmt);
-    addLog(`${room.effect.icon} 毒沼! HP-${poisonAmt}${room.resonant?' (共鳴)':''}`, 'dmg');
-  } else if(room.effect.id === 'altar'){
-    room.effectUsed = true;
+    addLog(`${eff.icon} 毒沼のシンボルを破壊! HP-${poisonAmt}${room.resonant?' (共鳴)':''}`, 'dmg');
+    SFX.takeDamage();
+  } else if(eff.id === 'altar'){
     if(player.hand.length > 0){
       trashMax = 1;
       trashSelections = [];
       openTrash();
-      addLog(`${room.effect.icon} 祭壇: カード1枚を除外可能`, 'card');
+      addLog(`${eff.icon} 祭壇を破壊! カード1枚を除外可能`, 'card');
     } else {
-      addLog(`${room.effect.icon} 祭壇: 手札がないため除外できない`, 'info');
+      addLog(`${eff.icon} 祭壇を破壊! (手札なし — 効果なし)`, 'info');
     }
-  } else if(room.effect.id === 'merchant'){
-    room.effectUsed = true;
+  } else if(eff.id === 'merchant'){
     const buyAmt = room.resonant ? 2 : 1;
     player.buys += buyAmt;
-    addLog(`${room.effect.icon} 隠れ商人: 購入+${buyAmt}!${room.resonant?' (共鳴)':''}`, 'buy');
-  } else if(room.effect.id === 'echo'){
-    addLog(`${room.effect.icon} 反響の部屋: この部屋内のノイズ2倍（常時効果）`, 'info');
-  } else if(room.effect.id === 'silence'){
-    addLog(`${room.effect.icon} 静寂の部屋: この部屋内のノイズ0（常時効果）`, 'info');
-  } else {
-    addLog(`${room.effect.icon} ${room.effect.name}: ${room.effect.desc}`, 'info');
+    addLog(`${eff.icon} 商人のシンボルを破壊! 購入+${buyAmt}${room.resonant?' (共鳴)':''}`, 'buy');
+  } else if(eff.id === 'echo'){
+    addLog(`${eff.icon} 反響のシンボルを破壊! この部屋のノイズ2倍が解除`, 'info');
+    room.effect = {id:'none'};
+  } else if(eff.id === 'silence'){
+    addLog(`${eff.icon} 静寂のシンボルを破壊! この部屋のノイズ0が解除`, 'info');
+    room.effect = {id:'none'};
   }
-  showToast(`${room.effect.icon} ${room.effect.name}`);
+  showToast(`${eff.icon} シンボル破壊!`);
   updateUI(); render();
 }
 
@@ -5101,24 +5106,24 @@ function render(){
     ctx.strokeStyle=tile===TILE_WALL?'#080810':'#1e1e3a';ctx.strokeRect(px,py,tileSize,tileSize);
   }
 
-  // v1.3: Draw room effect overlays for revealed rooms
-  for(const r of rooms){
-    if(!r.effectRevealed || !r.effect || !r.effect.color) continue;
-    for(let dy=0;dy<r.h;dy++) for(let dx=0;dx<r.w;dx++){
-      const mx=r.x+dx, my=r.y+dy;
-      const sx=mx-camX, sy=my-camY;
-      if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH&&isVisible(mx,my)){
-        ctx.fillStyle=r.effect.color;
-        ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);
-      }
-    }
-    // Draw room icon at center
-    const cx=r.cx||Math.floor(r.x+r.w/2), cy=r.cy||Math.floor(r.y+r.h/2);
-    const sx=cx-camX, sy=cy-camY;
-    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH&&isVisible(cx,cy)&&r.effect.icon){
-      ctx.font='16px sans-serif';
-      ctx.fillText(r.effect.icon, sx*tileSize+8, sy*tileSize+24);
-    }
+  // v2.1: シンボルオブジェクトの描画（部屋オーバーレイ廃止）
+  for(const sym of symbols){
+    if(sym.destroyed) continue;
+    const sx=sym.x-camX, sy=sym.y-camY;
+    if(sx<0||sx>=vpW||sy<0||sy>=vpH) continue;
+    if(!isVisible(sym.x, sym.y)) continue;
+    // シンボルの台座（光る円）
+    const px=sx*tileSize, py=sy*tileSize;
+    const pulse = 0.4 + 0.2*Math.sin(Date.now()/400);
+    ctx.fillStyle=`rgba(200,180,255,${pulse*0.3})`;
+    ctx.beginPath();ctx.arc(px+tileSize/2,py+tileSize/2,tileSize/2-2,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=`rgba(200,180,255,${pulse})`;ctx.lineWidth=1.5;ctx.stroke();ctx.lineWidth=1;
+    // アイコン
+    ctx.font='bold 18px sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='#fff';
+    ctx.fillText(sym.effect.icon, px+tileSize/2, py+tileSize/2);
+    ctx.textAlign='start';ctx.textBaseline='alphabetic';
   }
 
   // v1.4: Draw flag carrier golden trails (visible to everyone, even in fog)
