@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>RAVEN REBORN v1.16</title>
+<title>RAVEN REBORN v2.0</title>
 <meta name="theme-color" content="#0a0a16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -194,9 +194,84 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
   .modal{width:98%;max-width:98%;padding:10px}
   .shop-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
 }
+/* ===== MAIN MENU ===== */
+#main-menu{position:fixed;top:0;left:0;right:0;bottom:0;background:#0a0a16;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:300;gap:30px}
+#main-menu .menu-title{font-size:52px;font-weight:900;letter-spacing:12px;color:#fff;text-shadow:0 0 60px rgba(68,221,255,0.5),0 0 120px rgba(68,221,255,0.2);user-select:none}
+#main-menu .menu-subtitle{font-size:14px;color:#6668aa;margin-top:-20px;letter-spacing:4px}
+#main-menu .menu-buttons{display:flex;flex-direction:column;gap:14px;min-width:260px}
+#main-menu .menu-btn{background:linear-gradient(135deg,#1a1a3a,#0e0e20);border:2px solid #4a3a7a;color:#ccbbee;padding:18px 36px;border-radius:12px;font-size:18px;font-weight:bold;cursor:pointer;transition:all .25s;text-align:center;letter-spacing:2px}
+#main-menu .menu-btn:hover{border-color:#7060c0;transform:translateY(-3px);box-shadow:0 6px 25px rgba(100,60,200,.35);background:linear-gradient(135deg,#2a1a5a,#1a1a3a)}
+#main-menu .menu-btn.primary{border-color:#44ddff;color:#44ddff}
+#main-menu .menu-btn.primary:hover{border-color:#88eeff;box-shadow:0 6px 25px rgba(68,221,255,.35)}
+#main-menu .menu-btn.multi{border-color:#44ff88;color:#44ff88}
+#main-menu .menu-btn.multi:hover{border-color:#88ffbb;box-shadow:0 6px 25px rgba(68,255,136,.35)}
+#main-menu .menu-version{font-size:11px;color:#444466;margin-top:10px}
+/* ===== MULTIPLAYER LOBBY ===== */
+#mp-lobby{position:fixed;top:0;left:0;right:0;bottom:0;background:#0a0a16;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:300;gap:20px}
+#mp-lobby h1{font-size:36px;color:#44ff88;text-shadow:0 0 30px rgba(68,255,136,0.5);letter-spacing:4px}
+#mp-lobby .subtitle{font-size:14px;color:#8888aa;margin-top:-10px}
+#mp-lobby .lobby-box{background:#12122a;border:2px solid #4a3a7a;border-radius:12px;padding:30px;min-width:320px;text-align:center}
+#mp-lobby input{background:#1a1a3a;border:2px solid #3a2a6a;color:#ddccff;padding:12px 20px;border-radius:8px;font-size:20px;text-align:center;width:140px;letter-spacing:8px;outline:none}
+#mp-lobby input:focus{border-color:#7060c0}
+#mp-lobby .lobby-btn{background:linear-gradient(135deg,#2a1a5a,#1a1a3a);border:2px solid #6a5a9a;color:#ccbbee;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;transition:all .2s;margin:6px}
+#mp-lobby .lobby-btn:hover{background:linear-gradient(135deg,#3a2a7a,#2a2a5a);border-color:#8a7aba;transform:translateY(-2px)}
+#mp-lobby .lobby-btn.primary{border-color:#44ff88;color:#44ff88}
+#mp-lobby .lobby-btn.primary:hover{border-color:#66ffaa}
+#mp-lobby .status{font-size:13px;color:#ffcc44;margin-top:10px;min-height:20px}
+#mp-lobby .waiting{font-size:18px;color:#44ddff;animation:pulse 1.5s infinite}
+#mp-lobby .back-btn{background:none;border:1px solid #4a3a6a;color:#8888aa;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;margin-top:10px}
+#mp-lobby .back-btn:hover{border-color:#6a5a8a;color:#bbbbdd}
+/* ===== MULTIPLAYER GAME OVERLAY ===== */
+#mp-opponent-bar{display:none;position:fixed;top:40px;right:10px;background:rgba(0,0,0,0.8);border:1px solid #ff4444;border-radius:8px;padding:6px 12px;z-index:89;font-size:12px}
+#mp-chat-log{display:none;position:fixed;bottom:140px;right:10px;background:rgba(0,0,0,0.7);border:1px solid #2a1a4a;border-radius:8px;padding:6px;width:200px;max-height:120px;overflow-y:auto;font-size:11px;z-index:89}
+#mp-turn-timer{display:none;height:4px;background:#1a1a3a;position:relative;overflow:hidden}
+#mp-turn-timer-fill{height:100%;background:#44ddff;transition:width 0.5s linear}
+#mp-menu-return{display:none;position:fixed;top:6px;left:6px;z-index:95}
+#mp-menu-return button{background:#2a1a3a;border:1px solid #4a3a7a;color:#8888aa;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+#mp-menu-return button:hover{border-color:#6a5a9a;color:#ccbbee}
+#shrink-warning{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(255,60,0,0.85);color:#fff;padding:6px 16px;border-radius:8px;font-weight:bold;font-size:13px;z-index:89;display:none}
 </style>
 </head>
 <body>
+
+<!-- ===== MAIN MENU ===== -->
+<div id="main-menu">
+  <div class="menu-title">RAVEN REBORN</div>
+  <div class="menu-subtitle">STEALTH DECKBUILDER</div>
+  <div class="menu-buttons">
+    <button class="menu-btn primary" onclick="enterSoloMode()">一人であそぶ</button>
+    <button class="menu-btn multi" onclick="enterMultiMode()">ネット対戦</button>
+  </div>
+  <div class="menu-version">v2.0</div>
+</div>
+
+<!-- ===== MULTIPLAYER LOBBY ===== -->
+<div id="mp-lobby">
+  <h1>RAVEN REBORN</h1>
+  <div class="subtitle">ネット対戦</div>
+  <div class="lobby-box">
+    <div style="margin-bottom:20px">
+      <button class="lobby-btn primary" onclick="mpCreateRoom()">部屋を作成</button>
+    </div>
+    <div style="border-top:1px solid #3a2a6a;padding-top:20px">
+      <div style="font-size:13px;color:#8888aa;margin-bottom:8px">部屋コードを入力</div>
+      <input type="text" id="mp-room-code-input" maxlength="4" placeholder="1234" inputmode="numeric">
+      <div style="margin-top:12px">
+        <button class="lobby-btn" onclick="mpJoinRoom()">参加</button>
+      </div>
+    </div>
+    <div class="status" id="mp-lobby-status"></div>
+    <div id="mp-waiting-area" style="display:none">
+      <div class="waiting">対戦相手を待っています...</div>
+      <div style="font-size:16px;color:#ffd700;margin-top:10px">部屋コード: <span id="mp-display-room-code" style="font-size:24px;letter-spacing:6px;font-weight:bold"></span></div>
+      <div style="font-size:12px;color:#888;margin-top:6px">このコードを相手に伝えてください</div>
+    </div>
+  </div>
+  <button class="back-btn" onclick="returnToMainMenu()">戻る</button>
+</div>
+
+<!-- ===== GAME CONTAINER (solo + multi shared) ===== -->
+<div id="game-wrapper" style="display:none">
 
 <canvas id="particle-canvas"></canvas>
 <div id="boss-entrance-overlay"><div class="boss-entrance-text"></div><div class="boss-entrance-sub"></div></div>
@@ -291,7 +366,8 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
   <h1 id="game-over-text"></h1>
   <p id="game-over-detail"></p>
   <p id="game-over-scores" style="font-size:14px;color:#ccc;margin-bottom:15px"></p>
-  <button onclick="location.reload()">もう一度プレイ</button>
+  <button onclick="location.reload()" style="margin:4px">もう一度プレイ</button>
+  <button onclick="returnToMainMenu()" style="margin:4px">メニューに戻る</button>
 </div>
 
 <div class="modal-overlay" id="shop-modal">
@@ -584,10 +660,22 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
   </div>
 </div>
 
+<!-- Multiplayer overlay elements -->
+<div id="mp-opponent-bar"><span style="color:#ff4444;font-weight:bold">相手: </span><span id="mp-op-name">P2</span> <span id="mp-op-hp" style="color:#ff8888">?/?</span> <span id="mp-op-vp" style="color:#ffd700">0VP</span></div>
+<div id="mp-turn-timer"><div id="mp-turn-timer-fill" style="width:100%"></div></div>
+<div id="mp-chat-log"></div>
+<div id="mp-menu-return"><button onclick="returnToMainMenu()">メニューに戻る</button></div>
+<div id="shrink-warning"></div>
+
+</div><!-- end game-wrapper -->
+
 <script>
 // ========================================================
-// RAVEN REBORN v1.8
-// Major polish pass: unified damage, fog of war 3-stage, keyboard shortcuts,
+// RAVEN REBORN v2.0 - Unified Solo + Multiplayer
+// Original solo: v1.16 (all features preserved)
+// Multiplayer: server-driven state via polling
+// ========================================================
+// v1.8: Major polish pass: unified damage, fog of war 3-stage, keyboard shortcuts,
 // card border colors, A* binary heap, botPlayers audit, XP decay, noise feedback
 // v1.1: Bot AI personalities, terrain effects (water/grass), decoy card, stealth relaxation
 // v1.2: Bug fixes, tutorial, HP bar improvement, tooltips, Scry card, Echo Trap
@@ -604,6 +692,618 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
 // v1.13: Trapper class buff (+2 trap dmg, HP+1), auto-end 300ms, burning tile step damage,
 //         scout class desc update
 // ========================================================
+
+// ===== APP MODE: 'solo' or 'multi' =====
+let appMode = null; // null = menu, 'solo' = solo, 'multi' = multiplayer
+
+// ===== MULTIPLAYER STATE =====
+let mpServerUrl = '';
+let mpRoomCode = '';
+let mpPlayerToken = '';
+let mpMyIndex = -1;
+let mpPollInterval = null;
+let mpLastStateVersion = -1;
+let mpGameState = null;
+let mpPrevLogCount = 0;
+let mpConnected = false;
+
+function getMultiplayerServerUrl() {
+  const h = window.location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') {
+    return window.location.origin;
+  }
+  return 'https://raven-reborn-multiplayer.onrender.com';
+}
+
+// ===== MENU FUNCTIONS =====
+function enterSoloMode() {
+  appMode = 'solo';
+  document.getElementById('main-menu').style.display = 'none';
+  document.getElementById('mp-lobby').style.display = 'none';
+  document.getElementById('game-wrapper').style.display = 'block';
+  document.getElementById('mp-menu-return').style.display = 'block';
+  document.getElementById('mp-opponent-bar').style.display = 'none';
+  document.getElementById('mp-turn-timer').style.display = 'none';
+  document.getElementById('mp-chat-log').style.display = 'none';
+  // Show mode selection modal (existing solo flow)
+  document.getElementById('mode-select-modal').classList.add('active');
+}
+
+function enterMultiMode() {
+  appMode = 'multi';
+  document.getElementById('main-menu').style.display = 'none';
+  document.getElementById('mp-lobby').style.display = 'flex';
+  // Try auto-reconnect
+  const sr = localStorage.getItem('raven_mp_room');
+  const st = localStorage.getItem('raven_mp_token');
+  const si = localStorage.getItem('raven_mp_index');
+  if (sr && st) {
+    mpRoomCode = sr;
+    mpPlayerToken = st;
+    mpMyIndex = parseInt(si) || 0;
+    mpServerUrl = getMultiplayerServerUrl();
+    mpStartPolling();
+  }
+}
+
+function returnToMainMenu() {
+  // Stop multiplayer polling
+  if (mpPollInterval) { clearInterval(mpPollInterval); mpPollInterval = null; }
+  // Reset multiplayer state
+  mpRoomCode = '';
+  mpPlayerToken = '';
+  mpMyIndex = -1;
+  mpGameState = null;
+  mpLastStateVersion = -1;
+  mpPrevLogCount = 0;
+  mpConnected = false;
+  localStorage.removeItem('raven_mp_room');
+  localStorage.removeItem('raven_mp_token');
+  localStorage.removeItem('raven_mp_index');
+  // Reset game state
+  gameOver = false;
+  // Hide everything, show menu
+  document.getElementById('game-wrapper').style.display = 'none';
+  document.getElementById('mp-lobby').style.display = 'none';
+  document.getElementById('mp-menu-return').style.display = 'none';
+  document.getElementById('game-over-screen').style.display = 'none';
+  document.getElementById('mp-opponent-bar').style.display = 'none';
+  document.getElementById('mp-turn-timer').style.display = 'none';
+  document.getElementById('mp-chat-log').style.display = 'none';
+  document.getElementById('mp-waiting-area').style.display = 'none';
+  document.getElementById('mp-lobby-status').textContent = '';
+  document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+  document.getElementById('main-menu').style.display = 'flex';
+  appMode = null;
+  // Stop BGM
+  if (typeof stopBGM === 'function') stopBGM();
+}
+
+// ===== MULTIPLAYER LOBBY FUNCTIONS =====
+async function mpCreateRoom() {
+  const st = document.getElementById('mp-lobby-status');
+  st.textContent = '部屋を作成中...';
+  mpServerUrl = getMultiplayerServerUrl();
+  try {
+    const r = await fetch(mpServerUrl + '/api/create', { method: 'POST' });
+    const d = await r.json();
+    if (d.error) { st.textContent = 'エラー: ' + d.error; return; }
+    mpRoomCode = d.code;
+    mpPlayerToken = d.token;
+    mpMyIndex = d.playerIndex;
+    localStorage.setItem('raven_mp_room', mpRoomCode);
+    localStorage.setItem('raven_mp_token', mpPlayerToken);
+    localStorage.setItem('raven_mp_index', mpMyIndex);
+    document.getElementById('mp-display-room-code').textContent = mpRoomCode;
+    document.getElementById('mp-waiting-area').style.display = 'block';
+    st.textContent = '';
+    mpStartPolling();
+  } catch (e) {
+    st.textContent = 'サーバーに接続できません';
+  }
+}
+
+async function mpJoinRoom() {
+  const code = document.getElementById('mp-room-code-input').value.trim();
+  if (code.length !== 4) { document.getElementById('mp-lobby-status').textContent = '4桁のコードを入力'; return; }
+  const st = document.getElementById('mp-lobby-status');
+  st.textContent = '参加中...';
+  mpServerUrl = getMultiplayerServerUrl();
+  try {
+    const r = await fetch(mpServerUrl + '/api/join/' + code, { method: 'POST' });
+    const d = await r.json();
+    if (d.error) { st.textContent = 'エラー: ' + d.error; return; }
+    mpRoomCode = code;
+    mpPlayerToken = d.token;
+    mpMyIndex = d.playerIndex;
+    localStorage.setItem('raven_mp_room', mpRoomCode);
+    localStorage.setItem('raven_mp_token', mpPlayerToken);
+    localStorage.setItem('raven_mp_index', mpMyIndex);
+    st.textContent = '';
+    mpStartPolling();
+  } catch (e) {
+    st.textContent = 'サーバーに接続できません';
+  }
+}
+
+// ===== MULTIPLAYER SERVER COMMUNICATION =====
+async function mpSendAction(action) {
+  if (!mpRoomCode || !mpPlayerToken) return null;
+  try {
+    const r = await fetch(mpServerUrl + '/api/action/' + mpRoomCode, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: mpPlayerToken, action })
+    });
+    const d = await r.json();
+    if (d.ok) await mpFetchState();
+    else if (d.error) showToast(d.error);
+    return d;
+  } catch (e) {
+    showToast('通信エラー');
+    return null;
+  }
+}
+
+async function mpFetchState() {
+  if (!mpRoomCode || !mpPlayerToken) return;
+  try {
+    const r = await fetch(mpServerUrl + '/api/state/' + mpRoomCode + '?token=' + mpPlayerToken);
+    const d = await r.json();
+    if (d.error) return;
+    if (d.stateVersion === mpLastStateVersion) return;
+    mpLastStateVersion = d.stateVersion;
+    mpApplyState(d);
+  } catch (e) {}
+}
+
+function mpStartPolling() {
+  if (mpPollInterval) clearInterval(mpPollInterval);
+  mpFetchState();
+  mpPollInterval = setInterval(mpFetchState, 500);
+}
+
+// ===== MULTIPLAYER STATE APPLICATION =====
+function mpApplyState(state) {
+  const prevPhase = mpGameState ? mpGameState.phase : null;
+  const prevTurn = mpGameState ? mpGameState.currentTurn : -1;
+  mpGameState = state;
+
+  if (state.phase === 'waiting') return;
+
+  if (state.phase === 'playing' || state.phase === 'over') {
+    if (prevPhase === 'waiting' || prevPhase === null) {
+      mpEnterGame();
+    }
+
+    // Map server state to local variables for rendering
+    map = state.map;
+    MAP_W = map[0].length;
+    MAP_H = map.length;
+
+    // Map player state
+    const me = state.me;
+    if (!player) {
+      // First time - create minimal player object
+      player = {
+        x: me.x, y: me.y, startX: me.startX, startY: me.startY,
+        hp: me.hp, maxHp: me.maxHp, xp: me.xp,
+        deck: [], hand: me.hand || [], discard: [],
+        ap: me.ap, buys: me.buys, noise: me.turnNoise, turnNoise: me.turnNoise,
+        mp: me.mp, hasFlag: me.hasFlag, alive: me.alive,
+        kills: me.kills, flagVP: me.flagVP, bossKill: me.bossKill,
+        cardsPlayedThisTurn: 0, stealthTurns: 0, frozenTurns: me.frozenTurns || 0,
+        reconTurns: 0, reconRadius: 0, fullVisionTurns: 0,
+        handLimit: 5, nextNoiseZero: false, levels: { atk: 0, hp: 0, mp: 0 },
+        roomsDiscovered: 0, name: 'P' + (mpMyIndex + 1), color: '#4488ff',
+      };
+      humanPlayers = [player];
+      botPlayers = [];
+    } else {
+      player.x = me.x; player.y = me.y;
+      player.startX = me.startX; player.startY = me.startY;
+      player.hp = me.hp; player.maxHp = me.maxHp;
+      player.xp = me.xp; player.ap = me.ap;
+      player.buys = me.buys; player.mp = me.mp;
+      player.turnNoise = me.turnNoise;
+      player.hasFlag = me.hasFlag; player.alive = me.alive;
+      player.kills = me.kills; player.flagVP = me.flagVP;
+      player.bossKill = me.bossKill;
+      player.frozenTurns = me.frozenTurns || 0;
+      player.hand = me.hand || [];
+      player.deck = new Array(me.deckCount || 0); // placeholder for count
+      player.discard = new Array(me.discardCount || 0); // placeholder for count
+    }
+
+    // Map opponent to bot for sidebar display
+    if (state.opponent) {
+      bot = {
+        x: state.opponent.x, y: state.opponent.y,
+        startX: state.opponentStartX, startY: state.opponentStartY,
+        hp: state.opponent.hp, maxHp: state.opponent.maxHp,
+        xp: 0, alive: true, hasFlag: state.opponent.hasFlag,
+        kills: state.opponent.kills || 0, flagVP: state.opponent.flagVP || 0,
+        bossKill: state.opponent.bossKill || 0,
+        deck: [], hand: [], discard: [],
+        ap: 0, buys: 0, noise: 0, turnNoise: 0, mp: 0,
+        cardsPlayedThisTurn: 0, stealthTurns: 0, frozenTurns: 0,
+        reconTurns: 0, fullVisionTurns: 0, handLimit: 5,
+        nextNoiseZero: false, levels: { atk: 0, hp: 0, mp: 0 },
+        name: 'P' + ((1 - mpMyIndex) + 1), personality: null,
+        isHuman: true, visible: state.opponent.visible,
+      };
+      botPlayers = [bot];
+    }
+
+    // Map mobs
+    mobs = (state.mobs || []).map(m => ({
+      ...m, alive: true, xpReward: m.xp || 1,
+    }));
+
+    // Map boss
+    if (state.boss && state.boss.alive) {
+      boss = {
+        x: state.boss.x, y: state.boss.y,
+        hp: state.boss.hp, maxHp: state.boss.maxHp,
+        atk: 4, alive: true, name: '深淵の守護者',
+        frozenTurns: 0, turnNoise: 0,
+      };
+    } else {
+      boss = null;
+    }
+
+    // Map flag
+    if (state.flag) {
+      flagPos = { x: state.flag.x, y: state.flag.y };
+    } else {
+      flagPos = null;
+    }
+
+    // Map explored (multiplayer fog is server-side, but we need exploredMap for rendering)
+    if (!exploredMap || exploredMap.length !== MAP_H) {
+      exploredMap = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
+    }
+    // Mark all visible tiles (tiles that are not -1 in server map) as explored
+    for (let y = 0; y < MAP_H; y++) {
+      for (let x = 0; x < MAP_W; x++) {
+        if (map[y][x] !== -1) exploredMap[y][x] = true;
+      }
+    }
+
+    // Map traps
+    traps = (state.traps || []).map(t => ({
+      x: t.x, y: t.y, owner: player, dmg: 0, noise: 0, freeze: 0, aoe: 0, type: '罠',
+    }));
+
+    // Map supply for shop
+    if (state.supply) {
+      constSupply = (state.supply.const || []).map(s => ({ ...s, remaining: s.remaining }));
+      randomSupply = (state.supply.random || []).map(s => ({ ...s, remaining: s.remaining }));
+    }
+
+    turnNumber = state.turnNumber || 1;
+    enemyTurnActive = !state.isMyTurn;
+
+    // Detect turn change
+    if (prevTurn !== -1 && state.currentTurn !== prevTurn) {
+      turnEndPending = false;
+      const cb = document.getElementById('turn-confirm-banner');
+      if (cb) cb.remove();
+      const banner = document.getElementById('turn-banner');
+      if (state.isMyTurn) {
+        playSFX('turnStart');
+        banner.textContent = 'あなたのターン!';
+        banner.style.color = '#44ffaa';
+      } else {
+        banner.textContent = '相手のターン';
+        banner.style.color = '#ff6644';
+      }
+      banner.style.opacity = '1';
+      setTimeout(() => { banner.style.opacity = '0'; }, 1500);
+      selectedCardIndex = -1;
+    }
+
+    // Process new logs
+    if (state.logs && state.logs.length > mpPrevLogCount) {
+      const nl = state.logs.slice(mpPrevLogCount);
+      for (const log of nl) {
+        let cls = 'info';
+        if (log.includes('ダメージ')) cls = 'dmg';
+        else if (log.includes('回復')) cls = 'heal';
+        else if (log.includes('撃破')) cls = 'kill';
+        else if (log.includes('購入')) cls = 'buy';
+        else if (log.includes('旗')) cls = 'flag';
+        else if (log.includes('VP')) cls = 'vp';
+        else if (log.includes('使用')) cls = 'card';
+        else if (log.includes('ボス')) cls = 'boss-action';
+        else if (log.includes('縮小')) cls = 'system';
+        addLog(log, cls);
+      }
+      mpPrevLogCount = state.logs.length;
+    }
+
+    // Pending target mode
+    if (state.pendingTarget) {
+      if (state.pendingTarget === 'staff' || state.pendingTarget === 'earthquake') {
+        targetMode = state.pendingTarget;
+        document.getElementById('target-cancel').style.display = 'block';
+      }
+    } else if (targetMode === 'staff' || targetMode === 'earthquake') {
+      targetMode = null;
+      document.getElementById('target-cancel').style.display = 'none';
+    }
+
+    // Update turn timer
+    if (state.turnTimeLeft !== undefined) {
+      const pct = Math.max(0, state.turnTimeLeft / 60000 * 100);
+      document.getElementById('mp-turn-timer-fill').style.width = pct + '%';
+      document.getElementById('mp-turn-timer-fill').style.background = pct > 30 ? '#44ddff' : pct > 10 ? '#ffaa44' : '#ff4444';
+    }
+
+    // Update opponent bar
+    if (state.opponent) {
+      const opBar = document.getElementById('mp-opponent-bar');
+      document.getElementById('mp-op-hp').textContent = state.opponent.hp + '/' + state.opponent.maxHp;
+      document.getElementById('mp-op-vp').textContent = (state.opponent.vp || 0) + 'VP';
+    }
+
+    // Shrink warning
+    if (state.shrinkWarning) {
+      const sw = document.getElementById('shrink-warning');
+      sw.style.display = 'block';
+      sw.textContent = 'マップ縮小まで' + state.shrinkWarning.turnsLeft + 'ターン';
+    } else {
+      document.getElementById('shrink-warning').style.display = 'none';
+    }
+
+    // Update enemy turn indicator
+    document.getElementById('enemy-turn-indicator').style.opacity = state.isMyTurn ? '0' : '0.8';
+    document.getElementById('phase-info').textContent = state.isMyTurn ? '自由行動' : '待機中';
+
+    mpUpdateUI();
+    render();
+
+    // Game over
+    if (state.phase === 'over' && !gameOver) {
+      gameOver = true;
+      const scr = document.getElementById('game-over-screen');
+      const txt = document.getElementById('game-over-text');
+      const det = document.getElementById('game-over-detail');
+      const sco = document.getElementById('game-over-scores');
+      if (state.winner === mpMyIndex) {
+        txt.textContent = '勝利!'; txt.className = 'win';
+        playSFX('victory');
+        spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#ffd700', 50, { speed: 8, size: 6, shape: 'star' });
+      } else {
+        txt.textContent = '敗北...'; txt.className = 'lose';
+        playSFX('gameOver');
+      }
+      det.textContent = 'あなた: ' + state.me.vp + 'VP | 相手: ' + state.opponent.vp + 'VP';
+      sco.innerHTML = '旗:' + state.me.flagVP + ' キル:' + state.me.kills + 'x3 ボス:' + state.me.bossKill + 'x5';
+      scr.style.display = 'flex';
+    }
+  }
+}
+
+function mpEnterGame() {
+  document.getElementById('mp-lobby').style.display = 'none';
+  document.getElementById('game-wrapper').style.display = 'block';
+  document.getElementById('mp-menu-return').style.display = 'block';
+  document.getElementById('mp-opponent-bar').style.display = 'block';
+  document.getElementById('mp-turn-timer').style.display = 'block';
+  // Hide solo-only buttons in multiplayer
+  const lvBtn = document.getElementById('btn-levelup');
+  if (lvBtn) lvBtn.style.display = 'none';
+  const fuseBtn = document.getElementById('btn-fuse-cancel');
+  if (fuseBtn) fuseBtn.style.display = 'none';
+  // Hide debug/help for cleaner multiplayer UI
+  tileSize = Math.floor(Math.min(
+    (window.innerHeight - 200) / VIEWPORT,
+    (window.innerWidth - 340) / VIEWPORT
+  ));
+  tileSize = Math.max(28, Math.min(48, tileSize));
+  // Initialize explored map
+  exploredMap = Array.from({ length: MAP_H }, () => Array(MAP_W).fill(false));
+  noiseHeatmap = [];
+  initNoiseHeatmap();
+  addLog('オンライン対戦開始! あなたはP' + (mpMyIndex + 1), 'system');
+  mpConnected = true;
+  // Start BGM
+  document.addEventListener('click', function bs() {
+    if (!bgmPlaying && audioSettings.bgmOn) startBGM();
+    if (!sfxPoolReady) initSFXPool();
+    soundEnabled = audioSettings.seOn;
+    document.removeEventListener('click', bs);
+  }, { once: true });
+}
+
+function mpUpdateUI() {
+  if (!mpGameState || !mpGameState.me) return;
+  // Use the normal updateUI for solo-compatible parts
+  // But override some elements specific to multiplayer
+  const me = mpGameState.me;
+
+  document.getElementById('top-turn').textContent = mpGameState.turnNumber;
+  document.getElementById('top-ap').textContent = me.ap;
+  document.getElementById('top-mp').textContent = me.mp;
+  document.getElementById('top-buys').textContent = me.buys;
+  document.getElementById('top-xp').textContent = me.xp;
+  document.getElementById('top-noise').textContent = me.turnNoise;
+  document.getElementById('top-vp').textContent = me.vp;
+  document.getElementById('top-vp-target').textContent = '/' + VP_WIN;
+
+  // Scoreboard
+  const op = mpGameState.opponent;
+  document.getElementById('scoreboard-title').textContent = 'スコアボード (' + VP_WIN + 'VP)';
+  document.getElementById('score-player-vp').textContent = me.vp;
+  document.getElementById('score-bot-vp').textContent = op ? op.vp : 0;
+  document.getElementById('score-player-bar').style.width = Math.min(100, me.vp / VP_WIN * 100) + '%';
+  document.getElementById('score-bot-bar').style.width = Math.min(100, (op ? op.vp : 0) / VP_WIN * 100) + '%';
+  document.getElementById('score-player-detail').textContent = '旗:' + me.flagVP + ' カード:' + (me.cardVP || 0) + ' キル:' + me.kills * 3 + ' ボス:' + me.bossKill * 5;
+  if (op) document.getElementById('score-bot-detail').textContent = '旗:' + op.flagVP + ' カード:' + (op.cardVP || 0) + ' キル:' + (op.kills || 0) * 3 + ' ボス:' + (op.bossKill || 0) * 5;
+
+  document.getElementById('player-hp').textContent = me.hp + '/' + me.maxHp;
+  document.getElementById('player-ap').textContent = me.ap;
+  document.getElementById('player-mp').textContent = me.mp;
+  document.getElementById('player-xp').textContent = me.xp;
+  document.getElementById('player-noise').textContent = me.turnNoise;
+  document.getElementById('player-flag').textContent = me.hasFlag ? '所持中' : 'なし';
+  document.getElementById('deck-count').textContent = me.deckCount || 0;
+  document.getElementById('discard-count').textContent = me.discardCount || 0;
+
+  if (op) {
+    document.getElementById('bot-hp').textContent = op.hp + '/' + op.maxHp;
+    document.getElementById('bot-flag').textContent = op.hasFlag ? '所持中' : 'なし';
+    document.getElementById('bot-personality').textContent = '';
+  }
+
+  // Mobile mini bars
+  const miniHpBar = document.getElementById('mini-hp-bar');
+  const miniVpBar = document.getElementById('mini-vp-bar');
+  if (miniHpBar) miniHpBar.style.width = Math.round(me.hp / me.maxHp * 100) + '%';
+  if (miniVpBar) miniVpBar.style.width = Math.min(100, Math.round(me.vp / VP_WIN * 100)) + '%';
+
+  // Boss overlay
+  if (mpGameState.boss && mpGameState.boss.alive) {
+    document.getElementById('boss-hp-overlay').style.display = 'block';
+    document.getElementById('boss-hp-fill').style.width = (mpGameState.boss.hp / mpGameState.boss.maxHp * 100) + '%';
+    document.getElementById('boss-hp-text').textContent = mpGameState.boss.hp + '/' + mpGameState.boss.maxHp;
+  } else {
+    document.getElementById('boss-hp-overlay').style.display = 'none';
+  }
+
+  // Turn status
+  const ts = document.getElementById('turn-status') || document.querySelector('[id*="turn-status"]');
+  // We need to find or create a turn status element - the solo version has shortcut hints here
+  // For multiplayer, show turn status
+
+  // Hand cards (reuse solo updateUI hand rendering)
+  const handArea = document.getElementById('hand-area');
+  handArea.innerHTML = '';
+  if (me.hand) me.hand.forEach((card, i) => {
+    const playable = mpCanPlayCard(card);
+    const isDead = card.isVP || card.ap === 99 || card.id === 'noroi';
+    const div = document.createElement('div');
+    div.className = 'card' + (selectedCardIndex === i ? ' selected' : '') + (isDead ? ' dead-card' : (!playable ? ' disabled' : ''));
+    if (!playable && !isDead) {
+      let reason = '';
+      if (card.ap > 0 && me.ap < card.ap) reason = 'AP不足';
+      else if (!mpGameState.isMyTurn) reason = '自分のターンではない';
+      else reason = '使用不可';
+      div.setAttribute('data-tooltip', reason);
+    } else if (isDead) {
+      div.setAttribute('data-tooltip', card.id === 'noroi' ? '呪い: VP-1' : '勝利点カード');
+    }
+    const tc = getCardTypeColor(card.type);
+    let bn = '', bc = '#ddccff';
+    if (card.power) { bn = card.power + 'dmg'; bc = '#ff6644'; }
+    else if (card.xpGain) { bn = '+' + card.xpGain + 'XP'; bc = '#aa88ff'; }
+    else if (card.mpGain) { bn = '+' + card.mpGain + 'MP'; bc = '#44ffaa'; }
+    else if (card.healPower) { bn = '+' + card.healPower + 'HP'; bc = '#44ff88'; }
+    else if (card.vpValue) { bn = card.vpValue + 'VP'; bc = '#ffd700'; }
+    else if (card.draw) { bn = '+' + card.draw + '枚'; bc = '#88aaff'; }
+    div.innerHTML = '<div class="card-name">' + card.name + '</div><div class="card-type" style="color:' + tc + '">' + card.type + '</div>' + (bn ? '<div style="font-size:20px;font-weight:bold;color:' + bc + ';text-align:center;margin:2px 0;text-shadow:0 0 8px ' + bc + '40">' + bn + '</div>' : '') + '<div class="card-effect">' + card.desc + '</div><div class="card-stats"><span class="card-ap">' + (card.ap === 99 ? '-' : card.ap === 0 ? 'AP0' : 'AP' + card.ap) + '</span><span class="card-noise">' + (card.noise > 0 ? 'N' + card.noise : '') + '</span></div>';
+    const bc2 = { '武器': '#ff6644', '杖': '#6688ff', '罠': '#ff8844', '巻物': '#cc44ff', '道具': '#aaaacc', '財宝': '#ffcc44', '勝利点': '#ffd700', '融合武器': '#ff8800', '呪い': '#666600' };
+    div.style.borderLeft = '4px solid ' + (bc2[card.type] || '#3a2a6a');
+    if (!isDead && playable && !targetMode) {
+      div.onclick = () => {
+        if (selectedCardIndex === i) mpPlayCard(i);
+        else { selectedCardIndex = i; mpUpdateUI(); }
+      };
+    }
+    if (card.fused) div.classList.add('fused-card');
+    handArea.appendChild(div);
+  });
+
+  // Shop button badge
+  if (mpGameState.supply) {
+    const allSup = [...(mpGameState.supply.const || []), ...(mpGameState.supply.random || [])];
+    const affordCount = allSup.filter(s => s.remaining > 0 && s.xpCost <= me.xp).length;
+    const shopBtn = document.getElementById('btn-shop');
+    if (affordCount > 0 && me.buys > 0) {
+      shopBtn.textContent = 'サプライ確認 (' + affordCount + ')';
+      shopBtn.style.borderColor = '#44ff88';
+    } else {
+      shopBtn.textContent = 'サプライ確認';
+      shopBtn.style.borderColor = '#aa66ff';
+    }
+  }
+
+  document.getElementById('btn-end-turn').disabled = !mpGameState.isMyTurn;
+}
+
+function mpCanPlayCard(c) {
+  if (!c || c.isVP || c.ap === 99 || c.id === 'noroi') return false;
+  if (!mpGameState || !mpGameState.isMyTurn) return false;
+  if (c.ap > 0 && mpGameState.me.ap < c.ap) return false;
+  return true;
+}
+
+// ===== MULTIPLAYER ACTIONS =====
+function mpTryMove(dx, dy) {
+  if (!mpGameState || !mpGameState.isMyTurn || gameOver) return;
+  if (mpGameState.me.frozenTurns > 0) { showToast('凍結中!'); return; }
+  if (mpGameState.me.mp <= 0) { showToast('MP不足!'); return; }
+  if (targetMode || mpGameState.pendingTarget) return;
+  mpSendAction({ type: 'move', dx, dy });
+  playSFX('move');
+}
+
+function mpPlayCard(index) {
+  if (!mpGameState || !mpGameState.isMyTurn || gameOver || targetMode) return;
+  const c = mpGameState.me.hand[index];
+  if (!c || !mpCanPlayCard(c)) return;
+  showCardPopup(c, false);
+  spawnCardPlayParticles(window.innerWidth / 2, window.innerHeight / 2);
+  playSFX('cardUse');
+  selectedCardIndex = -1;
+  mpSendAction({ type: 'playCard', cardIndex: index });
+}
+
+function mpRequestEndTurn() {
+  if (!mpGameState || !mpGameState.isMyTurn || gameOver) return;
+  if (turnEndPending) {
+    turnEndPending = false;
+    const cb = document.getElementById('turn-confirm-banner');
+    if (cb) cb.remove();
+    mpSendAction({ type: 'endTurn' });
+    return;
+  }
+  turnEndPending = true;
+  let cb = document.getElementById('turn-confirm-banner');
+  if (!cb) {
+    cb = document.createElement('div');
+    cb.id = 'turn-confirm-banner';
+    cb.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);border:2px solid #ffaa44;border-radius:12px;padding:16px 32px;z-index:100;text-align:center;pointer-events:none';
+    document.body.appendChild(cb);
+  }
+  cb.innerHTML = '<div style="font-size:18px;font-weight:bold;color:#ffcc44;margin-bottom:6px">ターン終了?</div><div style="font-size:13px;color:#ccbbee">残AP:' + mpGameState.me.ap + ' | 残MP:' + mpGameState.me.mp + '</div><div style="font-size:11px;color:#888;margin-top:6px">もう一度 E を押すと実行</div>';
+  cb.style.display = 'block';
+}
+
+function mpBuyCard(sid) {
+  if (!mpGameState || !mpGameState.isMyTurn || gameOver) return;
+  playSFX('cardBuy');
+  mpSendAction({ type: 'buy', supplyId: sid });
+}
+
+function mpSendTarget(tx, ty) {
+  mpSendAction({ type: 'target', tx, ty });
+  targetMode = null;
+  document.getElementById('target-cancel').style.display = 'none';
+}
+
+async function mpAutoMoveAlongPath(path) {
+  if (!mpGameState || !mpGameState.isMyTurn) return;
+  for (let i = 1; i < path.length; i++) {
+    const dx = path[i].x - path[i - 1].x, dy = path[i].y - path[i - 1].y;
+    const r = await mpSendAction({ type: 'move', dx, dy });
+    if (!r || !r.ok) break;
+    playSFX('move');
+    await delay(80);
+    if (!mpGameState || !mpGameState.isMyTurn) break;
+  }
+}
 
 let MAP_W=40,MAP_H=40,VIEWPORT=13,VP_WIN=30;
 let gameMode='normal';
@@ -939,7 +1639,7 @@ function hideShopDetailPopup() {
 
 // ===== WAV SFX SYSTEM (Pixel Magic Sound Effects Pack) =====
 let soundEnabled=true;
-const SFX_PATH='../BGM/Pixel Magic Sound Effects Pack/';
+const SFX_PATH='./BGM/Pixel Magic Sound Effects Pack/';
 const SFX_FILES={
   // Combat
   attack:'PM_GENERIC_Slash01.wav',
@@ -2159,6 +2859,38 @@ async function autoMoveAlongPath(path){
 
 // Keyboard input
 document.addEventListener('keydown',(e)=>{
+  // ===== MULTIPLAYER MODE KEYBOARD =====
+  if(appMode === 'multi') {
+    if(e.key==='Escape'){
+      if(targetMode){targetMode=null;document.getElementById('target-cancel').style.display='none';render();return;}
+      if(turnEndPending){turnEndPending=false;const cb=document.getElementById('turn-confirm-banner');if(cb)cb.remove();return;}
+      document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
+      return;
+    }
+    if(document.querySelector('.modal-overlay.active')||!mpGameState||gameOver)return;
+    const k=e.key.toLowerCase();
+    if(k>='1'&&k<='5'&&mpGameState.isMyTurn){e.preventDefault();const i=parseInt(k)-1;if(mpGameState.me.hand&&i<mpGameState.me.hand.length){if(selectedCardIndex===i)mpPlayCard(i);else{selectedCardIndex=i;mpUpdateUI();}}return;}
+    if(k==='e'){e.preventDefault();mpRequestEndTurn();return;}
+    if(k==='q'){e.preventDefault();openShop();return;}
+    if(k==='r'){e.preventDefault();openDeck();return;}
+    if(k==='m'){e.preventDefault();document.getElementById('minimap-popup').classList.add('active');renderLargeMinimap();return;}
+    if(k==='tab'){e.preventDefault();if(!mpGameState.me.hand)return;const pl=mpGameState.me.hand.map((c,i)=>({c,i})).filter(x=>mpCanPlayCard(x.c));if(!pl.length)return;const ci=pl.findIndex(x=>x.i===selectedCardIndex);selectedCardIndex=pl[(ci+1)%pl.length].i;mpUpdateUI();return;}
+    if(!mpGameState.isMyTurn)return;
+    if(targetMode==='staff'||targetMode==='earthquake'){
+      // Camera movement in target mode
+      if(k==='w'||k==='arrowup'){e.preventDefault();camY=Math.max(0,camY-1);render();}
+      else if(k==='s'||k==='arrowdown'){e.preventDefault();camY=Math.min(MAP_H-VIEWPORT,camY+1);render();}
+      else if(k==='a'||k==='arrowleft'){e.preventDefault();camX=Math.max(0,camX-1);render();}
+      else if(k==='d'||k==='arrowright'){e.preventDefault();camX=Math.min(MAP_W-VIEWPORT,camX+1);render();}
+      return;
+    }
+    if(k==='w'||k==='arrowup'){e.preventDefault();mpTryMove(0,-1);}
+    else if(k==='s'||k==='arrowdown'){e.preventDefault();mpTryMove(0,1);}
+    else if(k==='a'||k==='arrowleft'){e.preventDefault();mpTryMove(-1,0);}
+    else if(k==='d'||k==='arrowright'){e.preventDefault();mpTryMove(1,0);}
+    return;
+  }
+  // ===== SOLO MODE KEYBOARD (original) =====
   if(e.key==='Escape'){
     if(fuseMode){cancelFuseMode();return;}
     if(targetMode){cancelTargetMode();return;}
@@ -2636,6 +3368,21 @@ async function playCard(index){
 
 // ===== MAP CLICK HANDLING =====
 canvas.addEventListener('click',(e)=>{
+  // ===== MULTIPLAYER CLICK HANDLING =====
+  if(appMode === 'multi') {
+    if(!mpGameState||gameOver)return;
+    const rect2=canvas.getBoundingClientRect();
+    const tx2=Math.floor((e.clientX-rect2.left)/tileSize)+camX;
+    const ty2=Math.floor((e.clientY-rect2.top)/tileSize)+camY;
+    if(targetMode==='staff'||targetMode==='earthquake'){mpSendTarget(tx2,ty2);return;}
+    if(!mpGameState.isMyTurn||mpGameState.pendingTarget)return;
+    const me=mpGameState.me;if(!me.alive||me.frozenTurns>0)return;
+    const dx2=tx2-me.x,dy2=ty2-me.y;if(dx2===0&&dy2===0)return;
+    if(Math.abs(dx2)+Math.abs(dy2)===1){mpTryMove(dx2,dy2);}
+    else{const p=findPath(me.x,me.y,tx2,ty2);if(p&&p.length>1){if(p.length-1<=me.mp)mpAutoMoveAlongPath(p);else showToast('MP不足! (必要:'+(p.length-1)+' 残り:'+me.mp+')');}}
+    return;
+  }
+  // ===== SOLO CLICK HANDLING (original) =====
   if(enemyTurnActive||gameOver)return;
   const rect=canvas.getBoundingClientRect();
   const mx=e.clientX-rect.left,my=e.clientY-rect.top;
@@ -3164,6 +3911,11 @@ function doLevelUp(stat){
 
 // ===== SHOP =====
 function openShop(){
+  if(appMode === 'multi' && mpGameState && mpGameState.supply) {
+    // Use server supply data
+    constSupply = (mpGameState.supply.const || []).map(s => ({ ...s, remaining: s.remaining }));
+    randomSupply = (mpGameState.supply.random || []).map(s => ({ ...s, remaining: s.remaining }));
+  }
   const modal=document.getElementById('shop-modal');
   modal.classList.add('active');
   renderShop();
@@ -3246,6 +3998,7 @@ function makeShopCard(s,borderCls){
 }
 
 function buyCard(supply){
+  if(appMode === 'multi') { mpBuyCard(supply.id); closeShop(); return; }
   const cost=shopDiscountActive ? Math.max(1, Math.floor(supply.xpCost / 2)) : supply.xpCost; // v21: half price discount
   if(player.buys<=0||player.xp<cost||supply.remaining<=0)return;
   player.xp-=cost;
@@ -3322,6 +4075,7 @@ function debugRemoveFromSupply(id){
 
 // ===== DECK VIEW =====
 let deckFilter='all';
+function openDeckModal(){ openDeck(); } // alias for multiplayer compatibility
 function openDeck(){openDeckFiltered('all');}
 function openDeckFiltered(filter){
   deckFilter=filter||'all';
@@ -3353,7 +4107,11 @@ function openDeckFiltered(filter){
 }
 function closeDeck(){document.getElementById('deck-modal').classList.remove('active');}
 
-function getAllCards(entity){return [...entity.deck,...entity.hand,...entity.discard];}
+function getAllCards(entity){
+  if(!entity) return [];
+  const d = entity.deck || [], h = entity.hand || [], di = entity.discard || [];
+  return [...d,...h,...di].filter(c => c != null);
+}
 
 // ===== BOT AI =====
 async function botDelay(ms){ if(window._skipBotDelay) return; await delay(ms); }
@@ -4121,6 +4879,7 @@ function checkAutoEndTurn(){
 
 // v1.6: Turn end confirmation (also used by button)
 function requestEndTurn(){
+  if(appMode === 'multi') { mpRequestEndTurn(); return; }
   if(enemyTurnActive||gameOver)return;
   if(turnEndPending){
     clearTimeout(turnEndTimer); turnEndTimer=null; turnEndPending=false;
@@ -4271,8 +5030,9 @@ function showGameOver(playerWon,pVP,bVP){
 
 // ===== RENDERING =====
 function render(){
+  if(!player || !map || map.length === 0) return;
   const vpW=VIEWPORT,vpH=VIEWPORT;
-  const target = cameraTarget === 'bot' && bot.alive ? bot : player;
+  const target = cameraTarget === 'bot' && bot && bot.alive ? bot : player;
   camX=Math.max(0,Math.min(MAP_W-vpW,target.x-Math.floor(vpW/2)));
   camY=Math.max(0,Math.min(MAP_H-vpH,target.y-Math.floor(vpH/2)));
   canvas.width=vpW*tileSize;
@@ -4287,10 +5047,12 @@ function render(){
   for(let y=0;y<vpH;y++)for(let x=0;x<vpW;x++){
     const mx=camX+x,my=camY+y;
     const px=x*tileSize,py=y*tileSize;
-    if(mx<0||mx>=MAP_W||my<0||my>=MAP_H){
+    if(mx<0||mx>=MAP_W||my<0||my>=MAP_H||!map[my]){
       ctx.fillStyle='#000';ctx.fillRect(px,py,tileSize,tileSize);continue;
     }
     const tile=map[my][mx];
+    // Multiplayer fog: tile === -1 means unexplored
+    if(tile === -1){ctx.fillStyle='#050508';ctx.fillRect(px,py,tileSize,tileSize);continue;}
     const visible=isVisible(mx,my);
 
     if(!visible){
@@ -4516,7 +5278,7 @@ function render(){
   // Draw bots (v25: only show if in current player's vision)
   for(const b of botPlayers){
     if(!b.alive) continue;
-    const showBot=b.hasFlag||player.fullVisionTurns>0||(player.reconTurns>0&&dist(player.x,player.y,b.x,b.y)<=player.reconRadius)||(isVisible(b.x,b.y)&&dist(player.x,player.y,b.x,b.y)<=3);
+    const showBot = (appMode === 'multi') ? (b.visible !== false && b.x !== undefined && isVisible(b.x,b.y)) : (b.hasFlag||player.fullVisionTurns>0||(player.reconTurns>0&&dist(player.x,player.y,b.x,b.y)<=player.reconRadius)||(isVisible(b.x,b.y)&&dist(player.x,player.y,b.x,b.y)<=3));
     if(showBot){
       const sx=b.x-camX,sy=b.y-camY;
       if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
@@ -4896,6 +5658,11 @@ function render(){
 }
 
 function isVisible(mx,my){
+  // In multiplayer mode, fog is server-side: visible = not -1 in map data
+  if(appMode === 'multi') {
+    if(mx<0||mx>=MAP_W||my<0||my>=MAP_H) return false;
+    return map[my] && map[my][mx] !== -1;
+  }
   if(player.fullVisionTurns>0)return true;
   if(player.reconTurns>0&&dist(player.x,player.y,mx,my)<=player.reconRadius)return true;
   const d=dist(player.x,player.y,mx,my);
@@ -4908,11 +5675,13 @@ function isVisible(mx,my){
 }
 
 function renderMinimap(){
+  if(!map || map.length === 0) return;
   const scale=180/MAP_W;
   miniCtx.fillStyle='#0a0a14';
   miniCtx.fillRect(0,0,180,180);
   for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
-    if(map[y][x]===TILE_WALL)continue;
+    if(!map[y]) continue;
+    if(map[y][x]===TILE_WALL || map[y][x]===-1)continue;
     if(!exploredMap[y]||!exploredMap[y][x])continue; // v15: only show explored
     const mt=map[y][x];
     miniCtx.fillStyle=mt===TILE_BOSS_FLOOR?'#2a1a3a':mt===TILE_WATER?'#1a2a3a':mt===TILE_GRASS?'#1a2a1a':'#222240';
@@ -5002,13 +5771,15 @@ function renderMinimap(){
 }
 
 function renderLargeMinimap(){
+  if(!map || map.length === 0) return;
   const c=document.getElementById('minimap-large');
   const ctx2=c.getContext('2d');
   const s=400/MAP_W;
   ctx2.fillStyle='#0a0a14';ctx2.fillRect(0,0,400,400);
   // Draw explored tiles
   for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
-    if(map[y][x]===TILE_WALL)continue;
+    if(!map[y]) continue;
+    if(map[y][x]===TILE_WALL || map[y][x]===-1)continue;
     if(!exploredMap[y]||!exploredMap[y][x])continue;
     const lt=map[y][x];
     ctx2.fillStyle=lt===TILE_BOSS_FLOOR?'#2a1a3a':lt===TILE_WATER?'#1a2a3a':lt===TILE_GRASS?'#1a2a1a':'#222240';
@@ -5149,6 +5920,8 @@ document.getElementById('log-area').addEventListener('click', () => {
 
 // ===== UI UPDATE =====
 function updateUI(){
+  // In multiplayer mode, use mpUpdateUI instead
+  if(appMode === 'multi') { mpUpdateUI(); return; }
   document.getElementById('top-turn').textContent=turnNumber;
   document.getElementById('top-ap').textContent=player.ap;
   document.getElementById('top-mp').textContent=player.mp; // v7B
@@ -5419,7 +6192,7 @@ function saveAudioSettings(){try{localStorage.setItem('rp_audio_settings',JSON.s
 // v1.15: BGM - WAV file playback (random select, loop)
 let bgmPlaying=false;
 let bgmAudio=null;
-const BGM_FILES=['../BGM/Pixel Dungeon Loop1.wav','../BGM/Pixel Dungeon Loop2.wav'];
+const BGM_FILES=['./BGM/Pixel Dungeon Loop1.wav','./BGM/Pixel Dungeon Loop2.wav'];
 function startBGM(){
   stopBGM();
   if(!audioSettings.bgmOn)return;
@@ -5836,8 +6609,8 @@ window.addEventListener('resize',()=>{
 });
 
 // ===== START =====
-// v1.4: Show mode selection first, initGame will be called by selectMode()
-document.getElementById('mode-select-modal').classList.add('active');
+// v2.0: Show main menu on load. Solo mode shows mode-select-modal via enterSoloMode().
+// Don't show mode-select-modal at startup anymore.
 // v17: Start BGM on first user interaction
 document.addEventListener('click',function bgmStart(){
   if(!bgmPlaying&&audioSettings.bgmOn)startBGM();
@@ -5867,8 +6640,9 @@ document.addEventListener('click',function bgmStart(){
     let moveX=0, moveY=0;
     if(Math.abs(dx)>Math.abs(dy)){ moveX=dx>0?1:-1; }
     else{ moveY=dy>0?1:-1; }
-    // Move player via tryFreeMove (same as WASD)
-    if(typeof tryFreeMove==='function'){tryFreeMove(moveX,moveY);}
+    // Move player via tryFreeMove or mpTryMove (same as WASD)
+    if(appMode === 'multi'){mpTryMove(moveX,moveY);}
+    else if(typeof tryFreeMove==='function'){tryFreeMove(moveX,moveY);}
   },{passive:false});
 
   // Tap on card in hand: first tap selects, second tap plays (same as click logic but ensuring touch works)
