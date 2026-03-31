@@ -347,6 +347,7 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
     <button class="btn btn-end" id="btn-fuse-cancel" onclick="cancelFuseMode()" style="display:none">合成取消</button>
     <button class="btn btn-shop" id="btn-shop" onclick="openShop()">サプライ確認</button>
     <button class="btn btn-deck" id="btn-deck" onclick="openDeck()">デッキ確認</button>
+    <button class="btn" id="btn-investigate" onclick="investigateRoom()" style="border-color:#ffaa44;color:#ffaa44">調べる (F)</button>
     <button class="btn" id="btn-levelup" onclick="openLevelUp()" style="border-color:#44ff88;color:#44ff88">レベルアップ</button>
     <button class="btn btn-end" id="btn-end-turn" onclick="requestEndTurn()">ターン終了</button>
   </div>
@@ -489,43 +490,15 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
     </div>
 
     <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
-      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">⚔️ コンボシステム</h3>
-      <div style="font-size:12px;color:#aaa;line-height:1.8">
-        <div>1ターン内の行動数でコンボが発動:</div>
-        <div style="margin:4px 0;padding:4px 8px;background:#1a1a3a;border-radius:4px">
-          <b style="color:#ffdd44">3アクション</b> = COMBO! (XP x1.5)
-        </div>
-        <div style="margin:4px 0;padding:4px 8px;background:#1a1a3a;border-radius:4px">
-          <b style="color:#ff6644">4アクション+</b> = ULTRA COMBO! (XP x2)
-        </div>
-        <div style="margin-top:4px;color:#888">カウント対象: カード使用, キル, 部屋発見, 旗奪取</div>
-      </div>
-    </div>
-
-    <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
-      <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🔗 シナジーボーナス</h3>
-      <div style="font-size:12px;color:#aaa;line-height:1.8">
-        <div>1ターンで特定タイプのカードを組み合わせると発動:</div>
-        <div style="margin:4px 0;padding:4px 8px;background:#2a1a1a;border-radius:4px">
-          <b style="color:#ff6644">伏兵</b>: 武器 + 罠 → XP+2
-        </div>
-        <div style="margin:4px 0;padding:4px 8px;background:#1a2a1a;border-radius:4px">
-          <b style="color:#44dd66">財運</b>: 道具 + 財宝 → 購入+1
-        </div>
-        <div style="margin:4px 0;padding:4px 8px;background:#1a1a2a;border-radius:4px">
-          <b style="color:#44aaff">秘術</b>: 巻物 + 杖 → 次ターンAP+1
-        </div>
-      </div>
-    </div>
-
-    <div style="margin:12px 0;border-top:1px solid #2a1a4a;padding-top:10px">
       <h3 style="color:#ffaa44;font-size:14px;margin-bottom:6px">🏠 部屋効果</h3>
       <div style="font-size:12px;color:#aaa;line-height:1.8">
-        <div>部屋に入ると特殊効果が発動（初回のみ偵察VP+1）:</div>
-        <div>💚 <b style="color:#44dd88">回復の間</b> — HP回復</div>
-        <div>🔇 <b style="color:#888">沈黙の間</b> — ノイズリセット</div>
-        <div>⛪ <b style="color:#ffdd44">祭壇の間</b> — XPボーナス</div>
-        <div>🔊 <b style="color:#ff8844">反響の間</b> — 音が響く（ノイズ増加）</div>
+        <div>部屋に入ると発見（偵察VP+1）。<b style="color:#ffaa44">Fキーまたは「調べる」ボタン</b>で効果発動:</div>
+        <div>💚 <b style="color:#44dd88">回復の泉</b> — HP+2回復（1回限り）</div>
+        <div>☠️ <b style="color:#cc44ff">毒沼</b> — HP-1（何度でも）</div>
+        <div>🔇 <b style="color:#6688ff">静寂の部屋</b> — この部屋内のノイズ0</div>
+        <div>🔊 <b style="color:#ff8844">反響の部屋</b> — この部屋内のノイズ2倍</div>
+        <div>⛪ <b style="color:#ffd700">祭壇</b> — カード1枚除外（1回限り）</div>
+        <div>🛒 <b style="color:#ffcc44">隠れ商人</b> — 購入+1（1回限り）</div>
       </div>
     </div>
 
@@ -535,6 +508,7 @@ body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif
         <div><b style="color:#44ddff">WASD/矢印</b> — 1歩移動(MP消費)</div>
         <div><b style="color:#44ddff">クリック</b> — MP範囲内の任意マスへ自動移動</div>
         <div><b style="color:#44ddff">1-5</b> — カード選択/再押しで使用</div>
+        <div><b style="color:#44ddff">F</b> — 部屋を調べる（部屋効果発動）</div>
         <div><b style="color:#44ddff">E</b> — ターン終了</div>
         <div><b style="color:#44ddff">Q</b> — ショップ / <b style="color:#44ddff">R</b> — 山札 / <b style="color:#44ddff">M</b> — 大マップ</div>
         <div><b style="color:#44ddff">スワイプ</b> — モバイル移動</div>
@@ -2743,7 +2717,7 @@ function tryFreeMove(dx,dy){
   // Check flag pickup
   if(flagPos&&flagPos.x===player.x&&flagPos.y===player.y&&!player.hasFlag){
     player.hasFlag=true;flagPos=null;
-    turnCombo.flags=(turnCombo.flags||0)+1; // v1.11: combo count
+    // combo removed
     SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を取得! 全員にバレる!','flag');
   }
   // Check flag delivery - start defense (v25: per-player start position)
@@ -2770,55 +2744,15 @@ function tryFreeMove(dx,dy){
     showToast(`${tomb.card.name}を入手!`);
   }
 
-  // v1.3: Room effect processing
+  // v2.0: 部屋効果は自動発動しない。「調べる」(Fキー)で発動に変更
+  // 新部屋発見の記録だけ行う（偵察VP + 探索ボーナス判定用）
   const room = getRoomAt(player.x, player.y);
-  if(room && room.effect){
-    if(!room.effectRevealed){
-      room.effectRevealed = true;
-      // v1.11: Scout VP - 1 VP per new room discovered
-      player.roomsDiscovered = (player.roomsDiscovered||0) + 1;
-      turnCombo.rooms = (turnCombo.rooms||0) + 1; // v1.11: combo count
-      addLog(`新部屋発見! 偵察VP+1 (計${player.roomsDiscovered})`, 'vp');
-      SFX.vpGain();
-      if(room.effect.id !== 'none'){
-        addLog(`${room.effect.icon} ${room.effect.name}を発見! ${room.effect.desc}`, 'info');
-        showToast(`${room.effect.icon} ${room.effect.name}`);
-      } else {
-        showToast('新部屋発見! VP+1');
-      }
-    }
-    // Apply effects only for non-none
-    if(room.effect.id !== 'none'){
-      // Apply one-time effects
-      if(room.effect.id === 'heal' && !room.effectUsed){
-        room.effectUsed = true;
-        const healAmt = room.resonant ? 4 : 2; // v1.5: resonance bonus
-        player.hp = Math.min(player.maxHp, player.hp + healAmt);
-        addLog(`回復の泉: HP+${healAmt}!${room.resonant?' (共鳴)':''}`, 'heal');
-        SFX.heal();
-      }
-      if(room.effect.id === 'poison'){
-        const poisonAmt = room.resonant ? 2 : 1; // v1.5: resonance penalty
-        player.hp = Math.max(1, player.hp - poisonAmt);
-        addLog(`毒沼! HP-${poisonAmt}${room.resonant?' (共鳴)':''}`, 'dmg');
-      }
-      if(room.effect.id === 'altar' && !room.effectUsed){
-        room.effectUsed = true;
-        // Open trash modal for 1 card
-        if(player.hand.length > 0){
-          trashMax = 1;
-          trashSelections = [];
-          openTrash();
-          addLog('祭壇: カード1枚を除外可能', 'card');
-        }
-      }
-      if(room.effect.id === 'merchant' && !room.effectUsed){
-        room.effectUsed = true;
-        const buyAmt = room.resonant ? 2 : 1; // v1.5: resonance bonus
-        player.buys += buyAmt;
-        addLog(`隠れ商人: 購入+${buyAmt}!${room.resonant?' (共鳴)':''}`, 'buy');
-      }
-    }
+  if(room && room.effect && !room.effectRevealed){
+    room.effectRevealed = true;
+    player.roomsDiscovered = (player.roomsDiscovered||0) + 1;
+    addLog(`新部屋発見! 偵察VP+1 (計${player.roomsDiscovered})`, 'vp');
+    SFX.vpGain();
+    showToast('新部屋発見! VP+1');
   }
   // v1.3: Check exploration bonus
   checkExplorationBonus();
@@ -2948,6 +2882,12 @@ document.addEventListener('keydown',(e)=>{
     updateUI(); render();
     return;
   }
+  // F = 部屋を調べる
+  if(key==='f'){
+    e.preventDefault();
+    investigateRoom();
+    return;
+  }
   // WASD / Arrow keys
   if(key==='w'||key==='arrowup'){e.preventDefault();tryFreeMove(0,-1);}
   else if(key==='s'||key==='arrowdown'){e.preventDefault();tryFreeMove(0,1);}
@@ -2977,10 +2917,7 @@ async function playCard(index){
   if(card.ap>0)player.ap-=card.ap;
   player.cardsPlayedThisTurn++;
   player.totalCardsPlayed=(player.totalCardsPlayed||0)+1; // v1.11: stats
-  turnCombo.cards++; // v1.5: combo counter
-  // v1.11: Track card types for synergy bonus
-  if(!turnCombo.typesPlayed) turnCombo.typesPlayed = new Set();
-  turnCombo.typesPlayed.add(card.type);
+  // combo/synergy removed
 
   // ノイズ発生
   emitNoise(player,card.noise);
@@ -3656,6 +3593,55 @@ function spreadWaterDamage(startX, startY, dmg){
     }
   }
   addLog('水が電気を伝導! 接続水域に'+waterDmg+'ダメージ(3倍)!','dmg');
+}
+
+// v2.0: 部屋を調べるアクション（Fキー）
+function investigateRoom(){
+  if(enemyTurnActive||gameOver||!player.alive)return;
+  const room = getRoomAt(player.x, player.y);
+  if(!room || !room.effect || room.effect.id === 'none'){
+    addLog('ここには調べるものがない','info');
+    return;
+  }
+  if(room.effectUsed){
+    addLog(`${room.effect.icon} ${room.effect.name} — すでに使用済み`,'info');
+    return;
+  }
+  // 効果発動
+  if(room.effect.id === 'heal'){
+    room.effectUsed = true;
+    const healAmt = room.resonant ? 4 : 2;
+    player.hp = Math.min(player.maxHp, player.hp + healAmt);
+    addLog(`${room.effect.icon} 回復の泉: HP+${healAmt}!${room.resonant?' (共鳴)':''}`, 'heal');
+    SFX.heal();
+  } else if(room.effect.id === 'poison'){
+    const poisonAmt = room.resonant ? 2 : 1;
+    player.hp = Math.max(1, player.hp - poisonAmt);
+    addLog(`${room.effect.icon} 毒沼! HP-${poisonAmt}${room.resonant?' (共鳴)':''}`, 'dmg');
+  } else if(room.effect.id === 'altar'){
+    room.effectUsed = true;
+    if(player.hand.length > 0){
+      trashMax = 1;
+      trashSelections = [];
+      openTrash();
+      addLog(`${room.effect.icon} 祭壇: カード1枚を除外可能`, 'card');
+    } else {
+      addLog(`${room.effect.icon} 祭壇: 手札がないため除外できない`, 'info');
+    }
+  } else if(room.effect.id === 'merchant'){
+    room.effectUsed = true;
+    const buyAmt = room.resonant ? 2 : 1;
+    player.buys += buyAmt;
+    addLog(`${room.effect.icon} 隠れ商人: 購入+${buyAmt}!${room.resonant?' (共鳴)':''}`, 'buy');
+  } else if(room.effect.id === 'echo'){
+    addLog(`${room.effect.icon} 反響の部屋: この部屋内のノイズ2倍（常時効果）`, 'info');
+  } else if(room.effect.id === 'silence'){
+    addLog(`${room.effect.icon} 静寂の部屋: この部屋内のノイズ0（常時効果）`, 'info');
+  } else {
+    addLog(`${room.effect.icon} ${room.effect.name}: ${room.effect.desc}`, 'info');
+  }
+  showToast(`${room.effect.icon} ${room.effect.name}`);
+  updateUI(); render();
 }
 
 // v1.5: Check room resonance (2+ rooms with same effect = enhanced)
@@ -4741,8 +4727,7 @@ function startPlayerTurn(){
   // v25b: Ambient noise removed - mobs patrolling generates natural noise
   turnNumber++;
   player.ap=1;
-  // v1.11: Arcane synergy bonus from previous turn
-  if(player._arcaneBonus){player.ap+=1;player._arcaneBonus=false;addLog('秘術シナジー効果! AP+1','card');}
+  // arcane synergy removed
   player.buys=1+(player.classBuysBonus||0);
   player.mp=BASE_MP+player.levels.mp+(player.classMpBonus||0);SFX.turnStart(); // 毎ターンMP リセット (レベル+クラス補正込み)
   player.xp = Math.max(0, player.xp - 1); // lose 1 XP per turn instead of full reset
@@ -4905,8 +4890,7 @@ async function endTurnFull(){
   if(targetMode){targetMode=null;targetCard=null;document.getElementById('target-cancel').style.display='none';}
   fuseMode=false;fuseSelections=[];
 
-  // v1.5: Check combo before turn ends
-  checkCombo();
+  // v1.5: Combo/Synergy removed (わかりづらいため削除)
 
   // v1.1: Stealth relaxation - allow 1 step movement and still be stealth
   if(player.cardsPlayedThisTurn===0&&player.mp>=(BASE_MP+player.levels.mp)-1){
