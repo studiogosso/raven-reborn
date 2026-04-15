@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>デッキ・ディケイ v1.2 - Deck Decay</title>
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="デッキ・ディケイ - カードが朽ちるローグライクデッキビルダー">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi44OH44OD44Kt44O744OH44Kj44Kx44KkIiwic2hvcnRfbmFtZSI6IkRlY2tEZWNheSIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTE2IiwidGhlbWVfY29sb3IiOiIjMGEwYTE2In0=">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a16;--bg2:#12122a;--bg3:#1a1a3e;
+  --accent:#00f0ff;--accent2:#6c5ce7;--accent3:#ff6b6b;
+  --text:#e0e0f0;--text2:#9898c0;--gold:#ffd700;
+  --hp:#44ff88;--dmg:#ff4466;--mana:#aa66ff;--shield:#4488ff;
+}
+html,body{height:100%;font-family:'Segoe UI','Meiryo',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* HUD */
+#hud{background:var(--bg2);border-bottom:1px solid rgba(0,240,255,.15);padding:6px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:4px;display:none}
+.pill{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:2px 10px;font-size:12px}
+.pill .v{font-weight:bold}
+.c-hp{color:var(--hp)}.c-gold{color:var(--gold)}.c-mana{color:var(--mana)}.c-floor{color:var(--accent)}.c-shield{color:var(--shield)}
+
+/* Main */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#scene{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px;overflow-y:auto}
+
+/* Buttons */
+.btn{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--accent);color:var(--accent);padding:10px 28px;border-radius:8px;font-size:15px;cursor:pointer;transition:all .2s;font-family:inherit;display:inline-block}
+.btn:hover,.btn:active{background:rgba(0,240,255,.12);box-shadow:0 0 16px rgba(0,240,255,.25);transform:translateY(-1px)}
+.btn-sm{padding:7px 16px;font-size:12px}
+.btn-red{border-color:var(--accent3);color:var(--accent3)}
+.btn-red:hover{background:rgba(255,100,100,.12)}
+.btn-gold{border-color:var(--gold);color:var(--gold)}
+.btn-gold:hover{background:rgba(255,215,0,.1)}
+.btn-mana{border-color:var(--mana);color:var(--mana)}
+.btn-mana:hover{background:rgba(170,100,255,.1)}
+.btn[disabled]{opacity:.35;cursor:not-allowed;transform:none!important}
+
+/* Cards */
+.card{
+  width:110px;min-height:155px;background:var(--bg2);
+  border:2px solid var(--bg3);border-radius:10px;padding:8px 6px;
+  cursor:pointer;transition:all .25s;flex-shrink:0;position:relative;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.card:hover{transform:translateY(-8px);box-shadow:0 6px 20px rgba(0,240,255,.15)}
+.card.selected{border-color:var(--accent);box-shadow:0 0 20px rgba(0,240,255,.35);transform:translateY(-12px)}
+.card.disabled{opacity:.3;cursor:not-allowed;transform:none!important}
+.card-cost{position:absolute;top:4px;left:6px;background:var(--mana);color:#fff;font-size:10px;font-weight:bold;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+.card-dur{position:absolute;top:4px;right:6px;font-size:9px;font-weight:bold;display:flex;align-items:center;gap:2px}
+.dur-full{color:var(--hp)}.dur-mid{color:var(--gold)}.dur-low{color:var(--accent3)}.dur-dead{color:#666}
+.card-icon{font-size:28px;margin:8px 0 4px}
+.card-name{font-size:11px;font-weight:bold;margin-bottom:2px}
+.card-desc{font-size:9px;color:var(--text2);line-height:1.3;flex:1}
+.card-type{font-size:9px;margin-top:4px;padding:1px 6px;border-radius:4px;background:rgba(255,255,255,.05)}
+
+/* Card decay visual - v1.2: ENHANCED decay progression */
+.decay-1{filter:none;box-shadow:inset 0 0 0 0 transparent}
+.decay-2{filter:sepia(.15) brightness(.95);box-shadow:inset 0 0 8px rgba(153,102,51,.2)}
+.decay-3{filter:sepia(.3) brightness(.85) contrast(.95);box-shadow:inset 0 0 15px rgba(153,102,51,.4);border-style:dashed;background-image:linear-gradient(45deg,transparent 48%,rgba(102,51,0,.1) 49%,rgba(102,51,0,.1) 51%,transparent 52%)}
+.decay-4{filter:sepia(.5) brightness(.7) contrast(.9);border-style:dashed;box-shadow:inset 0 0 25px rgba(153,102,51,.6),0 0 10px rgba(102,51,0,.3);background-image:linear-gradient(45deg,transparent 46%,rgba(102,51,0,.15) 47%,rgba(102,51,0,.15) 53%,transparent 54%),linear-gradient(-45deg,transparent 46%,rgba(102,51,0,.1) 47%,rgba(102,51,0,.1) 53%,transparent 54%);animation:decayCrack 2s ease-in-out infinite}
+.decay-remnant{filter:sepia(.7) brightness(.5) contrast(.8) hue-rotate(30deg);border-color:#663300;border-style:dotted;box-shadow:0 0 20px rgba(204,102,0,.5),inset 0 0 30px rgba(102,51,0,.7);animation:remnantGlow 1.5s ease-in-out infinite}
+@keyframes decayCrack{0%,100%{transform:scale(1);filter:sepia(.5) brightness(.7)}50%{transform:scale(1.01);filter:sepia(.5) brightness(.65)}}
+@keyframes remnantGlow{0%,100%{box-shadow:0 0 15px rgba(204,102,0,.3),inset 0 0 25px rgba(102,51,0,.5)}50%{box-shadow:0 0 30px rgba(204,102,0,.6),inset 0 0 35px rgba(102,51,0,.7)}}
+
+/* Card types */
+.t-atk{border-color:rgba(255,68,102,.4)}.t-atk .card-type{color:var(--dmg)}
+.t-def{border-color:rgba(68,136,255,.4)}.t-def .card-type{color:var(--shield)}
+.t-mag{border-color:rgba(170,102,255,.4)}.t-mag .card-type{color:var(--mana)}
+.t-skill{border-color:rgba(255,204,68,.4)}.t-skill .card-type{color:var(--gold)}
+.t-remnant{border-color:rgba(102,51,0,.6)}.t-remnant .card-type{color:#996633}
+
+/* Hand area */
+#hand-wrap{background:var(--bg2);border-top:1px solid rgba(0,240,255,.1);padding:8px 10px;flex-shrink:0;display:none}
+#hand-label{font-size:10px;color:var(--text2);margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+#hand{display:flex;gap:6px;overflow-x:auto;padding:4px 0;-webkit-overflow-scrolling:touch}
+
+/* Battle */
+.battle-area{width:100%;max-width:480px;text-align:center}
+.enemy-box{padding:12px;background:var(--bg2);border:1px solid rgba(255,68,102,.2);border-radius:10px;margin-bottom:10px}
+.enemy-name{font-size:18px;font-weight:bold;color:var(--accent3)}
+.enemy-sprite{font-size:52px;margin:6px 0}
+.hp-bar{height:14px;background:var(--bg3);border-radius:7px;overflow:hidden;margin:4px 0;position:relative}
+.hp-fill{height:100%;border-radius:7px;transition:width .4s}
+.hp-player{background:linear-gradient(90deg,#228844,#44ff88)}
+.hp-enemy{background:linear-gradient(90deg,#cc2244,#ff4466)}
+.hp-txt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;color:#fff;text-shadow:0 0 3px #000}
+.intent-box{font-size:11px;color:var(--text2);margin:6px 0;padding:4px 8px;background:rgba(255,255,255,.03);border-radius:4px}
+
+/* Log */
+#log{max-height:80px;overflow-y:auto;padding:4px 8px;background:var(--bg2);border-radius:6px;font-size:10px;line-height:1.5;margin:6px 0;border:1px solid rgba(255,255,255,.04)}
+#log div{padding:1px 0}
+.l-dmg{color:#ff6666}.l-heal{color:#66ff88}.l-def{color:#6699ff}.l-mag{color:#bb88ff}.l-info{color:#aabb88}.l-gold{color:#ffd700}.l-decay{color:#996633}.l-remnant{color:#cc6600}
+
+/* Floor map */
+.node-row{display:flex;gap:8px;justify-content:center;margin:6px 0}
+.node{width:48px;height:48px;border-radius:50%;border:2px solid var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:all .2s;background:var(--bg2)}
+.node:hover{border-color:var(--accent);transform:scale(1.1)}
+.node.selectable{border-color:rgba(0,240,255,.5);box-shadow:0 0 10px rgba(0,240,255,.2)}
+.node.current{border-color:var(--accent);box-shadow:0 0 16px rgba(0,240,255,.4)}
+.node.visited{opacity:.4}
+.node.boss-n{border-color:var(--accent3)}
+.node-line{width:2px;height:20px;background:var(--bg3);margin:0 auto}
+
+/* Reward / Event screens */
+.box{background:var(--bg2);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;max-width:420px;width:100%;text-align:center;margin:8px auto}
+.box-icon{font-size:48px;margin-bottom:6px}
+.box-title{font-size:18px;font-weight:bold;margin-bottom:6px}
+.box-desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:12px}
+
+/* Card reward selection */
+.reward-cards{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:12px 0}
+
+/* Repair UI */
+.repair-cards{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100}
+.ov-box{background:var(--bg2);border:1px solid var(--accent);border-radius:12px;padding:20px;max-width:400px;width:90%;text-align:center}
+
+/* Anim */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes crack{0%{opacity:0;transform:scale(1.5)}100%{opacity:1;transform:scale(1)}}
+.fade-in{animation:fadeIn .5s}.slide-up{animation:slideUp .4s}.anim-shake{animation:shake .3s}
+
+/* v1.2: VISUAL MEGA UPGRADE */
+#vfx-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:200}
+@keyframes deathExplode{0%{transform:scale(1);opacity:1;filter:brightness(3)}30%{transform:scale(1.8);opacity:.8;filter:brightness(2)}100%{transform:scale(3);opacity:0;filter:brightness(0)}}
+.death-explode{animation:deathExplode .6s ease-out forwards}
+@keyframes bossIntro{0%{opacity:0;transform:translate(-50%,-50%) scale(0)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.3)}40%{transform:translate(-50%,-50%) scale(0.95)}60%{transform:translate(-50%,-50%) scale(1.05)}100%{transform:translate(-50%,-50%) scale(1)}}
+@keyframes bossIntroBg{0%{background:rgba(0,0,0,0)}20%{background:rgba(0,0,0,.95)}80%{background:rgba(0,0,0,.95)}100%{background:rgba(0,0,0,0)}}
+#boss-intro{position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;pointer-events:none}
+#boss-intro.active{display:flex;animation:bossIntroBg 2.5s ease-in-out forwards}
+#boss-intro .bi-name{position:absolute;top:50%;left:50%;font-size:clamp(32px,8vw,60px);font-weight:900;color:var(--accent3);text-shadow:0 0 40px rgba(255,68,102,.8),0 0 80px rgba(255,68,102,.3);letter-spacing:8px;animation:bossIntro 1.5s ease-out .3s both;white-space:nowrap}
+#boss-intro .bi-icon{position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);font-size:80px;animation:bossIntro 1.2s ease-out both}
+@keyframes swooshPlay{0%{transform:translateX(0) translateY(0) rotate(0deg) scale(1);opacity:1}100%{transform:translateX(-60px) translateY(-120px) rotate(-15deg) scale(.3);opacity:0}}
+.card-swoosh{animation:swooshPlay .35s ease-in forwards}
+@keyframes dmgPopup{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-50px) scale(1.8)}}
+.dmg-popup{position:absolute;font-size:24px;font-weight:900;pointer-events:none;z-index:50;text-shadow:0 0 12px currentColor;animation:dmgPopup .7s ease-out forwards}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px}
+
+@media(max-width:500px){
+  .card{width:95px;min-height:130px;padding:6px 4px}
+  .card-icon{font-size:22px;margin:4px 0}
+  .card-name{font-size:10px}
+  .card-desc{font-size:8px}
+  .enemy-sprite{font-size:40px}
+}
+</style>
+</head>
+<body>
+<canvas id="vfx-canvas"></canvas>
+<div id="boss-intro"><div class="bi-icon"></div><div class="bi-name"></div></div>
+<div id="dd-floor-trans" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:250;pointer-events:none;display:none;align-items:center;justify-content:center;flex-direction:column;color:var(--accent);font-size:48px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px rgba(0,240,255,.6)"><span class="dd-ft-num"></span><div style="font-size:14px;color:var(--text2);margin-top:8px;letter-spacing:2px">deeper into decay...</div></div>
+<div id="app">
+  <div id="hud">
+    <div class="pill"><span>&#x2764;</span><span class="v c-hp" id="h-hp">50/50</span></div>
+    <div class="pill"><span>&#x1F3AF;</span><span class="v c-floor" id="h-floor">1F</span></div>
+    <div class="pill"><span>&#x1FA99;</span><span class="v c-gold" id="h-gold">0</span></div>
+    <div class="pill"><span>&#x1F4A0;</span><span class="v c-mana" id="h-mana">3/3</span></div>
+    <div class="pill"><span>&#x1F6E1;</span><span class="v c-shield" id="h-shield">0</span></div>
+  </div>
+  <div id="main"><div id="scene"></div></div>
+  <div id="hand-wrap">
+    <div id="hand-label"><span>手札</span><span id="deck-info"></span></div>
+    <div id="hand"></div>
+  </div>
+</div>
+
+<script>
+// ===================== GAME STATE =====================
+const S = {
+  phase:'title', hp:50, maxHp:50, gold:0, mana:3, maxMana:3, shield:0,
+  floor:1, node:0, deck:[], hand:[], discard:[], exhaust:[],
+  enemy:null, eHp:0, eMax:0, eIntent:null, turn:0,
+  map:[], path:[], totalKills:0, repairKits:0
+};
+
+// ===================== CARD DATABASE =====================
+const CARDS = {
+  // ATK
+  strike:{name:'斬撃',icon:'\u2694\uFE0F',type:'atk',cost:1,maxDur:4,desc:'6ダメージ',effect:{dmg:6}},
+  heavy:{name:'重撃',icon:'\uD83D\uDCA5',type:'atk',cost:2,maxDur:3,desc:'12ダメージ',effect:{dmg:12}},
+  quick:{name:'速斬',icon:'\uD83C\uDFC3',type:'atk',cost:0,maxDur:3,desc:'3ダメージ',effect:{dmg:3}},
+  rend:{name:'裂傷',icon:'\uD83E\uDE78',type:'atk',cost:1,maxDur:3,desc:'4ダメージ+出血2(3T)',effect:{dmg:4,bleed:2}},
+  execute:{name:'処刑',icon:'\u2620\uFE0F',type:'atk',cost:2,maxDur:2,desc:'敵HP50%以下で20ダメージ',effect:{execute:20}},
+  flurry:{name:'乱撃',icon:'\uD83C\uDF00',type:'atk',cost:1,maxDur:3,desc:'3ダメージx3',effect:{dmg:3,hits:3}},
+  pierce:{name:'貫通',icon:'\uD83D\uDDE1\uFE0F',type:'atk',cost:1,maxDur:4,desc:'5ダメージ(防御無視)',effect:{dmg:5,pierce:true}},
+  // DEF
+  guard:{name:'防御',icon:'\uD83D\uDEE1\uFE0F',type:'def',cost:1,maxDur:5,desc:'防御+5',effect:{def:5}},
+  fortress:{name:'鉄壁',icon:'\uD83E\uDDF1',type:'def',cost:2,maxDur:3,desc:'防御+12',effect:{def:12}},
+  parry:{name:'受け流し',icon:'\uD83E\uDD3A',type:'def',cost:1,maxDur:3,desc:'防御+4,次ATK+3',effect:{def:4,nextAtk:3}},
+  barrier:{name:'結界',icon:'\uD83D\uDD2F',type:'def',cost:2,maxDur:2,desc:'防御+8,次T防御+4',effect:{def:8,nextDef:4}},
+  // MAG
+  fireball:{name:'火球',icon:'\uD83D\uDD25',type:'mag',cost:2,maxDur:3,desc:'魔法10ダメージ',effect:{dmg:10}},
+  frostbolt:{name:'氷槍',icon:'\u2744\uFE0F',type:'mag',cost:1,maxDur:3,desc:'魔法5ダメージ+弱体1',effect:{dmg:5,weak:1}},
+  drain:{name:'吸血',icon:'\uD83E\uDDDB',type:'mag',cost:2,maxDur:2,desc:'8ダメージ+HP回復',effect:{dmg:8,heal:8}},
+  lightning:{name:'雷撃',icon:'\u26A1',type:'mag',cost:3,maxDur:2,desc:'魔法18ダメージ',effect:{dmg:18}},
+  curse:{name:'呪詛',icon:'\uD83D\uDC80',type:'mag',cost:1,maxDur:4,desc:'毒3(3ターン)',effect:{poison:3}},
+  // SKILL
+  sharpen:{name:'研磨',icon:'\uD83D\uDD27',type:'skill',cost:1,maxDur:3,desc:'次ATK2倍',effect:{empower:true}},
+  draw2:{name:'知恵',icon:'\uD83D\uDCDA',type:'skill',cost:1,maxDur:3,desc:'2枚ドロー',effect:{draw:2}},
+  rest:{name:'休息',icon:'\uD83D\uDCA4',type:'skill',cost:1,maxDur:4,desc:'HP+6回復',effect:{heal:6}},
+  repair:{name:'修復',icon:'\uD83D\uDD28',type:'skill',cost:1,maxDur:99,desc:'カード1枚の耐久+2',effect:{repair:2}},
+  recycle:{name:'再利用',icon:'\u267B\uFE0F',type:'skill',cost:0,maxDur:3,desc:'捨て札1枚をデッキに戻す',effect:{recycle:true}},
+  golddig:{name:'宝探し',icon:'\uD83D\uDCB0',type:'skill',cost:0,maxDur:4,desc:'+3G獲得',effect:{gold:3}},
+};
+
+// REMNANT effects (when card fully decays)
+const REMNANTS = [
+  {name:'灰の残骸',icon:'\uD83C\uDF2B\uFE0F',desc:'ランダム3-8ダメージ',fn:()=>({dmg:3+rng(6)})},
+  {name:'錆の残骸',icon:'\uD83E\uDEA8',desc:'防御+2-6',fn:()=>({def:2+rng(5)})},
+  {name:'影の残骸',icon:'\uD83C\uDF11',desc:'1枚ドロー',fn:()=>({draw:1})},
+  {name:'骨の残骸',icon:'\uD83E\uDDB4',desc:'HP+1-4回復',fn:()=>({heal:1+rng(4)})},
+  {name:'炎の残骸',icon:'\uD83D\uDD25',desc:'全体5ダメージ+自傷2',fn:()=>({dmg:5,selfDmg:2})},
+  {name:'虚無の残骸',icon:'\u2B1B',desc:'何も起きない',fn:()=>({})},
+  {name:'呪いの残骸',icon:'\uD83D\uDC7E',desc:'自傷5+敵に10ダメージ',fn:()=>({dmg:10,selfDmg:5})},
+  {name:'黄金の残骸',icon:'\u2728',desc:'+5G',fn:()=>({gold:5})},
+];
+
+// ===================== ENEMIES =====================
+const ENEMIES = {
+  1:[
+    {name:'スライム',icon:'\uD83D\uDFE2',hp:20,moves:[{type:'atk',val:5},{type:'atk',val:7},{type:'def',val:4}]},
+    {name:'コウモリ',icon:'\uD83E\uDD87',hp:16,moves:[{type:'atk',val:6},{type:'atk',val:4},{type:'atk',val:8}]},
+    {name:'ゴブリン',icon:'\uD83D\uDC7A',hp:24,moves:[{type:'atk',val:5},{type:'def',val:5},{type:'atk',val:9}]},
+  ],
+  2:[
+    {name:'スケルトン',icon:'\uD83D\uDC80',hp:35,moves:[{type:'atk',val:8},{type:'atk',val:10},{type:'def',val:6},{type:'atk',val:12}]},
+    {name:'ダークウルフ',icon:'\uD83D\uDC3A',hp:30,moves:[{type:'atk',val:10},{type:'atk',val:7},{type:'buff',val:3}]},
+    {name:'ゴーレム',icon:'\uD83E\uDEA8',hp:50,moves:[{type:'def',val:10},{type:'atk',val:14},{type:'def',val:8}]},
+  ],
+  3:[
+    {name:'ヴァンパイア',icon:'\uD83E\uDDDB',hp:48,moves:[{type:'atk',val:12},{type:'heal',val:8},{type:'atk',val:15}]},
+    {name:'ドラゴニュート',icon:'\uD83D\uDC32',hp:55,moves:[{type:'atk',val:14},{type:'atk',val:10},{type:'buff',val:4},{type:'atk',val:18}]},
+    {name:'死霊術師',icon:'\uD83E\uDDD9',hp:40,moves:[{type:'atk',val:8},{type:'summon',val:10},{type:'atk',val:16}]},
+  ],
+  boss:{
+    1:{name:'ゴブリンキング',icon:'\uD83D\uDC51',hp:55,moves:[{type:'atk',val:8},{type:'def',val:6},{type:'atk',val:14},{type:'buff',val:3}]},
+    2:{name:'骸骨将軍',icon:'\u2694\uFE0F\uD83D\uDC80',hp:75,moves:[{type:'atk',val:12},{type:'atk',val:10},{type:'def',val:10},{type:'atk',val:18}]},
+    3:{name:'深淵の竜',icon:'\uD83D\uDC09',hp:100,moves:[{type:'atk',val:15},{type:'def',val:12},{type:'atk',val:20},{type:'heal',val:10},{type:'atk',val:25}]},
+  }
+};
+
+// ===================== UTILS =====================
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const rng=n=>Math.floor(Math.random()*n);
+const pick=a=>a[rng(a.length)];
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// v1.2: VFX SYSTEM
+const vfxC=document.getElementById('vfx-canvas');const vfxX=vfxC.getContext('2d');
+let ddParticles=[];
+function ddResizeVfx(){vfxC.width=innerWidth;vfxC.height=innerHeight}
+ddResizeVfx();window.addEventListener('resize',ddResizeVfx);
+function ddSpawnP(x,y,color,n=20,opts={}){
+  for(let i=0;i<n;i++){const a=Math.random()*Math.PI*2;const sp=(opts.speed||5)*(0.5+Math.random());
+    ddParticles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(opts.rise||0),life:1,decay:0.015+Math.random()*0.025,size:(opts.size||4)*(0.5+Math.random()),color,grav:opts.grav||0.1});}
+}
+function ddDeathExplosion(x,y){ddSpawnP(x,y,'#ff4466',35,{speed:8,size:5});ddSpawnP(x,y,'#ffcc00',15,{speed:4,size:3})}
+function ddCardSwoosh(x,y){ddSpawnP(x,y,'#00f0ff',12,{speed:3,size:2,rise:2})}
+(function ddLoop(){
+  vfxX.clearRect(0,0,vfxC.width,vfxC.height);
+  ddParticles=ddParticles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.grav;p.life-=p.decay;if(p.life<=0)return false;
+    vfxX.globalAlpha=p.life;vfxX.fillStyle=p.color;vfxX.beginPath();vfxX.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);vfxX.fill();return true});
+  vfxX.globalAlpha=1;requestAnimationFrame(ddLoop)})();
+function ddShowBossIntro(icon,name){
+  const bi=document.getElementById('boss-intro');
+  bi.querySelector('.bi-icon').textContent=icon;bi.querySelector('.bi-name').textContent=name;
+  bi.classList.add('active');ddDeathExplosion(innerWidth/2,innerHeight/2);
+  setTimeout(()=>bi.classList.remove('active'),2600);
+}
+
+// ===================== CARD INSTANCE =====================
+function makeCard(key){
+  const base=CARDS[key];
+  return {key,name:base.name,icon:base.icon,type:base.type,cost:base.cost,
+    dur:base.maxDur,maxDur:base.maxDur,desc:base.desc,effect:{...base.effect},
+    isRemnant:false,remnant:null};
+}
+
+function decayCard(card){
+  if(card.isRemnant||card.dur===99)return card;
+  card.dur--;
+  if(card.dur<=0){
+    // Transform to remnant
+    const r=pick(REMNANTS);
+    card.isRemnant=true;
+    card.remnant=r;
+    card.name=r.name;
+    card.icon=r.icon;
+    card.desc=r.desc;
+    card.cost=0;
+    card.type='remnant';
+    return card;
+  }
+  return card;
+}
+
+function durClass(card){
+  if(card.isRemnant)return 'decay-remnant';
+  const pct=card.dur/card.maxDur;
+  if(pct>0.75)return 'decay-1';
+  if(pct>0.5)return 'decay-2';
+  if(pct>0.25)return 'decay-3';
+  return 'decay-4';
+}
+
+function durColor(card){
+  if(card.isRemnant)return 'dur-dead';
+  const pct=card.dur/card.maxDur;
+  if(pct>0.5)return 'dur-full';
+  if(pct>0.25)return 'dur-mid';
+  return 'dur-low';
+}
+
+function renderCard(card, idx, context='hand'){
+  const dc=durClass(card);
+  const tc=card.isRemnant?'t-remnant':`t-${card.type}`;
+  const canPlay=context==='hand'&&S.phase==='battle'&&card.cost<=S.mana;
+  const cls=`card ${tc} ${dc} ${canPlay?'':'disabled'}`;
+  const durTxt=card.isRemnant?'\uD83D\uDCA8':`${card.dur}/${card.maxDur}`;
+  return `<div class="${cls}" onclick="${context==='hand'?`playCard(${idx})`:(context==='reward'?`pickReward(${idx})`:`repairCard(${idx})`)}" data-idx="${idx}">
+    <div class="card-cost">${card.cost}</div>
+    <div class="card-dur ${durColor(card)}">${durTxt}</div>
+    <div class="card-icon">${card.icon}</div>
+    <div class="card-name">${card.name}</div>
+    <div class="card-desc">${card.desc}</div>
+    <div class="card-type">${card.isRemnant?'残骸':card.type==='atk'?'攻撃':card.type==='def'?'防御':card.type==='mag'?'魔法':'技能'}</div>
+  </div>`;
+}
+
+// ===================== DECK MANAGEMENT =====================
+function buildStarterDeck(){
+  S.deck=[];
+  // 4 strikes, 4 guards, 1 fireball, 1 rest
+  for(let i=0;i<4;i++)S.deck.push(makeCard('strike'));
+  for(let i=0;i<4;i++)S.deck.push(makeCard('guard'));
+  S.deck.push(makeCard('fireball'));
+  S.deck.push(makeCard('rest'));
+  shuffleDeck();
+}
+
+function shuffleDeck(){
+  for(let i=S.deck.length-1;i>0;i--){
+    const j=rng(i+1);
+    [S.deck[i],S.deck[j]]=[S.deck[j],S.deck[i]];
+  }
+}
+
+function drawCards(n){
+  for(let i=0;i<n;i++){
+    if(S.deck.length===0){
+      if(S.discard.length===0)break;
+      S.deck=[...S.discard];
+      S.discard=[];
+      shuffleDeck();
+    }
+    S.hand.push(S.deck.pop());
+  }
+}
+
+function discardHand(){
+  S.discard.push(...S.hand);
+  S.hand=[];
+}
+
+// ===================== HUD =====================
+function updateHUD(){
+  if(S.phase==='title'){$('#hud').style.display='none';return}
+  $('#hud').style.display='flex';
+  $('#h-hp').textContent=`${S.hp}/${S.maxHp}`;
+  $('#h-floor').textContent=`${S.floor}F`;
+  $('#h-gold').textContent=S.gold;
+  $('#h-mana').textContent=`${S.mana}/${S.maxMana}`;
+  $('#h-shield').textContent=S.shield;
+}
+
+function updateHand(){
+  const wrap=$('#hand-wrap');
+  if(S.phase!=='battle'){wrap.style.display='none';return}
+  wrap.style.display='block';
+  const hand=$('#hand');
+  hand.innerHTML=S.hand.map((c,i)=>renderCard(c,i,'hand')).join('');
+  $('#deck-info').textContent=`山: ${S.deck.length} | 捨: ${S.discard.length}`;
+}
+
+// ===================== BATTLE LOG =====================
+function log(msg,cls='info'){
+  const el=$('#log');
+  if(!el)return;
+  const d=document.createElement('div');
+  d.className='l-'+cls;
+  d.textContent='> '+msg;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+
+// ===================== TITLE =====================
+function showTitle(){
+  S.phase='title';
+  updateHUD();
+  $('#hand-wrap').style.display='none';
+  $('#scene').innerHTML=`
+    <div style="text-align:center;animation:fadeIn .8s">
+      <h1 style="font-size:30px;color:var(--accent);text-shadow:0 0 30px rgba(0,240,255,.4);letter-spacing:3px">デッキ・ディケイ</h1>
+      <div style="font-size:13px;color:var(--text2);margin:4px 0 16px">DECK DECAY v1.1</div>
+      <div style="font-size:56px;margin:16px 0">\uD83C\uDCCF</div>
+      <p style="color:var(--text2);font-size:12px;max-width:320px;margin:0 auto 20px;line-height:1.6">
+        カードは使うたびに朽ちていく。<br>
+        強力なカードほど劣化が早い。<br>
+        完全に朽ちたカードは予測不能な「残骸」に。<br>
+        ボロボロのデッキで深淵に挑め。
+      </p>
+      <button class="btn" onclick="startRun()">冒険を始める</button>
+      <div style="margin-top:14px;font-size:10px;color:var(--text2)">全3階層 / カードを選んでタップ</div>
+    </div>`;
+}
+
+// ===================== START RUN =====================
+function startRun(){
+  S.hp=50;S.maxHp=50;S.gold=0;S.mana=3;S.maxMana=3;S.shield=0;
+  S.floor=1;S.node=0;S.deck=[];S.hand=[];S.discard=[];S.exhaust=[];
+  S.totalKills=0;S.repairKits=0;
+  S.eBuff=0;S.eBleed=0;S.ePoison=0;S.eWeak=0;S.pNextAtk=0;S.pNextDef=0;S.pEmpower=false;
+  buildStarterDeck();
+  generateFloorMap();
+  showMap();
+}
+
+// ===================== MAP =====================
+function generateFloorMap(){
+  S.map=[];
+  const rows=4;
+  const nodesPerRow=[3,3,3,1];
+  let id=0;
+  for(let r=0;r<rows;r++){
+    const row=[];
+    const n=nodesPerRow[r];
+    for(let c=0;c<n;c++){
+      let type;
+      if(r===rows-1){type='boss'}
+      else if(r===0){type=pick(['battle','battle','event'])}
+      else{type=pick(['battle','battle','battle','shop','forge','event','rest'])}
+      row.push({id:id++,type,icon:nodeIcon(type),row:r,col:c,visited:false});
+    }
+    S.map.push(row);
+  }
+  S.node=-1;
+  S.path=[];
+}
+
+function nodeIcon(t){
+  switch(t){
+    case 'battle':return ['\u2694\uFE0F','\uD83D\uDC7E','\uD83D\uDDE1\uFE0F'][rng(3)];
+    case 'shop':return '\uD83D\uDED2';
+    case 'forge':return '\uD83D\uDD28';
+    case 'event':return '\u2753';
+    case 'rest':return '\u26FA';
+    case 'boss':return '\uD83D\uDC51';
+    default:return '\u2B1C';
+  }
+}
+
+function showMap(){
+  S.phase='map';
+  updateHUD();
+  $('#hand-wrap').style.display='none';
+
+  const curRow=S.path.length===0?-1:S.map.findIndex(row=>row.some(n=>n.id===S.path[S.path.length-1]));
+  const nextRow=curRow+1;
+
+  let html=`<div style="text-align:center" class="slide-up">`;
+  html+=`<div style="font-size:14px;color:var(--accent);margin-bottom:6px">${S.floor}階 ルートを選択</div>`;
+  html+=`<div style="font-size:11px;color:var(--text2);margin-bottom:12px">ノードをタップして進む</div>`;
+
+  for(let r=0;r<S.map.length;r++){
+    const row=S.map[r];
+    html+=`<div class="node-row">`;
+    row.forEach(n=>{
+      const selectable=(r===nextRow);
+      const visited=n.visited;
+      const isCurrent=S.path[S.path.length-1]===n.id;
+      let cls='node';
+      if(selectable&&!visited)cls+=' selectable';
+      if(visited)cls+=' visited';
+      if(isCurrent)cls+=' current';
+      if(n.type==='boss')cls+=' boss-n';
+      html+=`<div class="${cls}" onclick="${selectable&&!visited?`enterNode(${n.id})`:'void(0)'}">${n.icon}</div>`;
+    });
+    html+=`</div>`;
+    if(r<S.map.length-1)html+=`<div class="node-line"></div>`;
+  }
+
+  // Deck overview button
+  html+=`<div style="margin-top:14px">`;
+  html+=`<button class="btn btn-sm btn-mana" onclick="showDeckView()">デッキ確認 (${S.deck.length+S.discard.length+S.hand.length}枚)</button>`;
+  html+=`</div></div>`;
+
+  $('#scene').innerHTML=html;
+}
+
+function enterNode(id){
+  let node=null;
+  for(const row of S.map){for(const n of row){if(n.id===id){node=n;break}}}
+  if(!node)return;
+  node.visited=true;
+  S.path.push(id);
+  switch(node.type){
+    case 'battle':startBattle(false);break;
+    case 'boss':startBattle(true);break;
+    case 'shop':showShop();break;
+    case 'forge':showForge();break;
+    case 'event':showEvent();break;
+    case 'rest':showRest();break;
+  }
+}
+
+// ===================== BATTLE =====================
+function startBattle(isBoss){
+  S.phase='battle';
+  S.shield=0;S.mana=S.maxMana;S.turn=0;
+  S.eBuff=0;S.eBleed=0;S.ePoison=0;S.eWeak=0;S.eShield=0;
+  S.pNextAtk=0;S.pNextDef=0;S.pEmpower=false;
+
+  if(isBoss){
+    const b=ENEMIES.boss[S.floor];
+    S.enemy={...b,isBoss:true,moveIdx:0};
+    ddShowBossIntro(b.icon,b.name);
+  } else {
+    const pool=ENEMIES[S.floor]||ENEMIES[1];
+    const e=pick(pool);
+    S.enemy={...e,hp:e.hp+rng(Math.min(S.floor*5,10)),isBoss:false,moveIdx:0}; // v1.1: cap HP variance at 10
+  }
+  S.eHp=S.enemy.hp;S.eMax=S.enemy.hp;
+  S.eIntent=S.enemy.moves[0];
+
+  // Shuffle discard back
+  S.deck.push(...S.discard,...S.hand);
+  S.discard=[];S.hand=[];
+  shuffleDeck();
+  drawCards(5);
+  renderBattle();
+}
+
+function renderBattle(){
+  updateHUD();
+  updateHand();
+  const e=S.enemy;
+  const ePct=clamp((S.eHp/S.eMax)*100,0,100);
+  const pPct=clamp((S.hp/S.maxHp)*100,0,100);
+
+  // Intent text
+  let intentTxt='';
+  if(S.eIntent){
+    switch(S.eIntent.type){
+      case 'atk':intentTxt=`\u2694\uFE0F ${S.eIntent.val+S.eBuff}ダメージ`;break;
+      case 'def':intentTxt=`\uD83D\uDEE1\uFE0F 防御+${S.eIntent.val}`;break;
+      case 'buff':intentTxt=`\u2B06\uFE0F 攻撃力UP`;break;
+      case 'heal':intentTxt=`\uD83D\uDC9A HP回復${S.eIntent.val}`;break;
+      case 'summon':intentTxt=`\uD83D\uDC7B 召喚+攻撃`;break;
+    }
+  }
+
+  let html=`<div class="battle-area slide-up">`;
+  html+=`<div class="enemy-box">`;
+  html+=`<div class="enemy-name">${e.name}${e.isBoss?' [BOSS]':''} <span style="font-size:11px;color:var(--text2)">${S.floor}F T${S.turn+1}</span></div>`;
+  html+=`<div class="enemy-sprite">${e.icon}</div>`;
+  html+=`<div class="hp-bar"><div class="hp-fill hp-enemy" style="width:${ePct}%"></div><div class="hp-txt">${S.eHp}/${S.eMax}${S.eShield>0?' [\uD83D\uDEE1'+S.eShield+']':''}</div></div>`;
+  html+=`<div class="intent-box">次の行動: ${intentTxt}</div>`;
+  // Status effects on enemy
+  let statuses=[];
+  if(S.eBleed>0)statuses.push(`\uD83E\uDE78出血${S.eBleed}`);
+  if(S.ePoison>0)statuses.push(`\u2620\uFE0F毒${S.ePoison}`);
+  if(S.eWeak>0)statuses.push(`\uD83D\uDCA7弱体${S.eWeak}`);
+  if(S.eBuff>0)statuses.push(`\u2B06\uFE0F強化+${S.eBuff}`);
+  if(statuses.length)html+=`<div style="font-size:10px;margin-top:4px">${statuses.join(' ')}</div>`;
+  html+=`</div>`;
+
+  // Player HP
+  html+=`<div style="margin:6px 0">`;
+  html+=`<div style="font-size:11px;color:var(--text2)">あなた ${S.shield>0?'[\uD83D\uDEE1'+S.shield+']':''}</div>`;
+  html+=`<div class="hp-bar"><div class="hp-fill hp-player" style="width:${pPct}%"></div><div class="hp-txt">${S.hp}/${S.maxHp}</div></div></div>`;
+
+  html+=`<div id="log"></div>`;
+  html+=`<div style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:12px"><span style="font-size:12px;color:var(--mana)">MP: ${S.mana}/${S.maxMana}</span><button class="btn btn-sm btn-red" onclick="endPlayerTurn()">ターン終了</button></div>`;
+  html+=`</div>`;
+
+  $('#scene').innerHTML=html;
+}
+
+async function playCard(idx){
+  if(S.phase!=='battle')return;
+  if(S.eHp<=0||S.hp<=0)return; // v1.1: prevent play after battle end
+  const card=S.hand[idx];
+  if(!card||card.cost>S.mana)return;
+
+  S.mana-=card.cost;
+  ddCardSwoosh(innerWidth/2,innerHeight-80);
+  S.hand.splice(idx,1);
+
+  // Apply card effect
+  const e=card.isRemnant?card.remnant.fn():card.effect;
+
+  // Empower check
+  let dmgMult=1;
+  if(S.pEmpower&&(card.type==='atk'||card.type==='mag')){dmgMult=2;S.pEmpower=false;log('研磨効果: ダメージ2倍！','mag')}
+  let atkBonus=S.pNextAtk;S.pNextAtk=0;
+
+  if(e.dmg){
+    let totalDmg=0;
+    const hits=e.hits||1;
+    for(let h=0;h<hits;h++){
+      let d=Math.floor((e.dmg+atkBonus)*dmgMult);
+      if(S.eWeak>0)d=Math.floor(d*0.75);
+      // Pierce ignores shield
+      if(!e.pierce&&S.eShield>0){
+        const blocked=Math.min(S.eShield,d);
+        S.eShield-=blocked;d-=blocked;
+        if(blocked>0)log(`敵の防御で${blocked}吸収`,'def');
+      }
+      S.eHp-=d;totalDmg+=d;
+    }
+    log(`${card.name}: ${totalDmg}ダメージ！`,'dmg');
+    {const eb=document.querySelector('.enemy-box');if(eb){eb.classList.add('anim-shake');setTimeout(()=>eb.classList.remove('anim-shake'),300)}}
+    if(card.isRemnant)log('残骸のカオス効果！','remnant');
+  }
+  if(e.def){
+    let d=e.def+(S.pNextDef||0);S.pNextDef=0;
+    S.shield+=d;
+    log(`${card.name}: 防御+${d}`,'def');
+  }
+  if(e.heal){S.hp=Math.min(S.maxHp,S.hp+e.heal);log(`${card.name}: HP+${e.heal}`,'heal')}
+  if(e.draw){drawCards(e.draw);log(`${card.name}: ${e.draw}枚ドロー`,'info')}
+  if(e.bleed){S.eBleed+=e.bleed;log(`出血付与: ${e.bleed}`,'dmg')}
+  if(e.poison){S.ePoison+=e.poison;log(`毒付与: ${e.poison}`,'mag')}
+  if(e.weak){S.eWeak+=e.weak;log(`弱体付与: ${e.weak}`,'mag')}
+  if(e.empower){S.pEmpower=true;log('次の攻撃が2倍！','info')}
+  if(e.nextAtk){S.pNextAtk+=e.nextAtk;log(`次ATK+${e.nextAtk}`,'info')}
+  if(e.nextDef){S.pNextDef+=e.nextDef}
+  if(e.gold){S.gold+=e.gold;log(`+${e.gold}G`,'gold')}
+  if(e.execute){
+    if(S.eHp<=S.eMax/2){S.eHp-=e.execute;log(`処刑！ ${e.execute}ダメージ！`,'dmg')}
+    else{log('処刑失敗: 敵のHPが50%以上','info')}
+  }
+  if(e.repair){
+    // Repair most damaged card in hand
+    const repairable=S.hand.filter(c=>!c.isRemnant&&c.dur<c.maxDur&&c.maxDur!==99);
+    if(repairable.length>0){
+      repairable.sort((a,b)=>a.dur-b.dur);
+      repairable[0].dur=Math.min(repairable[0].maxDur,repairable[0].dur+e.repair);
+      log(`${repairable[0].name}の耐久を修復！`,'heal');
+    } else log('修復対象なし','info');
+  }
+  if(e.recycle){
+    if(S.discard.length>0){
+      const c=S.discard.pop();
+      S.deck.push(c);
+      log(`${c.name}をデッキに戻した`,'info');
+    }
+  }
+  if(e.selfDmg){S.hp-=e.selfDmg;log(`自傷ダメージ: ${e.selfDmg}`,'dmg')}
+
+  // Decay card
+  decayCard(card);
+  if(card.isRemnant&&!card._wasRemnant){
+    log(`${card.name}に変異した！`,'decay');
+    card._wasRemnant=true;
+  }
+
+  // Send to discard
+  S.discard.push(card);
+
+  updateHUD();
+  updateHand();
+  renderBattle();
+
+  // Check player death from self-damage
+  if(S.hp<=0){await sleep(300);gameOver();return;}
+
+  // Check enemy death
+  if(S.eHp<=0){
+    await sleep(300);
+    winBattle();
+  }
+}
+
+async function endPlayerTurn(){
+  if(S.phase!=='battle')return;
+  if(S.eHp<=0||S.hp<=0)return; // v1.1: prevent double end-turn
+
+  // Discard hand
+  discardHand();
+
+  // Enemy status effects
+  if(S.eBleed>0){S.eHp-=S.eBleed;log(`出血: ${S.eBleed}ダメージ`,'dmg');S.eBleed=Math.max(0,S.eBleed-1)}
+  if(S.ePoison>0){S.eHp-=S.ePoison;log(`毒: ${S.ePoison}ダメージ`,'mag');S.ePoison=Math.max(0,S.ePoison-1)}
+  if(S.eWeak>0)S.eWeak--;
+
+  if(S.eHp<=0){await sleep(300);winBattle();return}
+
+  // Enemy turn
+  const intent=S.eIntent;
+  await sleep(300);
+  log(`--- ${S.enemy.name}のターン ---`,'info');
+
+  switch(intent.type){
+    case 'atk':{
+      let dmg=intent.val+S.eBuff;
+      if(S.shield>0){const b=Math.min(S.shield,dmg);dmg-=b;S.shield-=b;log(`防御で${b}吸収`,'def')}
+      if(dmg>0){S.hp-=dmg;log(`${dmg}ダメージ！`,'dmg')}
+      break;
+    }
+    case 'def':S.eShield+=intent.val;log(`敵が防御+${intent.val}`,'def');break;
+    case 'buff':S.eBuff+=intent.val;log(`敵の攻撃力+${intent.val}！`,'info');break;
+    case 'heal':S.eHp=Math.min(S.eMax,S.eHp+intent.val);log(`敵がHP+${intent.val}回復`,'heal');break;
+    case 'summon':S.eHp=Math.min(S.eMax,S.eHp+5);let sd=intent.val+S.eBuff;if(S.shield>0){const b=Math.min(S.shield,sd);sd-=b;S.shield-=b}if(sd>0)S.hp-=sd;log(`召喚攻撃: ${sd}ダメージ`,'dmg');break;
+  }
+
+  if(S.hp<=0){await sleep(300);gameOver();return}
+
+  // Next turn
+  S.turn++;
+  S.shield=0;
+  S.mana=S.maxMana;
+  S.enemy.moveIdx=(S.enemy.moveIdx+1)%S.enemy.moves.length;
+  S.eIntent=S.enemy.moves[S.enemy.moveIdx];
+
+  drawCards(5);
+  renderBattle();
+}
+
+function winBattle(){
+  S.totalKills++;
+  S.phase='reward';
+  ddDeathExplosion(innerWidth/2,innerHeight/3);
+  const enemyBox=document.querySelector('.enemy-box');if(enemyBox)enemyBox.classList.add('death-explode');
+  $('#hand-wrap').style.display='none';
+  const isBoss=S.enemy.isBoss;
+  const goldReward=5+rng(8)+S.floor*3+(isBoss?15:0);
+  S.gold+=goldReward;
+
+  // Generate reward cards (3 choices)
+  const allKeys=Object.keys(CARDS);
+  const choices=[];
+  while(choices.length<3){
+    const k=pick(allKeys);
+    if(!choices.includes(k))choices.push(k);
+  }
+  const rewardCards=choices.map(k=>makeCard(k));
+
+  let html=`<div class="box slide-up">`;
+  html+=`<div class="box-icon">\u2694\uFE0F</div>`;
+  html+=`<div class="box-title" style="color:var(--hp)">勝利！</div>`;
+  html+=`<div class="box-desc">${S.enemy.name}を倒した！ +${goldReward}G</div>`;
+
+  html+=`<div style="font-size:12px;color:var(--accent);margin:8px 0">カードを1枚選択（またはスキップ）</div>`;
+  html+=`<div class="reward-cards">`;
+  rewardCards.forEach((c,i)=>html+=renderCard(c,i,'reward'));
+  html+=`</div>`;
+  html+=`<button class="btn btn-sm" onclick="skipReward()" style="margin-top:8px">スキップ</button>`;
+
+  if(isBoss){
+    if(S.floor>=3){
+      html+=`<div style="margin-top:12px"><button class="btn btn-gold" onclick="showVictory()">クリア！</button></div>`;
+    } else {
+      html+=`<div style="margin-top:12px"><button class="btn btn-gold" onclick="nextFloor()">次の階層へ</button></div>`;
+    }
+  }
+  html+=`</div>`;
+
+  $('#scene').innerHTML=html;
+  window._rewardCards=rewardCards;
+  window._isBossWin=isBoss;
+  updateHUD();
+}
+
+function pickReward(idx){
+  const card=window._rewardCards[idx];
+  if(!card)return;
+  S.deck.push(card);
+  log(`${card.name}をデッキに追加！`,'gold');
+  if(window._isBossWin){
+    if(S.floor>=3)showVictory();
+    else nextFloor();
+  } else showMap();
+}
+
+function skipReward(){
+  if(window._isBossWin){
+    if(S.floor>=3)showVictory();
+    else nextFloor();
+  } else showMap();
+}
+
+function nextFloor(){
+  S.floor++;
+  S.maxMana=Math.min(5,S.maxMana+1);
+  // v1.2: floor transition
+  const ft=document.getElementById('dd-floor-trans');
+  ft.querySelector('.dd-ft-num').textContent=`${S.floor}F`;
+  ft.style.display='flex';ft.style.animation='none';void ft.offsetWidth;
+  ft.style.background='rgba(0,0,0,0)';
+  ft.animate([{background:'rgba(0,0,0,0)'},{background:'rgba(0,0,0,1)',offset:0.3},{background:'rgba(0,0,0,1)',offset:0.7},{background:'rgba(0,0,0,0)'}],{duration:1800,easing:'ease-in-out'});
+  setTimeout(()=>{ft.style.display='none'},1900);
+  generateFloorMap();
+  setTimeout(()=>showMap(),900);
+}
+
+// ===================== SHOP =====================
+function showShop(){
+  S.phase='shop';
+  updateHUD();
+  $('#hand-wrap').style.display='none';
+
+  const items=[];
+  // 4-5 items
+  const allKeys=Object.keys(CARDS);
+  for(let i=0;i<3;i++){
+    const k=pick(allKeys);
+    const c=makeCard(k);
+    items.push({type:'card',card:c,price:8+rng(10),label:`${c.icon} ${c.name}`,desc:c.desc+` [耐久${c.maxDur}]`});
+  }
+  items.push({type:'heal',price:6,label:'\uD83E\uDDEA HP薬',desc:'HP+15回復'});
+  items.push({type:'repair_kit',price:10,label:'\uD83D\uDD27 修復キット',desc:'デッキ全カード耐久+1'});
+  if(Math.random()<0.5)items.push({type:'remove',price:12,label:'\u274C カード除去',desc:'デッキから1枚除去'});
+  if(Math.random()<0.4)items.push({type:'maxhp',price:15,label:'\u2764\uFE0F 生命強化',desc:'最大HP+8'});
+
+  let html=`<div style="text-align:center" class="slide-up">`;
+  html+=`<div style="font-size:24px">\uD83D\uDED2</div>`;
+  html+=`<div style="font-size:18px;font-weight:bold;margin:6px 0">闇市場</div>`;
+  html+=`<div style="font-size:12px;color:var(--text2);margin-bottom:10px">所持金: ${S.gold}G</div>`;
+
+  html+=`<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0">`;
+  items.forEach((item,i)=>{
+    const can=S.gold>=item.price;
+    html+=`<div style="background:var(--bg2);border:1px solid ${can?'var(--bg3)':'#222'};border-radius:8px;padding:10px;width:120px;text-align:center;cursor:${can?'pointer':'not-allowed'};opacity:${can?1:.4};transition:all .2s" ${can?`onclick="shopBuy(${i})"`:''}  onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--bg3)'">`;
+    html+=`<div style="font-size:13px">${item.label}</div>`;
+    html+=`<div style="font-size:9px;color:var(--text2);margin:4px 0">${item.desc}</div>`;
+    html+=`<div style="color:var(--gold);font-weight:bold;font-size:14px">${item.price}G</div></div>`;
+  });
+  html+=`</div>`;
+  html+=`<button class="btn btn-sm" onclick="showMap()" style="margin-top:10px">立ち去る</button></div>`;
+
+  $('#scene').innerHTML=html;
+  window._shopItems=items;
+}
+
+function shopBuy(idx){
+  const item=window._shopItems[idx];
+  if(!item||S.gold<item.price)return;
+  S.gold-=item.price;
+  switch(item.type){
+    case 'card':S.deck.push(item.card);flash(`${item.card.name}を購入！`);break;
+    case 'heal':S.hp=Math.min(S.maxHp,S.hp+15);flash('HP+15回復！');break;
+    case 'repair_kit':
+      [...S.deck,...S.discard,...S.hand].forEach(c=>{if(!c.isRemnant&&c.maxDur!==99)c.dur=Math.min(c.maxDur,c.dur+1)});
+      flash('全カード耐久+1！');break;
+    case 'remove':showRemoveCard();return;
+    case 'maxhp':S.maxHp+=8;S.hp+=8;flash('最大HP+8！');break;
+  }
+  updateHUD();
+  setTimeout(()=>showShop(),800);
+}
+
+function showRemoveCard(){
+  const allCards=[...S.deck];
+  if(allCards.length===0){flash('除去可能なカードなし');setTimeout(()=>showShop(),800);return}
+
+  let html=`<div style="text-align:center" class="slide-up">`;
+  html+=`<div style="font-size:16px;font-weight:bold;margin-bottom:8px">除去するカードを選択</div>`;
+  html+=`<div class="reward-cards">`;
+  allCards.forEach((c,i)=>html+=renderCard(c,i,'remove'));
+  html+=`</div>`;
+  html+=`<button class="btn btn-sm" onclick="showShop()" style="margin-top:8px">戻る</button></div>`;
+  $('#scene').innerHTML=html;
+  window._removeCards=allCards;
+}
+
+window.repairCard=function(idx){
+  // This is actually the remove handler when context='remove'
+  const card=window._removeCards?.[idx];
+  if(!card)return;
+  const di=S.deck.indexOf(card);
+  if(di>=0)S.deck.splice(di,1);
+  flash(`${card.name}を除去！`);
+  setTimeout(()=>showShop(),800);
+};
+
+// ===================== FORGE =====================
+function showForge(){
+  S.phase='forge';
+  updateHUD();
+  $('#hand-wrap').style.display='none';
+
+  const allCards=[...S.deck,...S.discard].filter(c=>!c.isRemnant&&c.maxDur!==99);
+  const damagedCards=allCards.filter(c=>c.dur<c.maxDur).sort((a,b)=>a.dur-b.dur);
+
+  let html=`<div style="text-align:center" class="slide-up">`;
+  html+=`<div style="font-size:24px">\uD83D\uDD28</div>`;
+  html+=`<div style="font-size:18px;font-weight:bold;margin:6px 0">鍛冶屋</div>`;
+  html+=`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">カードの耐久を修復 (5G/枚)</div>`;
+
+  if(damagedCards.length===0){
+    html+=`<div style="color:var(--text2);padding:16px;font-size:12px">修復が必要なカードはありません</div>`;
+  } else {
+    html+=`<div class="repair-cards">`;
+    damagedCards.forEach((c,i)=>{
+      const can=S.gold>=5;
+      html+=`<div style="opacity:${can?1:.4};cursor:${can?'pointer':'not-allowed'}" onclick="${can?`forgeRepair(${i})`:'void(0)'}">`;
+      html+=renderCard(c,i,'forge');
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Upgrade option
+  html+=`<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--bg3)">`;
+  html+=`<div style="font-size:12px;color:var(--accent);margin-bottom:8px">全カード修復 (15G)</div>`;
+  html+=`<button class="btn btn-sm btn-gold" onclick="forgeAll()" ${S.gold<15?'disabled':''}>全修復 15G</button>`;
+  html+=`</div>`;
+
+  html+=`<button class="btn btn-sm" onclick="showMap()" style="margin-top:12px">立ち去る</button></div>`;
+  $('#scene').innerHTML=html;
+  window._forgeCards=damagedCards;
+}
+
+function forgeRepair(idx){
+  if(S.gold<5)return;
+  const card=window._forgeCards[idx];
+  if(!card)return;
+  S.gold-=5;
+  card.dur=Math.min(card.maxDur,card.dur+2);
+  flash(`${card.name}を修復！ 耐久+2`);
+  updateHUD();
+  setTimeout(()=>showForge(),600);
+}
+
+function forgeAll(){
+  if(S.gold<15)return;
+  S.gold-=15;
+  [...S.deck,...S.discard,...S.hand].forEach(c=>{
+    if(!c.isRemnant&&c.maxDur!==99)c.dur=Math.min(c.maxDur,c.dur+2);
+  });
+  flash('全カード耐久+2！');
+  updateHUD();
+  setTimeout(()=>showForge(),600);
+}
+
+// ===================== EVENT =====================
+const EVENT_LIST = [
+  {title:'不思議な泉',icon:'\u26F2',desc:'澄んだ水が湧き出ている。',
+    choices:[{text:'飲む（HP全回復）',fn:()=>{S.hp=S.maxHp;flash('HP全回復！')}},
+             {text:'瓶に詰める（+8G）',fn:()=>{S.gold+=8;flash('+8G！')}}]},
+  {title:'朽ちた図書館',icon:'\uD83D\uDCDA',desc:'古い魔導書が散らばっている。',
+    choices:[{text:'読む（ランダムカード獲得）',fn:()=>{const k=pick(Object.keys(CARDS));S.deck.push(makeCard(k));flash(`${CARDS[k].name}を発見！`)}},
+             {text:'燃やす（デッキの残骸1枚除去）',fn:()=>{const ri=S.deck.findIndex(c=>c.isRemnant);if(ri>=0){const r=S.deck.splice(ri,1)[0];flash(`${r.name}を除去！`)}else flash('残骸なし')}}]},
+  {title:'呪いの井戸',icon:'\uD83C\uDF11',desc:'暗い井戸から不吉な声が聞こえる。',
+    choices:[{text:'覗く（カード1枚の耐久MAX+ランダム自傷）',fn:()=>{const c=[...S.deck,...S.discard].filter(x=>!x.isRemnant&&x.maxDur!==99);if(c.length){const t=pick(c);t.dur=t.maxDur;const d=3+rng(5);S.hp-=d;flash(`${t.name}全修復！自傷${d}`)}else flash('対象なし')}},
+             {text:'立ち去る',fn:()=>{flash('井戸を後にした')}}]},
+  {title:'旅の錬金術師',icon:'\uD83E\uDDD9',desc:'「カードの本質を変えてやろう」',
+    choices:[{text:'受ける（残骸1枚をランダムカードに変換）',fn:()=>{const ri=[...S.deck,...S.discard].findIndex(c=>c.isRemnant);if(ri>=0){const all=[...S.deck,...S.discard];const k=pick(Object.keys(CARDS));Object.assign(all[ri],makeCard(k));flash(`新たなカードに変換！`)}else flash('残骸なし')}},
+             {text:'断る',fn:()=>{flash('取引を断った')}}]},
+  {title:'宝箱',icon:'\uD83D\uDCE6',desc:'輝く宝箱を発見！',
+    choices:[{text:'開ける',fn:()=>{const g=8+rng(12);S.gold+=g;flash(`+${g}G！`)}}]},
+];
+
+function showEvent(){
+  S.phase='event';
+  updateHUD();
+  $('#hand-wrap').style.display='none';
+  const evt=pick(EVENT_LIST);
+
+  let html=`<div class="box slide-up">`;
+  html+=`<div class="box-icon">${evt.icon}</div>`;
+  html+=`<div class="box-title">${evt.title}</div>`;
+  html+=`<div class="box-desc">${evt.desc}</div>`;
+  evt.choices.forEach((c,i)=>{
+    html+=`<button class="btn btn-sm" onclick="eventChoice(${i})" style="margin:4px">${c.text}</button><br>`;
+  });
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+  window._eventChoices=evt.choices;
+}
+
+function eventChoice(idx){
+  window._eventChoices[idx].fn();
+  updateHUD();
+  setTimeout(()=>showMap(),800);
+}
+
+// ===================== REST =====================
+function showRest(){
+  S.phase='rest';
+  const healed=Math.floor(S.maxHp*0.3);
+  S.hp=Math.min(S.maxHp,S.hp+healed);
+  updateHUD();
+  $('#hand-wrap').style.display='none';
+
+  let html=`<div class="box slide-up">`;
+  html+=`<div class="box-icon">\u26FA</div>`;
+  html+=`<div class="box-title">休息所</div>`;
+  html+=`<div class="box-desc">焚火で体を休めた。HP+${healed}回復！</div>`;
+  html+=`<button class="btn btn-sm" onclick="showMap()">出発</button></div>`;
+  $('#scene').innerHTML=html;
+}
+
+// ===================== DECK VIEW =====================
+function showDeckView(){
+  const all=[...S.deck,...S.discard,...S.hand].sort((a,b)=>{
+    if(a.isRemnant&&!b.isRemnant)return 1;
+    if(!a.isRemnant&&b.isRemnant)return -1;
+    return a.dur-b.dur;
+  });
+
+  let html=`<div class="overlay" onclick="closeOverlay()"><div class="ov-box" onclick="event.stopPropagation()" style="max-height:80vh;overflow-y:auto">`;
+  html+=`<div style="font-size:16px;font-weight:bold;color:var(--accent);margin-bottom:10px">デッキ一覧 (${all.length}枚)</div>`;
+  html+=`<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center">`;
+  all.forEach((c,i)=>{
+    const dc=durClass(c);
+    const tc=c.isRemnant?'t-remnant':`t-${c.type}`;
+    html+=`<div class="card ${tc} ${dc}" style="cursor:default;width:90px;min-height:110px">`;
+    html+=`<div class="card-dur ${durColor(c)}">${c.isRemnant?'\uD83D\uDCA8':`${c.dur}/${c.maxDur}`}</div>`;
+    html+=`<div class="card-icon" style="font-size:20px">${c.icon}</div>`;
+    html+=`<div class="card-name" style="font-size:9px">${c.name}</div>`;
+    html+=`<div class="card-desc" style="font-size:8px">${c.desc}</div></div>`;
+  });
+  html+=`</div>`;
+  html+=`<button class="btn btn-sm" onclick="closeOverlay()" style="margin-top:10px">閉じる</button>`;
+  html+=`</div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function closeOverlay(){
+  const ov=document.querySelector('.overlay');
+  if(ov)ov.remove();
+}
+
+// ===================== GAME OVER =====================
+function gameOver(){
+  S.phase='gameover';
+  $('#hand-wrap').style.display='none';
+  const remnants=[...S.deck,...S.discard,...S.hand].filter(c=>c.isRemnant).length;
+
+  let html=`<div class="box slide-up">`;
+  html+=`<div class="box-icon">\uD83D\uDC80</div>`;
+  html+=`<div class="box-title" style="color:var(--accent3)">ゲームオーバー</div>`;
+  html+=`<div class="box-desc">`;
+  html+=`${S.floor}階で力尽きた...<br>`;
+  html+=`討伐数: ${S.totalKills}<br>`;
+  html+=`残骸カード: ${remnants}枚<br>`;
+  html+=`所持金: ${S.gold}G</div>`;
+  html+=`<button class="btn" onclick="startRun()">再挑戦</button>`;
+  html+=`<button class="btn btn-sm" onclick="showTitle()" style="margin-top:8px">タイトルへ</button>`;
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+  $('#hud').style.display='none';
+}
+
+// ===================== VICTORY =====================
+function showVictory(){
+  S.phase='victory';
+  $('#hand-wrap').style.display='none';
+  const totalCards=S.deck.length+S.discard.length+S.hand.length;
+  const remnants=[...S.deck,...S.discard,...S.hand].filter(c=>c.isRemnant).length;
+
+  let html=`<div class="box slide-up">`;
+  html+=`<div style="font-size:60px;margin-bottom:8px">\uD83C\uDFC6</div>`;
+  html+=`<div class="box-title" style="color:var(--gold);font-size:24px">深淵を制覇！</div>`;
+  html+=`<div class="box-desc" style="font-size:13px">`;
+  html+=`全3階層をクリア！<br><br>`;
+  html+=`討伐数: ${S.totalKills}<br>`;
+  html+=`最終デッキ: ${totalCards}枚<br>`;
+  html+=`残骸カード: ${remnants}枚<br>`;
+  html+=`所持金: ${S.gold}G<br>`;
+  html+=`残りHP: ${S.hp}/${S.maxHp}</div>`;
+  html+=`<button class="btn btn-gold" onclick="startRun()">もう一度挑戦</button>`;
+  html+=`<button class="btn btn-sm" onclick="showTitle()" style="margin-top:8px">タイトルへ</button>`;
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+}
+
+// ===================== FLASH MESSAGE =====================
+function flash(msg){
+  const el=document.createElement('div');
+  el.className='overlay';
+  el.style.animation='fadeIn .2s';
+  el.innerHTML=`<div class="ov-box"><div style="font-size:14px;line-height:1.6">${msg}</div></div>`;
+  el.onclick=()=>el.remove();
+  document.body.appendChild(el);
+  setTimeout(()=>{if(el.parentNode)el.remove()},1200);
+}
+
+// ===================== INIT =====================
+showTitle();
+</script>
+</body>
+</html>

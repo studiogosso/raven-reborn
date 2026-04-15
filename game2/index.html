@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>賽の迷宮 v1.2 - Dice Labyrinth</title>
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="賽の迷宮 - ダイスビルド・ローグライク">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi6LOw44Gu6L+35a6uIiwic2hvcnRfbmFtZSI6IkRpY2VMYWIiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGExNiIsInRoZW1lX2NvbG9yIjoiIzBhMGExNiJ9">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a16;--bg2:#12122a;--bg3:#1a1a3e;
+  --accent:#00f0ff;--accent2:#6c5ce7;--accent3:#ff6b6b;
+  --text:#e0e0f0;--text2:#9898c0;--gold:#ffd700;
+  --hp:#44ff88;--dmg:#ff4466;--shield:#4488ff;--mana:#aa66ff;
+}
+html,body{height:100%;font-family:'Segoe UI','Meiryo',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+
+/* Header */
+#top-bar{background:var(--bg2);border-bottom:1px solid rgba(0,240,255,.15);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:4px}
+.stat-pill{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:3px 10px;font-size:12px}
+.stat-icon{font-size:14px}
+.stat-val{font-weight:bold}
+.hp-c{color:var(--hp)}.gold-c{color:var(--gold)}.floor-c{color:var(--accent)}.shield-c{color:var(--shield)}
+
+/* Main area */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#scene{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;overflow-y:auto}
+
+/* Title screen */
+.title-screen{text-align:center;animation:fadeIn .8s}
+.title-screen h1{font-size:32px;color:var(--accent);text-shadow:0 0 30px rgba(0,240,255,.4);margin-bottom:8px;letter-spacing:4px}
+.title-screen .sub{font-size:14px;color:var(--text2);margin-bottom:24px}
+.btn{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--accent);color:var(--accent);padding:12px 32px;border-radius:8px;font-size:16px;cursor:pointer;transition:all .2s;font-family:inherit;display:inline-block}
+.btn:hover,.btn:active{background:rgba(0,240,255,.15);box-shadow:0 0 20px rgba(0,240,255,.3);transform:translateY(-2px)}
+.btn-sm{padding:8px 16px;font-size:13px}
+.btn-danger{border-color:var(--accent3);color:var(--accent3)}
+.btn-danger:hover{background:rgba(255,100,100,.15);box-shadow:0 0 20px rgba(255,100,100,.3)}
+.btn-gold{border-color:var(--gold);color:var(--gold)}
+.btn-gold:hover{background:rgba(255,215,0,.1);box-shadow:0 0 20px rgba(255,215,0,.3)}
+
+/* Dice display */
+.dice-tray{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:16px 0}
+.dice-3d{width:80px;height:80px;perspective:300px;cursor:pointer}
+.dice-cube{width:80px;height:80px;position:relative;transform-style:preserve-3d;transition:transform .6s cubic-bezier(.3,.9,.3,1.2)}
+.dice-face{position:absolute;width:80px;height:80px;border:2px solid rgba(255,255,255,.15);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:bold;backface-visibility:hidden}
+.dice-face .face-icon{font-size:28px;margin-bottom:2px}
+.dice-face .face-name{font-size:9px;opacity:.8}
+.face-atk{background:linear-gradient(135deg,#3a1a1a,#2a0a0a);border-color:#ff4466;color:#ff6688}
+.face-def{background:linear-gradient(135deg,#1a1a3a,#0a0a2a);border-color:#4488ff;color:#6699ff}
+.face-mag{background:linear-gradient(135deg,#2a1a3a,#1a0a2a);border-color:#aa66ff;color:#bb88ff}
+.face-heal{background:linear-gradient(135deg,#1a3a1a,#0a2a0a);border-color:#44ff88;color:#66ffaa}
+.face-move{background:linear-gradient(135deg,#2a2a1a,#1a1a0a);border-color:#ffcc44;color:#ffdd66}
+.face-special{background:linear-gradient(135deg,#3a2a1a,#2a1a0a);border-color:#ff8844;color:#ffaa66}
+.face-curse{background:linear-gradient(135deg,#2a0a1a,#1a0010);border-color:#cc00ff;color:#dd44ff}
+.face-empty{background:var(--bg3);border-color:#444;color:#666}
+.dice-cube .f-front{transform:translateZ(40px)}
+.dice-cube .f-back{transform:rotateY(180deg) translateZ(40px)}
+.dice-cube .f-right{transform:rotateY(90deg) translateZ(40px)}
+.dice-cube .f-left{transform:rotateY(-90deg) translateZ(40px)}
+.dice-cube .f-top{transform:rotateX(90deg) translateZ(40px)}
+.dice-cube .f-bottom{transform:rotateX(-90deg) translateZ(40px)}
+
+/* Rolling animation - v1.2: MEGA bounce */
+@keyframes diceRoll{
+  0%{transform:rotateX(0) rotateY(0) rotateZ(0) translateY(0) scale(1)}
+  15%{transform:rotateX(200deg) rotateY(120deg) rotateZ(60deg) translateY(-60px) scale(1.1)}
+  30%{transform:rotateX(400deg) rotateY(240deg) rotateZ(120deg) translateY(0px) scale(0.95)}
+  45%{transform:rotateX(600deg) rotateY(360deg) rotateZ(180deg) translateY(-30px) scale(1.05)}
+  60%{transform:rotateX(800deg) rotateY(480deg) rotateZ(240deg) translateY(0px) scale(0.98)}
+  80%{transform:rotateX(1000deg) rotateY(640deg) rotateZ(320deg) translateY(-10px) scale(1.02)}
+  100%{transform:rotateX(1080deg) rotateY(720deg) rotateZ(360deg) translateY(0) scale(1)}
+}
+.rolling .dice-cube{animation:diceRoll 1.2s cubic-bezier(.2,.8,.3,1)}
+.rolling{filter:drop-shadow(0 0 15px rgba(0,240,255,.5))}
+
+/* Battle scene */
+.battle-area{width:100%;max-width:500px}
+.enemy-display{text-align:center;margin-bottom:12px;padding:12px;background:var(--bg2);border:1px solid rgba(255,68,102,.2);border-radius:10px}
+.enemy-name{font-size:18px;font-weight:bold;color:var(--accent3);margin-bottom:4px}
+.enemy-icon{font-size:48px;margin:6px 0}
+.hp-bar{height:14px;background:var(--bg3);border-radius:7px;overflow:hidden;margin:6px 0;position:relative}
+.hp-fill{height:100%;border-radius:7px;transition:width .4s}
+.hp-fill-player{background:linear-gradient(90deg,#22aa44,#44ff88)}
+.hp-fill-enemy{background:linear-gradient(90deg,#cc2244,#ff4466)}
+.hp-text{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:10px;line-height:14px;font-weight:bold;color:#fff;text-shadow:0 0 4px #000}
+
+/* Results */
+.roll-results{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
+.result-chip{padding:6px 12px;border-radius:6px;font-size:12px;font-weight:bold;border:1px solid;animation:popIn .3s}
+@keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* Log */
+#battle-log{max-height:100px;overflow-y:auto;padding:6px;background:var(--bg2);border-radius:6px;font-size:11px;line-height:1.6;margin:8px 0;border:1px solid rgba(255,255,255,.05)}
+#battle-log div{padding:1px 0}
+.log-dmg{color:#ff6666}.log-heal{color:#66ff88}.log-def{color:#6699ff}.log-mag{color:#bb88ff}.log-info{color:#aabb88}.log-gold{color:#ffd700}.log-curse{color:#dd44ff}
+
+/* Room map */
+.room-map{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:350px;margin:12px auto}
+.room-cell{aspect-ratio:1;border:1px solid var(--bg3);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;transition:all .2s;background:var(--bg2);position:relative}
+.room-cell.current{border-color:var(--accent);box-shadow:0 0 12px rgba(0,240,255,.3)}
+.room-cell.visited{opacity:.5}
+.room-cell.locked{opacity:.3;cursor:not-allowed}
+.room-cell.adjacent{border-color:rgba(0,240,255,.4);cursor:pointer}
+.room-cell.adjacent:hover{background:rgba(0,240,255,.1);transform:scale(1.05)}
+.room-cell.boss-room{border-color:var(--accent3);box-shadow:0 0 8px rgba(255,68,102,.2)}
+
+/* Shop */
+.shop-items{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}
+.shop-item{background:var(--bg2);border:1px solid var(--bg3);border-radius:8px;padding:10px;width:130px;text-align:center;cursor:pointer;transition:all .2s}
+.shop-item:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 4px 12px rgba(255,215,0,.2)}
+.shop-price{color:var(--gold);font-weight:bold;font-size:14px;margin-top:6px}
+
+/* Forge */
+.forge-area{max-width:400px;width:100%;text-align:center}
+.forge-dice{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.forge-face{width:70px;height:70px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:10px}
+.forge-face:hover{transform:scale(1.1);box-shadow:0 0 15px rgba(0,240,255,.3)}
+.forge-face.selected{box-shadow:0 0 20px var(--accent);transform:scale(1.15)}
+.forge-options{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0}
+.forge-option{padding:8px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .2s;text-align:center;border:1px solid var(--bg3);background:var(--bg2)}
+.forge-option:hover{border-color:var(--accent);background:rgba(0,240,255,.08)}
+
+/* Event */
+.event-box{background:var(--bg2);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:16px;max-width:400px;text-align:center;margin:12px auto}
+.event-icon{font-size:48px;margin-bottom:8px}
+.event-title{font-size:18px;font-weight:bold;margin-bottom:8px}
+.event-desc{font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5}
+.event-choices{display:flex;flex-direction:column;gap:8px}
+
+/* Overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:100;animation:fadeIn .3s}
+.overlay-content{background:var(--bg2);border:1px solid var(--accent);border-radius:12px;padding:20px;max-width:420px;width:90%;max-height:85vh;overflow-y:auto;text-align:center}
+
+/* Relic display */
+.relic-bar{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin:4px 0}
+.relic-icon{width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;position:relative}
+.relic-icon:hover::after{content:attr(data-tooltip);position:absolute;bottom:110%;left:50%;transform:translateX(-50%);background:#000;color:var(--text);padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;z-index:50;border:1px solid var(--gold)}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.shake{animation:shake .3s}
+.fade-in{animation:fadeIn .5s}
+.slide-up{animation:slideUp .4s}
+
+/* v1.2: VISUAL MEGA UPGRADE */
+@keyframes hitFlash{0%{filter:brightness(3) saturate(0)}100%{filter:brightness(1) saturate(1)}}
+.hit-flash{animation:hitFlash .2s ease-out}
+@keyframes lootSparkle{0%{box-shadow:0 0 5px rgba(255,215,0,.3)}25%{box-shadow:0 0 25px rgba(255,215,0,.8),0 0 50px rgba(255,215,0,.3)}50%{box-shadow:0 0 15px rgba(255,215,0,.5)}75%{box-shadow:0 0 30px rgba(255,215,0,.9),0 0 60px rgba(255,215,0,.4)}100%{box-shadow:0 0 5px rgba(255,215,0,.3)}}
+.loot-sparkle{animation:lootSparkle 1.5s ease-in-out}
+@keyframes floorTransition{0%{opacity:1;background:rgba(0,0,0,0)}30%{opacity:1;background:rgba(0,0,0,1)}70%{opacity:1;background:rgba(0,0,0,1)}100%{opacity:1;background:rgba(0,0,0,0)}}
+#floor-transition{position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;pointer-events:none;display:none;align-items:center;justify-content:center;flex-direction:column}
+#floor-transition.active{display:flex;animation:floorTransition 1.8s ease-in-out forwards}
+#floor-transition .floor-num{font-size:64px;font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(0,240,255,.6);letter-spacing:8px;animation:slideUp .4s ease-out .5s both}
+#floor-transition .floor-sub{font-size:18px;color:var(--text2);margin-top:8px;animation:slideUp .4s ease-out .7s both}
+@keyframes dmgFloat{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-60px) scale(1.5)}}
+.dmg-float{position:absolute;font-size:28px;font-weight:900;pointer-events:none;z-index:50;text-shadow:0 0 15px currentColor;animation:dmgFloat .8s ease-out forwards}
+@keyframes criticalPulse{0%{background:rgba(255,68,102,.4)}100%{background:transparent}}
+.enemy-hit{animation:criticalPulse .15s ease-out 2}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px}
+
+/* Mobile */
+@media(max-width:500px){
+  .dice-3d{width:60px;height:60px}
+  .dice-cube{width:60px;height:60px}
+  .dice-face{width:60px;height:60px;font-size:10px}
+  .dice-face .face-icon{font-size:22px}
+  .dice-cube .f-front{transform:translateZ(30px)}
+  .dice-cube .f-back{transform:rotateY(180deg) translateZ(30px)}
+  .dice-cube .f-right{transform:rotateY(90deg) translateZ(30px)}
+  .dice-cube .f-left{transform:rotateY(-90deg) translateZ(30px)}
+  .dice-cube .f-top{transform:rotateX(90deg) translateZ(30px)}
+  .dice-cube .f-bottom{transform:rotateX(-90deg) translateZ(30px)}
+  .title-screen h1{font-size:24px}
+  .room-cell{font-size:16px}
+  .forge-face{width:55px;height:55px}
+}
+</style>
+</head>
+<body>
+<div id="floor-transition"><div class="floor-num"></div><div class="floor-sub"></div></div>
+<div id="app">
+  <div id="top-bar" style="display:none">
+    <div class="stat-pill"><span class="stat-icon">&#x2764;</span><span class="stat-val hp-c" id="hud-hp">30/30</span></div>
+    <div class="stat-pill"><span class="stat-icon">&#x1F3AF;</span><span class="stat-val floor-c" id="hud-floor">1F</span></div>
+    <div class="stat-pill"><span class="stat-icon">&#x1FA99;</span><span class="stat-val gold-c" id="hud-gold">0</span></div>
+    <div class="stat-pill"><span class="stat-icon">&#x1F6E1;</span><span class="stat-val shield-c" id="hud-shield">0</span></div>
+    <div id="hud-relics" class="relic-bar"></div>
+  </div>
+  <div id="main">
+    <div id="scene"></div>
+  </div>
+</div>
+
+<script>
+// === GAME STATE ===
+const G = {
+  hp: 30, maxHp: 30, gold: 0, shield: 0, floor: 1, room: 12,
+  dice: [], relics: [], visited: new Set(), map: [], curses: 0,
+  enemyHp: 0, enemyMaxHp: 0, enemy: null, battleTurn: 0,
+  rollResults: [], phase: 'title', totalKills: 0, totalRooms: 0
+};
+
+// === FACE TYPES ===
+const FACES = {
+  slash:   {name:'斬撃',icon:'\u2694\uFE0F',type:'atk',val:4,desc:'4ダメージ'},
+  thrust:  {name:'刺突',icon:'\uD83D\uDDE1\uFE0F',type:'atk',val:6,desc:'6ダメージ'},
+  arrow:   {name:'矢撃',icon:'\uD83C\uDFF9',type:'atk',val:5,desc:'5ダメージ'},
+  cleave:  {name:'薙ぎ払い',icon:'\uD83D\uDCA5',type:'atk',val:8,desc:'8ダメージ'},
+  block:   {name:'盾防御',icon:'\uD83D\uDEE1\uFE0F',type:'def',val:4,desc:'防御+4'},
+  fortify: {name:'鉄壁',icon:'\uD83E\uDDF1',type:'def',val:7,desc:'防御+7'},
+  fire:    {name:'火球',icon:'\uD83D\uDD25',type:'mag',val:7,desc:'魔法7ダメージ'},
+  ice:     {name:'氷槍',icon:'\u2744\uFE0F',type:'mag',val:5,desc:'魔法5+防御2'},
+  thunder: {name:'雷撃',icon:'\u26A1',type:'mag',val:9,desc:'魔法9ダメージ'},
+  heal:    {name:'回復',icon:'\uD83D\uDC9A',type:'heal',val:5,desc:'HP+5回復'},
+  regen:   {name:'再生',icon:'\u2728',type:'heal',val:3,desc:'HP+3+防御+2'},
+  dodge:   {name:'回避',icon:'\uD83D\uDCA8',type:'move',val:0,desc:'次の攻撃無効'},
+  dash:    {name:'突進',icon:'\uD83C\uDFC3',type:'move',val:3,desc:'3ダメージ+先制'},
+  drain:   {name:'吸血',icon:'\uD83E\uDDDB',type:'special',val:4,desc:'4ダメージ+HP回復'},
+  poison:  {name:'猛毒',icon:'\u2620\uFE0F',type:'special',val:3,desc:'3ダメージ(3ターン)'},
+  crit:    {name:'会心',icon:'\uD83C\uDF1F',type:'special',val:0,desc:'次面の効果2倍'},
+  curse_pain:{name:'苦痛の呪い',icon:'\uD83D\uDC80',type:'curse',val:3,desc:'自分に3ダメージ'},
+  curse_void:{name:'虚無の呪い',icon:'\uD83C\uDF11',type:'curse',val:0,desc:'何も起きない'},
+  empty:   {name:'空面',icon:'\u2B1C',type:'empty',val:0,desc:'効果なし'}
+};
+
+const FACE_KEYS_BY_TIER = {
+  common: ['slash','block','heal','dodge','empty'],
+  uncommon: ['thrust','arrow','fortify','fire','ice','regen','dash'],
+  rare: ['cleave','thunder','drain','poison','crit'],
+  curse: ['curse_pain','curse_void']
+};
+
+// === ENEMIES ===
+const ENEMIES_BY_FLOOR = {
+  1: [
+    {name:'スライム',icon:'\uD83D\uDFE2',hp:12,atk:3,desc:'ぷるぷると震えている'},
+    {name:'コウモリ',icon:'\uD83E\uDD87',hp:10,atk:4,desc:'暗闇から襲いかかる'},
+    {name:'ゴブリン',icon:'\uD83D\uDC7A',hp:15,atk:5,desc:'小さな剣を振り回す'}
+  ],
+  2: [
+    {name:'スケルトン',icon:'\uD83D\uDC80',hp:22,atk:6,desc:'骨がカタカタ鳴る'},
+    {name:'ダークウルフ',icon:'\uD83D\uDC3A',hp:18,atk:8,desc:'闇に潜む狼'},
+    {name:'ゴーレム',icon:'\uD83E\uDEA8',hp:30,atk:5,desc:'岩の巨人が立ちはだかる'}
+  ],
+  3: [
+    {name:'ヴァンパイア',icon:'\uD83E\uDDDB',hp:28,atk:8,desc:'血を求めて襲いかかる'},
+    {name:'ドラゴニュート',icon:'\uD83D\uDC32',hp:35,atk:10,desc:'竜の末裔'},
+    {name:'死霊術師',icon:'\uD83E\uDDD9',hp:25,atk:12,desc:'闇の魔法を操る'}
+  ],
+  4: [
+    {name:'デーモン',icon:'\uD83D\uDC79',hp:40,atk:12,desc:'地獄の炎を纏う'},
+    {name:'キメラ',icon:'\uD83E\uDD81',hp:45,atk:11,desc:'複数の獣が合体した異形'},
+    {name:'リッチ',icon:'\uD83D\uDC7B',hp:35,atk:15,desc:'不死の魔王の従者'}
+  ],
+  5: [
+    {name:'ドラゴン',icon:'\uD83D\uDC09',hp:55,atk:14,desc:'古の竜が眠りから覚めた'},
+    {name:'魔王',icon:'\uD83D\uDE08',hp:60,atk:16,desc:'全ての闇の主'},
+    {name:'虚無の神',icon:'\uD83C\uDF0C',hp:50,atk:18,desc:'存在を消す力を持つ'}
+  ]
+};
+
+const BOSSES = {
+  1:{name:'ゴブリンキング',icon:'\uD83D\uDC51\uD83D\uDC7A',hp:30,atk:7,desc:'地下1階の支配者'},
+  2:{name:'骸骨将軍',icon:'\u2694\uFE0F\uD83D\uDC80',hp:45,atk:9,desc:'かつての英雄の成れの果て'},
+  3:{name:'闇竜ヴォルド',icon:'\uD83D\uDC32\uD83C\uDF11',hp:60,atk:12,desc:'影の炎を吐く竜'},
+  4:{name:'死霊王アガレス',icon:'\uD83D\uDC7B\uD83D\uDC51',hp:80,atk:15,desc:'万の屍を操る王'},
+  5:{name:'深淵の主',icon:'\uD83C\uDF0C\uD83D\uDD25',hp:100,atk:18,desc:'迷宮の最奥に眠る存在'}
+};
+
+// === RELICS ===
+const ALL_RELICS = [
+  {id:'blood_die',name:'血染めの賽',icon:'\uD83C\uDFB2',desc:'攻撃面+2ダメージ',effect:'atk_boost'},
+  {id:'iron_gauntlet',name:'鉄の籠手',icon:'\uD83E\uDD4A',desc:'防御面+2',effect:'def_boost'},
+  {id:'mana_crystal',name:'魔力結晶',icon:'\uD83D\uDD2E',desc:'魔法面+3ダメージ',effect:'mag_boost'},
+  {id:'healing_herb',name:'癒しの薬草',icon:'\uD83C\uDF3F',desc:'回復面+2回復',effect:'heal_boost'},
+  {id:'lucky_coin',name:'幸運のコイン',icon:'\uD83E\uDE99',desc:'戦闘勝利時+3G',effect:'gold_boost'},
+  {id:'curse_charm',name:'呪いの護符',icon:'\uD83D\uDD2F',desc:'呪い面のダメージ半減',effect:'curse_resist'},
+  {id:'vampiric_fang',name:'吸血の牙',icon:'\uD83E\uDDB7',desc:'攻撃時HP+1回復',effect:'lifesteal'},
+  {id:'thorns',name:'棘の鎧',icon:'\uD83C\uDF35',desc:'攻撃された時反射2ダメージ',effect:'thorns'},
+  {id:'speed_boots',name:'疾風の靴',icon:'\uD83D\uDC5F',desc:'先制攻撃確率UP',effect:'speed'},
+  {id:'ancient_tome',name:'古の魔導書',icon:'\uD83D\uDCD6',desc:'空面が魔法3に変化',effect:'empty_magic'}
+];
+
+// === EVENTS ===
+const EVENTS = [
+  {title:'不思議な泉',icon:'\u26F2',desc:'澄んだ水が湧き出ている。飲むか？',
+    choices:[{text:'飲む（HP全回復）',fn:()=>{G.hp=G.maxHp;addLog('HPが全回復した！','heal')}},
+             {text:'瓶に詰める（+10G）',fn:()=>{G.gold+=10;addLog('+10G獲得！','gold')}}]},
+  {title:'呪いの祭壇',icon:'\uD83D\uDD2F',desc:'暗い祭壇に不吉な光が灯る。呪いを受ければ強力な面を得られそうだ。',
+    choices:[{text:'呪いを受ける（呪い面+強面）',fn:()=>{addCurseAndReward()}},
+             {text:'立ち去る',fn:()=>{addLog('祭壇を後にした','info')}}]},
+  {title:'旅の商人',icon:'\uD83E\uDDD3',desc:'「やぁ冒険者。特別な取引をしないかい？」',
+    choices:[{text:'HP10を5Gに変換',fn:()=>{if(G.hp>10){G.hp-=10;G.gold+=5;addLog('HP-10, +5G','gold')}else addLog('HPが足りない','info')}},
+             {text:'断る',fn:()=>{addLog('取引を断った','info')}}]},
+  {title:'宝箱',icon:'\uD83D\uDCE6',desc:'鍵のかかっていない宝箱を見つけた！',
+    choices:[{text:'開ける',fn:()=>{const g=5+Math.floor(Math.random()*15);G.gold+=g;addLog(`+${g}G発見！`,'gold')}}]},
+  {title:'鍛冶の亡霊',icon:'\uD83D\uDC7B',desc:'かつての名工の霊が現れた。「一つだけ面を鍛えてやろう」',
+    choices:[{text:'受ける（ランダム面強化）',fn:()=>{boostRandomFace()}},
+             {text:'成仏させる（+5G）',fn:()=>{G.gold+=5;addLog('+5G獲得','gold')}}]}
+];
+
+// === HELPERS ===
+function $(s){return document.querySelector(s)}
+function $$(s){return document.querySelectorAll(s)}
+function rng(n){return Math.floor(Math.random()*n)}
+function pick(arr){return arr[rng(arr.length)]}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+// v1.2: VFX SYSTEM
+function showFloorTransition(floorNum){
+  const ft=document.getElementById('floor-transition');
+  ft.querySelector('.floor-num').textContent=`${floorNum}F`;
+  ft.querySelector('.floor-sub').textContent='deeper into the labyrinth...';
+  ft.classList.add('active');
+  setTimeout(()=>ft.classList.remove('active'),1900);
+}
+function showHitFlash(el){if(el)el.classList.add('hit-flash','enemy-hit');setTimeout(()=>{if(el){el.classList.remove('hit-flash','enemy-hit')}},300);}
+function showLootSparkle(el){if(el)el.classList.add('loot-sparkle');setTimeout(()=>{if(el)el.classList.remove('loot-sparkle')},1500);}
+function showDmgFloat(text,color,parentEl){
+  if(!parentEl)return;
+  const d=document.createElement('div');d.className='dmg-float';d.textContent=text;d.style.color=color;
+  d.style.left=(parentEl.offsetWidth/2-20)+'px';d.style.top='20px';
+  parentEl.style.position='relative';parentEl.appendChild(d);
+  setTimeout(()=>d.remove(),800);
+}
+
+function addLog(msg,cls='info'){
+  const log=$('#battle-log');
+  if(!log)return;
+  const d=document.createElement('div');
+  d.className='log-'+cls;
+  d.textContent='> '+msg;
+  log.appendChild(d);
+  log.scrollTop=log.scrollHeight;
+}
+
+// === DICE CREATION ===
+function createStarterDice(){
+  return {
+    faces: [
+      {...FACES.slash},
+      {...FACES.block},
+      {...FACES.heal},
+      {...FACES.dodge},
+      {...FACES.slash},
+      {...FACES.empty}
+    ]
+  };
+}
+
+function createSecondDice(){
+  return {
+    faces:[
+      {...FACES.fire},
+      {...FACES.block},
+      {...FACES.slash},
+      {...FACES.empty},
+      {...FACES.empty},
+      {...FACES.empty}
+    ]
+  };
+}
+
+// === MAP GENERATION ===
+function generateMap(){
+  G.map=[];
+  const types=['battle','battle','battle','battle','shop','forge','event','battle','battle','rest',
+               'battle','battle','empty','battle','battle','battle','event','battle','shop','forge',
+               'battle','battle','battle','battle','boss'];
+  for(let i=0;i<25;i++){
+    G.map.push({
+      type: types[i]||'battle',
+      revealed: i===12||isAdjacent(i,12),
+      icon: getIcon(types[i])
+    });
+  }
+  G.room=12;
+  G.visited.clear();
+  G.visited.add(12);
+  revealAdjacent(12);
+}
+
+function getIcon(type){
+  switch(type){
+    case 'battle': return ['\uD83D\uDDE1\uFE0F','\u2694\uFE0F','\uD83D\uDC7E'][rng(3)];
+    case 'shop': return '\uD83D\uDED2';
+    case 'forge': return '\uD83D\uDD28';
+    case 'event': return '\u2753';
+    case 'rest': return '\u26FA';
+    case 'boss': return '\uD83D\uDC51';
+    case 'empty': return '\u2B1C';
+    default: return '\u2B1C';
+  }
+}
+
+function isAdjacent(a,b){
+  const ax=a%5,ay=Math.floor(a/5),bx=b%5,by=Math.floor(b/5);
+  return Math.abs(ax-bx)+Math.abs(ay-by)===1;
+}
+
+function revealAdjacent(idx){
+  for(let i=0;i<25;i++){
+    if(isAdjacent(i,idx))G.map[i].revealed=true;
+  }
+}
+
+// === RENDERING ===
+function updateHUD(){
+  const bar=$('#top-bar');
+  if(G.phase==='title'){bar.style.display='none';return}
+  bar.style.display='flex';
+  $('#hud-hp').textContent=G.hp+'/'+G.maxHp;
+  $('#hud-floor').textContent=G.floor+'F';
+  $('#hud-gold').textContent=G.gold;
+  $('#hud-shield').textContent=G.shield;
+  const rb=$('#hud-relics');
+  rb.innerHTML='';
+  G.relics.forEach(r=>{
+    const d=document.createElement('div');
+    d.className='relic-icon';
+    d.textContent=r.icon;
+    d.setAttribute('data-tooltip',r.name+': '+r.desc);
+    rb.appendChild(d);
+  });
+}
+
+function renderDiceFace(face,faceClass){
+  const f=Object.values(FACES).find(x=>x.name===face.name)||FACES.empty;
+  return `<div class="dice-face face-${face.type||'empty'} ${faceClass}">`+
+    `<span class="face-icon">${face.icon}</span>`+
+    `<span class="face-name">${face.name}</span></div>`;
+}
+
+function renderDice3D(dice, idx, clickable=false){
+  const faces=dice.faces;
+  const classes=['f-front','f-back','f-right','f-left','f-top','f-bottom'];
+  let html=`<div class="dice-3d" ${clickable?`onclick="showDiceDetail(${idx})"`:''}>`;
+  html+=`<div class="dice-cube" id="dice-${idx}">`;
+  for(let i=0;i<6;i++){
+    html+=renderDiceFace(faces[i],classes[i]);
+  }
+  html+=`</div></div>`;
+  return html;
+}
+
+// === SCREENS ===
+function showTitle(){
+  G.phase='title';
+  updateHUD();
+  $('#scene').innerHTML=`
+    <div class="title-screen">
+      <h1>賽の迷宮</h1>
+      <div class="sub">DICE LABYRINTH v1.1</div>
+      <div style="font-size:60px;margin:20px 0">\uD83C\uDFB2</div>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:24px;max-width:320px;line-height:1.6">
+        ダイスの面を自由に書き換え、<br>自分だけのビルドで迷宮を攻略せよ。<br>
+        全5階層。死んだら最初から。
+      </p>
+      <button class="btn" onclick="startGame()">冒険を始める</button>
+      <div style="margin-top:16px;font-size:11px;color:var(--text2)">
+        タッチ / クリック操作
+      </div>
+    </div>`;
+}
+
+function startGame(){
+  G.hp=30; G.maxHp=30; G.gold=0; G.shield=0; G.floor=1;
+  G.dice=[createStarterDice()]; G.relics=[]; G.curses=0;
+  G.totalKills=0; G.totalRooms=0;
+  generateMap();
+  G.phase='map';
+  updateHUD();
+  showMap();
+}
+
+function showMap(){
+  G.phase='map';
+  G.shield=0;
+  updateHUD();
+  let html=`<div style="text-align:center;margin-bottom:8px">`;
+  html+=`<div style="font-size:14px;color:var(--accent)">${G.floor}階 ダンジョンマップ</div>`;
+  html+=`<div style="font-size:11px;color:var(--text2)">隣接する部屋をタップして移動</div></div>`;
+  html+=`<div class="room-map">`;
+  for(let i=0;i<25;i++){
+    const r=G.map[i];
+    const isCurrent=i===G.room;
+    const isVisited=G.visited.has(i);
+    const isAdj=isAdjacent(i,G.room)&&!isVisited;
+    let cls='room-cell';
+    if(isCurrent)cls+=' current';
+    if(isVisited&&!isCurrent)cls+=' visited';
+    if(!r.revealed)cls+=' locked';
+    if(isAdj&&r.revealed)cls+=' adjacent';
+    if(r.type==='boss')cls+=' boss-room';
+    const icon=r.revealed?r.icon:'\u2753';
+    html+=`<div class="${cls}" onclick="moveToRoom(${i})">${icon}</div>`;
+  }
+  html+=`</div>`;
+  // Show dice
+  html+=`<div style="margin-top:10px;text-align:center"><div style="font-size:12px;color:var(--text2);margin-bottom:6px">所持ダイス (${G.dice.length}/5)</div>`;
+  html+=`<div class="dice-tray">`;
+  G.dice.forEach((d,i)=>html+=renderDice3D(d,i,true));
+  html+=`</div></div>`;
+  $('#scene').innerHTML=html;
+}
+
+function moveToRoom(idx){
+  if(!G.map[idx].revealed)return;
+  if(!isAdjacent(idx,G.room)&&idx!==G.room)return;
+  if(G.visited.has(idx)&&idx!==G.room)return;
+  G.room=idx;
+  G.visited.add(idx);
+  G.totalRooms++;
+  revealAdjacent(idx);
+  const room=G.map[idx];
+  switch(room.type){
+    case 'battle': startBattle(false); break;
+    case 'boss': startBattle(true); break;
+    case 'shop': showShop(); break;
+    case 'forge': showForge(); break;
+    case 'event': showEvent(); break;
+    case 'rest': showRest(); break;
+    default: showMap(); break;
+  }
+}
+
+// === BATTLE SYSTEM ===
+function startBattle(isBoss){
+  G.phase='battle';
+  G.shield=0;
+  G.battleTurn=0;
+  if(isBoss){
+    G.enemy={...BOSSES[G.floor]};
+  } else {
+    const pool=ENEMIES_BY_FLOOR[G.floor]||ENEMIES_BY_FLOOR[1];
+    G.enemy={...pick(pool)};
+    // Scale enemy
+    G.enemy.hp=Math.floor(G.enemy.hp*(1+G.totalRooms*0.03));
+    G.enemy.atk=Math.floor(G.enemy.atk*(1+G.totalRooms*0.02));
+  }
+  G.enemyHp=G.enemy.hp;
+  G.enemyMaxHp=G.enemy.hp;
+  G.rollResults=[];
+  G.battlePoison=0;
+  G.battleDodge=false;
+  G.battleCrit=false;
+  renderBattle();
+}
+
+function renderBattle(){
+  updateHUD();
+  const e=G.enemy;
+  const eHpPct=Math.max(0,(G.enemyHp/G.enemyMaxHp)*100);
+  const pHpPct=Math.max(0,(G.hp/G.maxHp)*100);
+  let html=`<div class="battle-area slide-up">`;
+  html+=`<div class="enemy-display">`;
+  html+=`<div class="enemy-name">${e.name}</div>`;
+  html+=`<div class="enemy-icon">${e.icon}</div>`;
+  html+=`<div style="font-size:11px;color:var(--text2)">${e.desc}</div>`;
+  html+=`<div class="hp-bar"><div class="hp-fill hp-fill-enemy" style="width:${eHpPct}%"></div>`;
+  html+=`<span class="hp-text">${G.enemyHp}/${G.enemyMaxHp}</span></div>`;
+  const rb=Math.floor(G.battleTurn/5);
+  html+=`<div style="font-size:11px;color:var(--accent3)">ATK: ${e.atk}${rb>0?` (+${rb}激昂)`:''} | ターン${G.battleTurn}</div></div>`;
+  // Player HP
+  html+=`<div style="text-align:center;margin:8px 0">`;
+  html+=`<div style="font-size:12px;color:var(--text2)">あなた</div>`;
+  html+=`<div class="hp-bar"><div class="hp-fill hp-fill-player" style="width:${pHpPct}%"></div>`;
+  html+=`<span class="hp-text">${G.hp}/${G.maxHp} ${G.shield>0?'[\uD83D\uDEE1'+G.shield+']':''}</span></div></div>`;
+  // Dice
+  html+=`<div class="dice-tray">`;
+  G.dice.forEach((d,i)=>html+=renderDice3D(d,i,false));
+  html+=`</div>`;
+  // Roll results
+  if(G.rollResults.length>0){
+    html+=`<div class="roll-results">`;
+    G.rollResults.forEach(r=>{
+      html+=`<div class="result-chip face-${r.type}">${r.icon} ${r.name}</div>`;
+    });
+    html+=`</div>`;
+  }
+  // Log
+  html+=`<div id="battle-log"></div>`;
+  // Buttons
+  if(G.enemyHp>0&&G.hp>0){
+    html+=`<div style="text-align:center;margin-top:8px">`;
+    html+=`<button class="btn" onclick="rollAllDice()">\uD83C\uDFB2 全ダイスを振る</button>`;
+    html+=`</div>`;
+  }
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+}
+
+async function rollAllDice(){
+  G.battleTurn++;
+  G.shield=0;
+  G.rollResults=[];
+  G.battleDodge=false;
+
+  // Animate dice
+  G.dice.forEach((_,i)=>{
+    const el=$(`#dice-${i}`);
+    if(el)el.parentElement.classList.add('rolling');
+  });
+
+  await sleep(800);
+
+  // Determine results
+  G.dice.forEach(d=>{
+    const face=d.faces[rng(6)];
+    G.rollResults.push({...face});
+  });
+
+  renderBattle();
+  await sleep(300);
+
+  // Apply results
+  let totalDmg=0;
+  let critNext=false;
+
+  for(const r of G.rollResults){
+    await sleep(200);
+    let val=r.val;
+
+    // Relic boosts
+    if(r.type==='atk'&&hasRelic('blood_die'))val+=2;
+    if(r.type==='def'&&hasRelic('iron_gauntlet'))val+=2;
+    if(r.type==='mag'&&hasRelic('mana_crystal'))val+=3;
+    if(r.type==='heal'&&hasRelic('healing_herb'))val+=2;
+
+    // Ancient tome: empty -> magic 3
+    if(r.type==='empty'&&hasRelic('ancient_tome')){
+      r.type='mag'; val=3;
+      addLog('古の魔導書: 空面が魔法に変化！','mag');
+    }
+
+    if(critNext){val*=2; critNext=false; addLog('会心効果: ダメージ2倍！','info')}
+
+    switch(r.type){
+      case 'atk':
+        totalDmg+=val;
+        G.enemyHp-=val;
+        addLog(`${r.name}: ${val}ダメージ！`,'dmg');
+        showHitFlash(document.querySelector('.enemy-display'));showDmgFloat(`-${val}`,'#ff4466',document.querySelector('.enemy-display'));
+        if(hasRelic('vampiric_fang')){G.hp=Math.min(G.maxHp,G.hp+1);addLog('吸血の牙: HP+1','heal')}
+        break;
+      case 'def':
+        G.shield+=val;
+        addLog(`${r.name}: 防御+${val}`,'def');
+        break;
+      case 'mag':
+        totalDmg+=val;
+        G.enemyHp-=val;
+        addLog(`${r.name}: 魔法${val}ダメージ！`,'mag');
+        showHitFlash(document.querySelector('.enemy-display'));showDmgFloat(`-${val}`,'#bb88ff',document.querySelector('.enemy-display'));
+        if(r.name==='氷槍'){G.shield+=2;addLog('氷槍: 追加防御+2','def')}
+        break;
+      case 'heal':
+        G.hp=Math.min(G.maxHp,G.hp+val);
+        if(r.name==='再生'){G.shield+=2;addLog('再生: 追加防御+2','def')}
+        addLog(`${r.name}: HP+${val}`,'heal');
+        break;
+      case 'move':
+        if(r.name==='回避'){G.battleDodge=true;addLog('回避態勢！次の攻撃を無効化','info')}
+        if(r.name==='突進'){G.enemyHp-=val;addLog(`突進: ${val}ダメージ！`,'dmg')}
+        break;
+      case 'special':
+        if(r.name==='吸血'){G.enemyHp-=val;G.hp=Math.min(G.maxHp,G.hp+val);addLog(`吸血: ${val}ダメージ+HP回復`,'dmg')}
+        if(r.name==='猛毒'){G.enemyHp-=val;G.battlePoison=3;addLog(`猛毒: ${val}ダメージ+3ターン毒`,'dmg')}
+        if(r.name==='会心'){critNext=true;addLog('会心の構え！次面2倍','info')}
+        break;
+      case 'curse':
+        if(r.name==='苦痛の呪い'){
+          let cdmg=val;
+          if(hasRelic('curse_charm'))cdmg=Math.floor(cdmg/2);
+          G.hp-=cdmg;
+          addLog(`苦痛の呪い: 自傷${cdmg}ダメージ`,'curse');
+        } else {
+          addLog('虚無の呪い: 何も起きない...','curse');
+        }
+        break;
+      case 'empty':
+        addLog('空面: 何も起きない','info');
+        break;
+    }
+    renderBattle();
+  }
+
+  // Poison tick
+  if(G.battlePoison>0){
+    G.enemyHp-=2;
+    G.battlePoison--;
+    addLog(`毒ダメージ: 2`,'dmg');
+  }
+
+  // Check enemy death
+  if(G.enemyHp<=0){
+    await sleep(400);
+    winBattle();
+    return;
+  }
+
+  // Enemy turn
+  await sleep(500);
+  // v1.1: Enemy rage -- ATK scales with battle length to prevent stalling
+  const rageBonus=Math.floor(G.battleTurn/5);
+  if(rageBonus>0&&G.battleTurn%5===0)addLog(`敵が激昂！ ATK+${rageBonus}`,'info');
+  addLog(`--- ${G.enemy.name}の攻撃 ---`,'info');
+  let eDmg=G.enemy.atk + rng(3) + rageBonus;
+
+  if(G.battleDodge){
+    addLog('回避成功！ダメージ無効！','info');
+    eDmg=0;
+  } else {
+    if(G.shield>0){
+      const blocked=Math.min(G.shield,eDmg);
+      eDmg-=blocked;
+      G.shield-=blocked;
+      addLog(`防御で${blocked}ダメージ吸収！`,'def');
+    }
+    if(eDmg>0){
+      G.hp-=eDmg;
+      addLog(`${eDmg}ダメージを受けた！`,'dmg');
+      if(hasRelic('thorns')){G.enemyHp-=2;addLog('棘の鎧: 反射2ダメージ','dmg')}
+    }
+  }
+
+  renderBattle();
+
+  // Check player death
+  if(G.hp<=0){
+    await sleep(400);
+    showGameOver();
+    return;
+  }
+
+  // Check enemy death from thorns
+  if(G.enemyHp<=0){
+    await sleep(400);
+    winBattle();
+    return;
+  }
+}
+
+function winBattle(){
+  G.totalKills++;
+  const isBoss=G.map[G.room]&&G.map[G.room].type==='boss';
+  let goldReward=3+rng(5)+G.floor*2;
+  if(hasRelic('lucky_coin'))goldReward+=3;
+  G.gold+=goldReward;
+
+  let html=`<div class="event-box slide-up loot-sparkle">`;
+  html+=`<div class="event-icon">\u2694\uFE0F</div>`;
+  html+=`<div class="event-title" style="color:var(--hp)">勝利！</div>`;
+  html+=`<div class="event-desc">${G.enemy.name}を倒した！<br>+${goldReward}G獲得</div>`;
+
+  // Drop relic chance
+  if(isBoss||(Math.random()<0.2)){
+    const available=ALL_RELICS.filter(r=>!G.relics.find(x=>x.id===r.id));
+    if(available.length>0){
+      const relic=pick(available);
+      G.relics.push(relic);
+      html+=`<div style="margin:8px 0;padding:8px;background:rgba(255,215,0,.1);border:1px solid var(--gold);border-radius:8px">`;
+      html+=`<div style="font-size:11px;color:var(--gold)">レリック獲得！</div>`;
+      html+=`<div style="font-size:20px">${relic.icon}</div>`;
+      html+=`<div style="font-size:13px;font-weight:bold">${relic.name}</div>`;
+      html+=`<div style="font-size:11px;color:var(--text2)">${relic.desc}</div></div>`;
+    }
+  }
+
+  // Boss: next floor or victory
+  if(isBoss){
+    if(G.floor>=5){
+      html+=`<button class="btn btn-gold" onclick="showVictory()">迷宮踏破！</button>`;
+    } else {
+      html+=`<button class="btn btn-gold" onclick="nextFloor()">次の階層へ \u2192</button>`;
+    }
+  } else {
+    // Drop a new dice face
+    if(Math.random()<0.4){
+      const tier=Math.random()<0.6?'common':(Math.random()<0.7?'uncommon':'rare');
+      const faceKey=pick(FACE_KEYS_BY_TIER[tier]);
+      const face=FACES[faceKey];
+      html+=`<div style="margin:8px 0;padding:8px;background:rgba(0,240,255,.05);border:1px solid var(--accent);border-radius:8px">`;
+      html+=`<div style="font-size:11px;color:var(--accent)">ダイス面ドロップ！</div>`;
+      html+=`<div style="font-size:24px">${face.icon}</div>`;
+      html+=`<div style="font-size:12px">${face.name}: ${face.desc}</div></div>`;
+      // Store for forge later
+      if(!G.faceDrop)G.faceDrop=[];
+      G.faceDrop.push({...face});
+    }
+    html+=`<button class="btn" onclick="showMap()">マップに戻る</button>`;
+  }
+
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+  updateHUD();
+}
+
+function nextFloor(){
+  G.floor++;
+  showFloorTransition(G.floor);
+  if(G.dice.length<5 && G.floor%2===0){
+    G.dice.push(createSecondDice());
+  }
+  generateMap();
+  setTimeout(()=>showMap(),1000);
+}
+
+// === SHOP ===
+function showShop(){
+  G.phase='shop';
+  updateHUD();
+  const items=[];
+  // Generate 4 shop items
+  for(let i=0;i<4;i++){
+    const r=Math.random();
+    if(r<0.3){
+      // Sell a face
+      const tier=Math.random()<0.5?'uncommon':'rare';
+      const fk=pick(FACE_KEYS_BY_TIER[tier]);
+      const face=FACES[fk];
+      const price=tier==='rare'?12+rng(8):6+rng(5);
+      items.push({type:'face',face:{...face},price,label:`${face.icon} ${face.name}`,desc:face.desc});
+    } else if(r<0.5){
+      // Sell relic
+      const avail=ALL_RELICS.filter(x=>!G.relics.find(y=>y.id===x.id));
+      if(avail.length>0){
+        const relic=pick(avail);
+        items.push({type:'relic',relic,price:15+rng(10),label:`${relic.icon} ${relic.name}`,desc:relic.desc});
+      }
+    } else if(r<0.7){
+      // HP potion
+      items.push({type:'heal',price:5,label:'\uD83E\uDDEA HP薬',desc:'HP+10回復'});
+    } else if(r<0.85){
+      // MaxHP up
+      items.push({type:'maxhp',price:10+rng(5),label:'\u2764\uFE0F 生命強化',desc:'最大HP+5'});
+    } else {
+      // New dice
+      if(G.dice.length<5){
+        items.push({type:'dice',price:20+rng(10),label:'\uD83C\uDFB2 新しいダイス',desc:'基本ダイスを1個追加'});
+      } else {
+        items.push({type:'heal',price:3,label:'\uD83E\uDDEA HP薬',desc:'HP+8回復'});
+      }
+    }
+  }
+
+  let html=`<div style="text-align:center" class="slide-up">`;
+  html+=`<div style="font-size:24px">\uD83D\uDED2</div>`;
+  html+=`<div style="font-size:18px;font-weight:bold;margin:8px 0">闇市場</div>`;
+  html+=`<div style="font-size:12px;color:var(--text2);margin-bottom:12px">所持金: ${G.gold}G</div>`;
+  html+=`<div class="shop-items">`;
+  items.forEach((item,i)=>{
+    const canBuy=G.gold>=item.price;
+    html+=`<div class="shop-item" style="${canBuy?'':'opacity:.4;cursor:not-allowed'}" onclick="${canBuy?`buyItem(${i})`:''}">`;
+    html+=`<div style="font-size:14px">${item.label}</div>`;
+    html+=`<div style="font-size:10px;color:var(--text2);margin:4px 0">${item.desc}</div>`;
+    html+=`<div class="shop-price">${item.price}G</div></div>`;
+  });
+  html+=`</div>`;
+  html+=`<button class="btn btn-sm" onclick="showMap()" style="margin-top:12px">立ち去る</button></div>`;
+
+  $('#scene').innerHTML=html;
+  window._shopItems=items;
+}
+
+function buyItem(idx){
+  const item=window._shopItems[idx];
+  if(!item||G.gold<item.price)return;
+  G.gold-=item.price;
+  switch(item.type){
+    case 'face':
+      if(!G.faceDrop)G.faceDrop=[];
+      G.faceDrop.push(item.face);
+      showOverlay(`${item.face.icon} ${item.face.name}を購入！<br>鍛冶屋でダイスに装着できます`);
+      break;
+    case 'relic':
+      G.relics.push(item.relic);
+      showOverlay(`${item.relic.icon} ${item.relic.name}を獲得！<br>${item.relic.desc}`);
+      break;
+    case 'heal':
+      G.hp=Math.min(G.maxHp,G.hp+10);
+      showOverlay('HP+10回復！');
+      break;
+    case 'maxhp':
+      G.maxHp+=5; G.hp+=5;
+      showOverlay('最大HP+5！');
+      break;
+    case 'dice':
+      if(G.dice.length<5){
+        G.dice.push(createStarterDice());
+        showOverlay('新しいダイスを入手！');
+      }
+      break;
+  }
+  updateHUD();
+  setTimeout(()=>{hideOverlay();showShop()},1200);
+}
+
+// === FORGE ===
+function showForge(){
+  G.phase='forge';
+  updateHUD();
+  let html=`<div class="forge-area slide-up">`;
+  html+=`<div style="font-size:24px">\uD83D\uDD28</div>`;
+  html+=`<div style="font-size:18px;font-weight:bold;margin:8px 0">鍛冶屋</div>`;
+  html+=`<div style="font-size:12px;color:var(--text2);margin-bottom:8px">ダイスの面を選択して書き換える</div>`;
+
+  // Show available faces to install
+  const available=G.faceDrop||[];
+  if(available.length===0){
+    html+=`<div style="color:var(--text2);font-size:12px;padding:12px">装着可能な面がありません。<br>戦闘でドロップするか、ショップで購入してください。</div>`;
+  } else {
+    html+=`<div style="font-size:12px;color:var(--accent);margin:8px 0">装着可能な面:</div>`;
+    html+=`<div class="forge-options">`;
+    available.forEach((f,i)=>{
+      html+=`<div class="forge-option face-${f.type}" onclick="selectForgeSource(${i})">`;
+      html+=`${f.icon} ${f.name}<br><span style="font-size:9px">${f.desc}</span></div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Show dice faces
+  html+=`<div style="font-size:12px;color:var(--text2);margin:12px 0 6px">ダイスを選択（書き換え先）:</div>`;
+  G.dice.forEach((d,di)=>{
+    html+=`<div style="margin:8px 0;padding:8px;background:var(--bg2);border-radius:8px;border:1px solid var(--bg3)">`;
+    html+=`<div style="font-size:11px;color:var(--accent);margin-bottom:4px">ダイス ${di+1}</div>`;
+    html+=`<div class="forge-dice">`;
+    d.faces.forEach((f,fi)=>{
+      html+=`<div class="forge-face face-${f.type}" onclick="forgeReplace(${di},${fi})">`;
+      html+=`<span style="font-size:18px">${f.icon}</span>`;
+      html+=`<span>${f.name}</span></div>`;
+    });
+    html+=`</div></div>`;
+  });
+
+  // Free rewrite option (costs gold)
+  html+=`<div style="margin-top:12px;font-size:11px;color:var(--text2)">面をタップ→選択した面に書き換え（無料）</div>`;
+  html+=`<button class="btn btn-sm" onclick="showMap()" style="margin-top:12px">立ち去る</button>`;
+  html+=`</div>`;
+
+  $('#scene').innerHTML=html;
+  window._forgeSource=null;
+}
+
+function selectForgeSource(idx){
+  window._forgeSource=idx;
+  $$('.forge-option').forEach((el,i)=>{
+    el.classList.toggle('selected',i===idx);
+  });
+}
+
+function forgeReplace(diceIdx,faceIdx){
+  const srcIdx=window._forgeSource;
+  if(srcIdx===null||srcIdx===undefined)return;
+  const available=G.faceDrop||[];
+  if(!available[srcIdx])return;
+  const newFace={...available[srcIdx]};
+  G.dice[diceIdx].faces[faceIdx]=newFace;
+  G.faceDrop.splice(srcIdx,1);
+  window._forgeSource=null;
+  showOverlay(`${newFace.icon} ${newFace.name}を装着！`);
+  setTimeout(()=>{hideOverlay();showForge()},800);
+}
+
+// === EVENT ===
+function showEvent(){
+  G.phase='event';
+  updateHUD();
+  const evt=pick(EVENTS);
+  let html=`<div class="event-box slide-up">`;
+  html+=`<div class="event-icon">${evt.icon}</div>`;
+  html+=`<div class="event-title">${evt.title}</div>`;
+  html+=`<div class="event-desc">${evt.desc}</div>`;
+  html+=`<div class="event-choices">`;
+  evt.choices.forEach((c,i)=>{
+    html+=`<button class="btn btn-sm" onclick="doEventChoice(${i})">${c.text}</button>`;
+  });
+  html+=`</div></div>`;
+  $('#scene').innerHTML=html;
+  window._eventChoices=evt.choices;
+}
+
+function doEventChoice(idx){
+  window._eventChoices[idx].fn();
+  updateHUD();
+  setTimeout(()=>showMap(),800);
+}
+
+// === REST ===
+function showRest(){
+  G.phase='rest';
+  const healed=Math.floor(G.maxHp*0.3);
+  G.hp=Math.min(G.maxHp,G.hp+healed);
+  updateHUD();
+  let html=`<div class="event-box slide-up">`;
+  html+=`<div class="event-icon">\u26FA</div>`;
+  html+=`<div class="event-title">休息所</div>`;
+  html+=`<div class="event-desc">焚火で体を休めた。<br>HP+${healed}回復！</div>`;
+  html+=`<button class="btn btn-sm" onclick="showMap()">出発</button></div>`;
+  $('#scene').innerHTML=html;
+}
+
+// === DICE DETAIL ===
+function showDiceDetail(idx){
+  const d=G.dice[idx];
+  let html=`<div class="overlay" onclick="hideOverlay()"><div class="overlay-content" onclick="event.stopPropagation()">`;
+  html+=`<div style="font-size:16px;font-weight:bold;color:var(--accent);margin-bottom:12px">ダイス ${idx+1} 詳細</div>`;
+  html+=`<div class="forge-dice">`;
+  d.faces.forEach((f,i)=>{
+    html+=`<div class="forge-face face-${f.type}">`;
+    html+=`<span style="font-size:18px">${f.icon}</span>`;
+    html+=`<span>${f.name}</span>`;
+    html+=`<span style="font-size:9px;opacity:.7">${f.desc}</span></div>`;
+  });
+  html+=`</div>`;
+  html+=`<button class="btn btn-sm" onclick="hideOverlay()" style="margin-top:12px">閉じる</button>`;
+  html+=`</div></div>`;
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+// === GAME OVER ===
+function showGameOver(){
+  G.phase='gameover';
+  let html=`<div class="event-box slide-up">`;
+  html+=`<div class="event-icon">\uD83D\uDC80</div>`;
+  html+=`<div class="event-title" style="color:var(--accent3)">ゲームオーバー</div>`;
+  html+=`<div class="event-desc">`;
+  html+=`${G.floor}階で力尽きた...<br>`;
+  html+=`討伐数: ${G.totalKills}<br>`;
+  html+=`探索部屋数: ${G.totalRooms}<br>`;
+  html+=`所持金: ${G.gold}G</div>`;
+  // Curse on death
+  if(Math.random()<0.3){
+    html+=`<div style="color:var(--mana);font-size:12px;margin:8px 0">呪いの面が刻まれた...</div>`;
+  }
+  html+=`<button class="btn" onclick="startGame()">再挑戦</button>`;
+  html+=`<button class="btn btn-sm" onclick="showTitle()" style="margin-top:8px">タイトルへ</button>`;
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+  $('#top-bar').style.display='none';
+}
+
+// === VICTORY ===
+function showVictory(){
+  G.phase='victory';
+  let html=`<div class="event-box slide-up">`;
+  html+=`<div style="font-size:60px;margin-bottom:12px">\uD83C\uDFC6</div>`;
+  html+=`<div class="event-title" style="color:var(--gold);font-size:24px">迷宮踏破！</div>`;
+  html+=`<div class="event-desc" style="font-size:14px">`;
+  html+=`全5階層を制覇した！<br><br>`;
+  html+=`討伐数: ${G.totalKills}<br>`;
+  html+=`探索部屋数: ${G.totalRooms}<br>`;
+  html+=`所持金: ${G.gold}G<br>`;
+  html+=`所持レリック: ${G.relics.length}個<br>`;
+  html+=`ダイス数: ${G.dice.length}個</div>`;
+  html+=`<button class="btn btn-gold" onclick="startGame()">もう一度挑戦</button>`;
+  html+=`<button class="btn btn-sm" onclick="showTitle()" style="margin-top:8px">タイトルへ</button>`;
+  html+=`</div>`;
+  $('#scene').innerHTML=html;
+}
+
+// === UTILITY ===
+function hasRelic(id){return G.relics.some(r=>r.id===id)}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+
+function showOverlay(msg){
+  const el=document.createElement('div');
+  el.className='overlay';
+  el.id='temp-overlay';
+  el.innerHTML=`<div class="overlay-content"><div style="font-size:14px;line-height:1.6">${msg}</div></div>`;
+  el.onclick=()=>el.remove();
+  document.body.appendChild(el);
+}
+
+function hideOverlay(){
+  const el=document.querySelector('.overlay');
+  if(el)el.remove();
+}
+
+function addCurseAndReward(){
+  // Add curse face to random dice
+  if(G.dice.length>0){
+    const d=pick(G.dice);
+    const emptyIdx=d.faces.findIndex(f=>f.type==='empty');
+    const idx=emptyIdx>=0?emptyIdx:rng(6);
+    d.faces[idx]={...FACES.curse_pain};
+    G.curses++;
+    addLog('呪いの面が刻まれた...','curse');
+  }
+  // Give powerful face
+  const fk=pick(FACE_KEYS_BY_TIER.rare);
+  if(!G.faceDrop)G.faceDrop=[];
+  G.faceDrop.push({...FACES[fk]});
+  addLog(`報酬: ${FACES[fk].name}を獲得！`,'gold');
+  // Check curse count for transformation
+  if(G.curses>=3){
+    G.maxHp+=10; G.hp+=10;
+    addLog('呪術師に覚醒！ 最大HP+10','info');
+  }
+}
+
+function boostRandomFace(){
+  if(G.dice.length===0)return;
+  const d=pick(G.dice);
+  const nonEmpty=d.faces.filter(f=>f.type!=='empty'&&f.type!=='curse');
+  if(nonEmpty.length>0){
+    const f=pick(nonEmpty);
+    f.val+=2;
+    addLog(`${f.name}の威力が+2された！`,'info');
+  }
+}
+
+// === INIT ===
+showTitle();
+</script>
+</body>
+</html>

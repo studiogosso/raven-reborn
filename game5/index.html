@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>裏切りの地下迷宮 — Dungeon Impostors v1.2</title>
+<meta name="description" content="ダンジョン探索×正体隠匿。仲間の中に潜む裏切り者を見つけ出せ。">
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi6KOP5YiH44KK44Gu5Zyw5LiL6L+35a6uIiwic2hvcnRfbmFtZSI6IkR1bmdlb24gSW1wb3N0b3JzIiwic3RhcnRfdXJsIjoiLiIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwiYmFja2dyb3VuZF9jb2xvciI6IiMwYTBhMTYiLCJ0aGVtZV9jb2xvciI6IiMwYTBhMTYifQ==">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+@font-face{font-family:'game';src:local('Noto Sans JP'),local('Hiragino Sans'),local('Yu Gothic');font-display:swap}
+:root{
+--bg:#0a0a16;--bg2:#12122a;--bg3:#1a1a3e;
+--text:#e0dfe8;--text2:#8a89a0;--text3:#5a5970;
+--accent:#ff4466;--accent2:#ff6b88;
+--gold:#ffd700;--gold2:#ffeb80;
+--blue:#4488ff;--blue2:#66aaff;
+--green:#44ff88;--green2:#66ffaa;
+--purple:#aa44ff;--purple2:#cc66ff;
+--red:#ff4444;--orange:#ff8844;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'game',sans-serif}
+canvas{display:block;touch-action:none}
+#ui{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+#ui>*{pointer-events:auto}
+.hidden{display:none!important}
+.btn{
+background:linear-gradient(180deg,var(--bg3),var(--bg2));
+border:1px solid rgba(255,255,255,.15);border-radius:8px;
+color:var(--text);padding:10px 20px;font-size:15px;font-family:inherit;
+cursor:pointer;transition:all .15s;text-align:center;
+}
+.btn:hover,.btn:active{background:linear-gradient(180deg,rgba(255,68,102,.3),var(--bg3));border-color:var(--accent)}
+.btn-accent{background:linear-gradient(180deg,var(--accent),#cc2244);border-color:var(--accent);font-weight:bold}
+.btn-accent:hover{background:linear-gradient(180deg,var(--accent2),var(--accent))}
+.btn-vote{
+width:100%;padding:12px;margin:4px 0;text-align:left;display:flex;align-items:center;gap:10px;
+}
+#title-screen{
+position:absolute;top:0;left:0;width:100%;height:100%;
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+background:var(--bg);z-index:100;
+}
+#title-screen h1{
+font-size:clamp(28px,6vw,48px);color:var(--accent);text-shadow:0 0 30px rgba(255,68,102,.5);
+margin-bottom:8px;letter-spacing:4px;
+}
+#title-screen h2{
+font-size:clamp(14px,3vw,20px);color:var(--text2);margin-bottom:40px;letter-spacing:2px;
+}
+.title-info{color:var(--text3);font-size:13px;margin-top:20px;text-align:center;line-height:1.8}
+#hud{
+position:absolute;top:0;left:0;width:100%;
+display:flex;justify-content:space-between;align-items:flex-start;
+padding:8px 12px;font-size:13px;gap:8px;
+}
+#hud-left,#hud-right{display:flex;flex-direction:column;gap:4px}
+#hud-right{align-items:flex-end}
+.hud-bar{
+height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.1);min-width:100px;
+}
+.hud-bar-fill{height:100%;border-radius:4px;transition:width .3s}
+.hp-fill{background:linear-gradient(90deg,var(--red),var(--accent2))}
+.xp-fill{background:linear-gradient(90deg,var(--blue),var(--blue2))}
+.trust-fill{background:linear-gradient(90deg,var(--green),var(--green2))}
+.hud-label{display:flex;align-items:center;gap:6px;font-size:12px}
+#party-bar{
+position:absolute;top:50px;left:0;width:100%;
+display:flex;justify-content:center;gap:6px;padding:0 8px;
+}
+.party-icon{
+width:36px;height:36px;border-radius:50%;border:2px solid var(--text3);
+display:flex;align-items:center;justify-content:center;font-size:16px;
+position:relative;cursor:pointer;transition:all .2s;
+}
+.party-icon.dead{opacity:.3;border-color:var(--red)}
+.party-icon.suspected{border-color:var(--orange);box-shadow:0 0 8px rgba(255,136,68,.4)}
+.party-icon.ejected{opacity:.2;border-color:var(--red);text-decoration:line-through}
+.party-icon .mini-hp{
+position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+width:28px;height:3px;border-radius:2px;background:rgba(255,255,255,.15);overflow:hidden;
+}
+.party-icon .mini-hp-fill{height:100%;background:var(--green);border-radius:2px}
+#action-bar{
+position:absolute;bottom:0;left:0;width:100%;
+display:flex;justify-content:center;gap:8px;padding:12px;flex-wrap:wrap;
+}
+#action-bar .btn{min-width:80px;font-size:14px;padding:12px 16px}
+#event-log{
+position:absolute;bottom:70px;left:8px;right:8px;
+max-height:120px;overflow-y:auto;
+display:flex;flex-direction:column;gap:2px;
+pointer-events:none;
+}
+.log-entry{
+font-size:12px;padding:4px 8px;border-radius:4px;
+background:rgba(10,10,22,.85);color:var(--text2);
+animation:logFade .3s ease;
+}
+.log-entry.danger{color:var(--accent)}
+.log-entry.info{color:var(--blue2)}
+.log-entry.success{color:var(--green)}
+.log-entry.gold{color:var(--gold)}
+@keyframes logFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* v1.2: VISUAL MEGA UPGRADE */
+@keyframes combatFlash{0%{filter:brightness(2.5) saturate(0)}100%{filter:brightness(1) saturate(1)}}
+.combat-flash{animation:combatFlash .2s ease-out}
+@keyframes voteSpotlight{0%{background:radial-gradient(circle at 50% 40%,rgba(255,68,102,0) 0%,rgba(0,0,0,0) 100%)}50%{background:radial-gradient(circle at 50% 40%,rgba(255,68,102,.15) 0%,rgba(0,0,0,.5) 80%)}100%{background:radial-gradient(circle at 50% 40%,rgba(255,68,102,0) 0%,rgba(0,0,0,0) 100%)}}
+.vote-spotlight{animation:voteSpotlight 2s ease-in-out}
+@keyframes impostorRevealBg{0%{background:rgba(0,0,0,0)}30%{background:rgba(0,0,0,.95)}70%{background:rgba(0,0,0,.95)}100%{background:rgba(0,0,0,0)}}
+@keyframes impostorRevealText{0%{transform:scale(0) rotate(-10deg);opacity:0}40%{transform:scale(1.3) rotate(3deg);opacity:1}60%{transform:scale(1) rotate(0deg)}100%{transform:scale(1) rotate(0deg);opacity:1}}
+#impostor-reveal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;pointer-events:none}
+#impostor-reveal.active{display:flex;animation:impostorRevealBg 3s ease-in-out forwards}
+#impostor-reveal .reveal-emoji{font-size:80px;animation:impostorRevealText 1s ease-out .5s both}
+#impostor-reveal .reveal-text{font-size:clamp(28px,6vw,48px);font-weight:900;color:var(--accent);text-shadow:0 0 40px rgba(255,68,102,.8);letter-spacing:6px;animation:impostorRevealText 1s ease-out .7s both}
+#impostor-reveal .reveal-sub{font-size:16px;color:var(--green);margin-top:8px;animation:impostorRevealText .8s ease-out .9s both}
+@keyframes floorWipe{0%{opacity:1;background:rgba(0,0,0,0)}30%{background:rgba(0,0,0,1)}70%{background:rgba(0,0,0,1)}100%{background:rgba(0,0,0,0)}}
+#floor-wipe{position:fixed;top:0;left:0;right:0;bottom:0;z-index:250;pointer-events:none;display:none;align-items:center;justify-content:center;flex-direction:column;color:var(--gold);font-size:36px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px rgba(255,215,0,.6)}
+#floor-wipe.active{display:flex;animation:floorWipe 2s ease-in-out forwards}
+#floor-wipe .fw-sub{font-size:14px;color:var(--text2);margin-top:8px;letter-spacing:2px}
+#modal{
+position:absolute;top:0;left:0;width:100%;height:100%;
+background:rgba(10,10,22,.92);display:flex;align-items:center;justify-content:center;
+z-index:50;padding:16px;
+}
+#modal-content{
+background:var(--bg2);border:1px solid rgba(255,255,255,.1);border-radius:12px;
+padding:24px;max-width:400px;width:100%;max-height:80vh;overflow-y:auto;
+}
+#modal-content h3{font-size:18px;margin-bottom:12px;color:var(--accent)}
+#modal-content p{font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.vote-result{text-align:center;padding:16px;font-size:16px;line-height:1.8}
+#controls-hint{
+position:absolute;bottom:76px;left:50%;transform:translateX(-50%);
+font-size:11px;color:var(--text3);white-space:nowrap;
+}
+#floor-indicator{
+position:absolute;top:8px;left:50%;transform:translateX(-50%);
+font-size:14px;color:var(--gold);font-weight:bold;
+text-shadow:0 0 10px rgba(255,215,0,.4);
+}
+#minimap{
+position:absolute;top:90px;right:8px;
+width:80px;height:80px;border:1px solid rgba(255,255,255,.1);
+border-radius:6px;background:rgba(10,10,22,.7);overflow:hidden;
+}
+.suspicion-meter{
+position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+font-size:9px;color:var(--orange);white-space:nowrap;
+}
+</style>
+</head>
+<body>
+<div id="impostor-reveal"><div class="reveal-emoji"></div><div class="reveal-text"></div><div class="reveal-sub"></div></div>
+<div id="floor-wipe"><span class="fw-floor"></span><div class="fw-sub">deeper...</div></div>
+<canvas id="game"></canvas>
+<div id="ui">
+<div id="title-screen">
+<h1>裏切りの地下迷宮</h1>
+<h2>DUNGEON IMPOSTORS</h2>
+<button class="btn btn-accent" onclick="startGame()" style="font-size:18px;padding:14px 40px;margin-bottom:12px">
+探索開始
+</button>
+<button class="btn" onclick="showHowTo()" style="font-size:14px;padding:10px 30px">
+遊び方
+</button>
+<div class="title-info">
+仲間と共にダンジョンを攻略せよ<br>
+だが、この中に裏切り者がいる……<br>
+<span style="color:var(--accent)">正体を見破り、生き延びろ</span>
+</div>
+<div style="position:fixed;bottom:8px;right:12px;font-size:10px;color:var(--text3);opacity:.5;z-index:1">v1.2</div>
+</div>
+<div id="hud" class="hidden">
+<div id="hud-left">
+<div class="hud-label">❤️ <span id="hp-text">100/100</span></div>
+<div class="hud-bar"><div class="hud-bar-fill hp-fill" id="hp-bar" style="width:100%"></div></div>
+<div class="hud-label">⚔️ ATK: <span id="atk-text">10</span> | 🛡️ DEF: <span id="def-text">5</span></div>
+</div>
+<div id="hud-right">
+<div class="hud-label">🪙 <span id="gold-text">0</span></div>
+<div class="hud-label">🔑 <span id="keys-text">0</span></div>
+</div>
+</div>
+<div id="floor-indicator" class="hidden">地下1階</div>
+<div id="party-bar" class="hidden"></div>
+<canvas id="minimap" class="hidden" width="80" height="80"></canvas>
+<div id="event-log" class="hidden"></div>
+<div id="controls-hint" class="hidden">タップ/スワイプ で移動 | WASD / 矢印キー</div>
+<div id="action-bar" class="hidden"></div>
+<div id="modal" class="hidden"><div id="modal-content"></div></div>
+</div>
+
+<script>
+"use strict";
+// ===== GLOBALS =====
+const C = document.getElementById('game');
+const ctx = C.getContext('2d');
+const MC = document.getElementById('minimap');
+const mctx = MC.getContext('2d');
+let W, H, TILE, COLS, ROWS;
+let gameState = 'title'; // title, explore, battle, vote, gameover, victory
+let animFrame = 0;
+
+// ===== RESIZE =====
+function resize() {
+  W = C.width = window.innerWidth;
+  H = C.height = window.innerHeight;
+  TILE = Math.floor(Math.min(W, H) / 11);
+  if (TILE < 28) TILE = 28;
+  if (TILE > 64) TILE = 64;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// v1.2: VFX SYSTEM
+function showCombatFlash(){C.classList.add('combat-flash');setTimeout(()=>C.classList.remove('combat-flash'),200)}
+function showImpostorReveal(emoji,name,isImpostor){
+  const ir=document.getElementById('impostor-reveal');
+  ir.querySelector('.reveal-emoji').textContent=emoji;
+  ir.querySelector('.reveal-text').textContent=isImpostor?'裏切り者だった！':'無実だった……';
+  ir.querySelector('.reveal-sub').textContent=name;
+  ir.querySelector('.reveal-text').style.color=isImpostor?'var(--green)':'var(--accent)';
+  ir.classList.add('active');setTimeout(()=>ir.classList.remove('active'),3200);
+}
+function showFloorWipe(floorNum){
+  const fw=document.getElementById('floor-wipe');
+  fw.querySelector('.fw-floor').textContent=`地下${floorNum}階`;
+  fw.classList.add('active');setTimeout(()=>fw.classList.remove('active'),2100);
+}
+function showVoteSpotlight(){
+  const modal=document.getElementById('modal');
+  if(modal)modal.classList.add('vote-spotlight');
+  setTimeout(()=>{if(modal)modal.classList.remove('vote-spotlight')},2000);
+}
+// Fog of war smooth reveal - canvas particles for reveal effect
+let fogParticles=[];
+function spawnFogReveal(px,py){
+  for(let i=0;i<8;i++){
+    const angle=Math.random()*Math.PI*2;
+    fogParticles.push({x:px,y:py,vx:Math.cos(angle)*2,vy:Math.sin(angle)*2,life:1,size:TILE*0.4+Math.random()*TILE*0.3});
+  }
+}
+
+// ===== UTILITIES =====
+function rand(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function pick(arr) { return arr[rand(0, arr.length - 1)]; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function dist(a, b) { return Math.abs(a.x - b.x) + Math.abs(a.y - b.y); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// ===== DUNGEON GENERATION =====
+const FLOOR_TILE = 0, WALL_TILE = 1, DOOR_TILE = 2, STAIRS_TILE = 3,
+      CHEST_TILE = 4, TRAP_TILE = 5, SHOP_TILE = 6, SHRINE_TILE = 7;
+
+let dungeon, rooms, player, party, floor, maxFloor, enemies, items;
+let votePhase = false, suspicionLog = [], turnCount = 0, impostorCount;
+let eventLogEntries = [];
+let battleState = null;
+let goldTotal = 0, keysTotal = 0;
+let discovered; // fog of war
+let sabotageEvents = [];
+let deathCauses = {};
+
+const MEMBER_NAMES = ['カイ','ミズキ','レン','サクラ','ユウキ','アオイ','ヒナタ','シオン'];
+const MEMBER_EMOJI = ['🗡️','🏹','🔮','🛡️','⚡','🌙','🔥','💎'];
+const MEMBER_ROLES = ['剣士','射手','魔術師','守護者','雷使い','月巫女','炎術士','宝石商'];
+const MONSTER_TYPES = [
+  {name:'スライム',emoji:'🟢',hp:15,atk:4,def:1,xp:5,gold:3},
+  {name:'ゴブリン',emoji:'👺',hp:25,atk:7,def:2,xp:8,gold:5},
+  {name:'スケルトン',emoji:'💀',hp:30,atk:9,def:4,xp:12,gold:8},
+  {name:'コウモリ群',emoji:'🦇',hp:18,atk:6,def:1,xp:6,gold:4},
+  {name:'ミミック',emoji:'📦',hp:40,atk:12,def:5,xp:18,gold:20},
+  {name:'ダークナイト',emoji:'⚔️',hp:50,atk:14,def:7,xp:22,gold:12},
+  {name:'ワイバーン',emoji:'🐉',hp:60,atk:16,def:6,xp:28,gold:15},
+  {name:'リッチ',emoji:'👻',hp:45,atk:18,def:4,xp:25,gold:18},
+];
+const BOSS_TYPES = [
+  {name:'地下王ドレイク',emoji:'🐲',hp:120,atk:20,def:10,xp:60,gold:50},
+  {name:'闇将グラム',emoji:'👹',hp:150,atk:24,def:12,xp:80,gold:60},
+  {name:'深淵のリヴァイア',emoji:'🌊',hp:180,atk:28,def:8,xp:100,gold:80},
+  {name:'裏切りの王',emoji:'👑',hp:250,atk:32,def:15,xp:150,gold:100},
+];
+
+const ITEM_POOL = [
+  {name:'回復薬',emoji:'🧪',type:'heal',value:30,cost:15},
+  {name:'大回復薬',emoji:'💊',type:'heal',value:60,cost:30},
+  {name:'攻撃の護符',emoji:'⚔️',type:'atkUp',value:3,cost:25},
+  {name:'防御の護符',emoji:'🛡️',type:'defUp',value:3,cost:25},
+  {name:'解毒薬',emoji:'🍵',type:'cure',value:0,cost:10},
+  {name:'鍵',emoji:'🔑',type:'key',value:1,cost:20},
+  {name:'爆弾',emoji:'💣',type:'bomb',value:40,cost:20},
+  {name:'煙玉',emoji:'💨',type:'escape',value:0,cost:12},
+  {name:'偵察の目',emoji:'👁️',type:'reveal',value:0,cost:35},
+  {name:'全体回復',emoji:'✨',type:'healAll',value:25,cost:40},
+];
+
+// ===== DUNGEON GENERATOR =====
+function generateDungeon(floorNum) {
+  const w = rand(28, 35);
+  const h = rand(28, 35);
+  dungeon = [];
+  discovered = [];
+  for (let y = 0; y < h; y++) {
+    dungeon[y] = [];
+    discovered[y] = [];
+    for (let x = 0; x < w; x++) {
+      dungeon[y][x] = WALL_TILE;
+      discovered[y][x] = false;
+    }
+  }
+  rooms = [];
+  const roomCount = rand(6, 10);
+  let attempts = 0;
+  while (rooms.length < roomCount && attempts < 500) {
+    attempts++;
+    const rw = rand(4, 8);
+    const rh = rand(4, 7);
+    const rx = rand(2, w - rw - 2);
+    const ry = rand(2, h - rh - 2);
+    let overlap = false;
+    for (const r of rooms) {
+      if (rx - 1 < r.x + r.w && rx + rw + 1 > r.x && ry - 1 < r.y + r.h && ry + rh + 1 > r.y) {
+        overlap = true; break;
+      }
+    }
+    if (!overlap) {
+      rooms.push({x: rx, y: ry, w: rw, h: rh});
+      for (let dy = 0; dy < rh; dy++)
+        for (let dx = 0; dx < rw; dx++)
+          dungeon[ry + dy][rx + dx] = FLOOR_TILE;
+    }
+  }
+  // Connect rooms with corridors
+  for (let i = 1; i < rooms.length; i++) {
+    const a = rooms[i - 1], b = rooms[i];
+    const ax = Math.floor(a.x + a.w / 2), ay = Math.floor(a.y + a.h / 2);
+    const bx = Math.floor(b.x + b.w / 2), by = Math.floor(b.y + b.h / 2);
+    let cx = ax, cy = ay;
+    while (cx !== bx) {
+      if (cy >= 0 && cy < h && cx >= 0 && cx < w) dungeon[cy][cx] = FLOOR_TILE;
+      cx += cx < bx ? 1 : -1;
+    }
+    while (cy !== by) {
+      if (cy >= 0 && cy < h && cx >= 0 && cx < w) dungeon[cy][cx] = FLOOR_TILE;
+      cy += cy < by ? 1 : -1;
+    }
+  }
+  // Place stairs in last room
+  const lastRoom = rooms[rooms.length - 1];
+  const sx = Math.floor(lastRoom.x + lastRoom.w / 2);
+  const sy = Math.floor(lastRoom.y + lastRoom.h / 2);
+  dungeon[sy][sx] = STAIRS_TILE;
+  // Place chests
+  for (let i = 0; i < rand(2, 4); i++) {
+    const r = rooms[rand(1, Math.max(1, rooms.length - 2))];
+    const cx = rand(r.x + 1, r.x + r.w - 2);
+    const cy = rand(r.y + 1, r.y + r.h - 2);
+    if (dungeon[cy][cx] === FLOOR_TILE) dungeon[cy][cx] = CHEST_TILE;
+  }
+  // Place traps
+  for (let i = 0; i < rand(3, 5 + floorNum); i++) {
+    const r = rooms[rand(0, rooms.length - 1)];
+    const tx = rand(r.x, r.x + r.w - 1);
+    const ty = rand(r.y, r.y + r.h - 1);
+    if (dungeon[ty][tx] === FLOOR_TILE) dungeon[ty][tx] = TRAP_TILE;
+  }
+  // Place shop in a middle room
+  if (rooms.length > 3) {
+    const shopRoom = rooms[Math.floor(rooms.length / 2)];
+    const shx = Math.floor(shopRoom.x + shopRoom.w / 2);
+    const shy = Math.floor(shopRoom.y + shopRoom.h / 2);
+    if (dungeon[shy][shx] === FLOOR_TILE) dungeon[shy][shx] = SHOP_TILE;
+  }
+  // Place shrine
+  if (rand(1, 3) === 1) {
+    const r = rooms[rand(1, rooms.length - 1)];
+    const shrx = rand(r.x + 1, r.x + r.w - 2);
+    const shry = rand(r.y + 1, r.y + r.h - 2);
+    if (dungeon[shry][shrx] === FLOOR_TILE) dungeon[shry][shrx] = SHRINE_TILE;
+  }
+  // Enemies
+  enemies = [];
+  for (let i = 0; i < rand(4, 6 + floorNum * 2); i++) {
+    const r = rooms[rand(1, rooms.length - 1)];
+    const ex = rand(r.x, r.x + r.w - 1);
+    const ey = rand(r.y, r.y + r.h - 1);
+    if (dungeon[ey][ex] === FLOOR_TILE) {
+      const tier = Math.min(Math.floor(floorNum / 2), MONSTER_TYPES.length - 1);
+      const mtype = MONSTER_TYPES[rand(Math.max(0, tier - 1), Math.min(tier + 1, MONSTER_TYPES.length - 1))];
+      const scale = 1 + floorNum * 0.15;
+      enemies.push({
+        x: ex, y: ey, ...mtype,
+        hp: Math.floor(mtype.hp * scale), maxHp: Math.floor(mtype.hp * scale),
+        atk: Math.floor(mtype.atk * scale), def: Math.floor(mtype.def * scale),
+        xp: Math.floor(mtype.xp * scale), gold: Math.floor(mtype.gold * scale),
+      });
+    }
+  }
+  // Boss on every 3rd floor
+  if (floorNum % 3 === 0 && floorNum > 0) {
+    const bossIdx = Math.min(Math.floor(floorNum / 3) - 1, BOSS_TYPES.length - 1);
+    const boss = BOSS_TYPES[bossIdx];
+    const r = rooms[rooms.length - 1];
+    const bx = rand(r.x, r.x + r.w - 1);
+    const by = rand(r.y, r.y + r.h - 1);
+    const scale = 1 + floorNum * 0.1;
+    enemies.push({
+      x: bx, y: by, ...boss, isBoss: true,
+      hp: Math.floor(boss.hp * scale), maxHp: Math.floor(boss.hp * scale),
+      atk: Math.floor(boss.atk * scale), def: Math.floor(boss.def * scale),
+      xp: Math.floor(boss.xp * scale), gold: Math.floor(boss.gold * scale),
+    });
+  }
+  // Place player in first room
+  const firstRoom = rooms[0];
+  player.x = Math.floor(firstRoom.x + firstRoom.w / 2);
+  player.y = Math.floor(firstRoom.y + firstRoom.h / 2);
+  revealAround(player.x, player.y, 3);
+  return {w, h};
+}
+
+function revealAround(px, py, radius) {
+  // v1.2: spawn fog reveal particles at edges
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      const ny = py + dy, nx = px + dx;
+      if (ny >= 0 && ny < dungeon.length && nx >= 0 && nx < dungeon[0].length) {
+        discovered[ny][nx] = true;
+      }
+    }
+  }
+}
+
+// ===== PLAYER & PARTY =====
+function initPlayer() {
+  player = {
+    x: 0, y: 0, hp: 100, maxHp: 100, atk: 12, def: 5,
+    level: 1, xp: 0, xpNext: 20,
+    inventory: [
+      {name:'回復薬',emoji:'🧪',type:'heal',value:30,cost:15},
+      {name:'回復薬',emoji:'🧪',type:'heal',value:30,cost:15},
+    ],
+    statusEffects: [],
+  };
+  goldTotal = 0;
+  keysTotal = 0;
+}
+
+function initParty(floorNum) {
+  const size = floorNum === 0 ? 4 : Math.min(4 + Math.floor(floorNum / 3), 6);
+  party = [];
+  const indices = [];
+  while (indices.length < size) {
+    const idx = rand(0, MEMBER_NAMES.length - 1);
+    if (!indices.includes(idx)) indices.push(idx);
+  }
+  impostorCount = floorNum < 3 ? 1 : (floorNum < 7 ? 2 : 3);
+  impostorCount = Math.min(impostorCount, Math.floor(size / 2));
+  const impostorSlots = [];
+  while (impostorSlots.length < impostorCount) {
+    const s = rand(0, size - 1);
+    if (!impostorSlots.includes(s)) impostorSlots.push(s);
+  }
+  for (let i = 0; i < size; i++) {
+    const idx = indices[i];
+    const isImp = impostorSlots.includes(i);
+    const memberHp = 60 + rand(0, 30);
+    party.push({
+      name: MEMBER_NAMES[idx],
+      emoji: MEMBER_EMOJI[idx],
+      role: MEMBER_ROLES[idx],
+      hp: memberHp,
+      maxHp: memberHp,
+      atk: 6 + rand(0, 6),
+      def: 3 + rand(0, 4),
+      isImpostor: isImp,
+      alive: true,
+      ejected: false,
+      suspicion: 0,
+      sabotageCD: 0,
+      loyalty: isImp ? rand(10, 30) : rand(60, 95),
+      revealed: false,
+      behaviorLog: [],
+    });
+  }
+  suspicionLog = [];
+  sabotageEvents = [];
+}
+
+// ===== GAME START =====
+function startGame() {
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('party-bar').classList.remove('hidden');
+  document.getElementById('event-log').classList.remove('hidden');
+  document.getElementById('action-bar').classList.remove('hidden');
+  document.getElementById('controls-hint').classList.remove('hidden');
+  document.getElementById('floor-indicator').classList.remove('hidden');
+  document.getElementById('minimap').classList.remove('hidden');
+  floor = 0;
+  maxFloor = 12;
+  turnCount = 0;
+  eventLogEntries = [];
+  deathCauses = {};
+  initPlayer();
+  initParty(floor);
+  generateDungeon(floor);
+  gameState = 'explore';
+  addLog('地下迷宮に足を踏み入れた……', 'info');
+  addLog(`仲間${party.length}人と共に探索開始。だが裏切り者がいる……`, 'danger');
+  updateHUD();
+  updatePartyBar();
+  updateActionBar();
+}
+
+function showHowTo() {
+  showModal(`
+    <h3>遊び方</h3>
+    <p><b>目的:</b> 地下12階の最深部を目指せ。ただし仲間の中に裏切り者(インポスター)が潜んでいる。</p>
+    <p><b>移動:</b> スワイプ / WASD / 矢印キーで移動。</p>
+    <p><b>戦闘:</b> 敵に隣接すると戦闘開始。仲間が自動で援護するが、裏切り者は……</p>
+    <p><b>投票:</b> 怪しい仲間を投票で追放できる。行動ログから裏切り者を見極めろ。</p>
+    <p><b>手がかり:</b><br>
+    ・裏切り者は戦闘で味方を攻撃することがある<br>
+    ・トラップ付近で怪しい動きをする<br>
+    ・宝箱の中身をくすねることがある<br>
+    ・回復フェイズで毒を盛ることがある</p>
+    <p><b>勝利条件:</b> 地下12階のボスを倒す</p>
+    <p><b>敗北条件:</b> プレイヤーのHPが0になる</p>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn btn-accent" onclick="closeModal()">閉じる</button>
+    </div>
+  `);
+}
+
+// ===== UI UPDATES =====
+function updateHUD() {
+  document.getElementById('hp-text').textContent = `${player.hp}/${player.maxHp}`;
+  document.getElementById('hp-bar').style.width = `${(player.hp / player.maxHp) * 100}%`;
+  document.getElementById('atk-text').textContent = player.atk;
+  document.getElementById('def-text').textContent = player.def;
+  document.getElementById('gold-text').textContent = goldTotal;
+  document.getElementById('keys-text').textContent = keysTotal;
+  document.getElementById('floor-indicator').textContent = `地下${floor + 1}階`;
+}
+
+function updatePartyBar() {
+  const bar = document.getElementById('party-bar');
+  bar.innerHTML = '';
+  party.forEach((m, i) => {
+    const div = document.createElement('div');
+    div.className = 'party-icon' + (m.alive ? '' : ' dead') + (m.ejected ? ' ejected' : '') + (m.suspicion >= 50 ? ' suspected' : '');
+    div.style.background = m.alive ? 'var(--bg2)' : 'var(--bg)';
+    div.innerHTML = `${m.emoji}<div class="mini-hp"><div class="mini-hp-fill" style="width:${m.alive ? (m.hp / m.maxHp) * 100 : 0}%;background:${m.suspicion >= 50 ? 'var(--orange)' : 'var(--green)'}"></div></div>`;
+    div.title = `${m.name}(${m.role}) HP:${m.hp}/${m.maxHp} 疑惑:${m.suspicion}%`;
+    div.onclick = () => showMemberInfo(i);
+    bar.appendChild(div);
+  });
+}
+
+function updateActionBar() {
+  const bar = document.getElementById('action-bar');
+  bar.innerHTML = '';
+  if (gameState === 'explore') {
+    bar.innerHTML = `
+      <button class="btn" onclick="openInventory()">🎒 所持品</button>
+      <button class="btn" onclick="callVote()">🗳️ 投票</button>
+      <button class="btn" onclick="rest()">💤 休息</button>
+      <button class="btn" onclick="investigate()">🔍 調査</button>
+    `;
+  }
+}
+
+function addLog(text, type = '') {
+  eventLogEntries.push({text, type, time: Date.now()});
+  if (eventLogEntries.length > 50) eventLogEntries.shift();
+  const logDiv = document.getElementById('event-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  entry.textContent = text;
+  logDiv.appendChild(entry);
+  logDiv.scrollTop = logDiv.scrollHeight;
+  // Clean up old DOM entries
+  while (logDiv.children.length > 30) logDiv.removeChild(logDiv.firstChild);
+}
+
+function showModal(html) {
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modal-content').innerHTML = html;
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  if (gameState === 'explore') updateActionBar();
+}
+
+// ===== MEMBER INFO =====
+function showMemberInfo(idx) {
+  const m = party[idx];
+  if (m.ejected) return;
+  let logHtml = m.behaviorLog.slice(-8).map(l =>
+    `<div style="font-size:12px;color:${l.suspicious ? 'var(--orange)' : 'var(--text2)'};padding:2px 0">${l.text}</div>`
+  ).join('');
+  showModal(`
+    <h3>${m.emoji} ${m.name}（${m.role}）</h3>
+    <p>HP: ${m.hp}/${m.maxHp} | ATK: ${m.atk} | DEF: ${m.def}</p>
+    <p>疑惑度: <span style="color:${m.suspicion >= 50 ? 'var(--orange)' : 'var(--green)'}">${m.suspicion}%</span></p>
+    <p>忠誠心: ${m.revealed ? (m.isImpostor ? '❌ 裏切り者!' : '✅ 味方') : '???'}</p>
+    <div style="margin:12px 0;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
+      <div style="font-size:13px;color:var(--text);margin-bottom:6px">行動ログ:</div>
+      ${logHtml || '<div style="font-size:12px;color:var(--text3)">まだ記録なし</div>'}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn btn-accent" onclick="closeModal()">閉じる</button>
+    </div>
+  `);
+}
+
+// ===== MOVEMENT =====
+function tryMove(dx, dy) {
+  if (gameState !== 'explore') return;
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+  if (ny < 0 || ny >= dungeon.length || nx < 0 || nx >= dungeon[0].length) return;
+  if (dungeon[ny][nx] === WALL_TILE) return;
+
+  // Check for enemy
+  const enemyIdx = enemies.findIndex(e => e.x === nx && e.y === ny && e.hp > 0);
+  if (enemyIdx >= 0) {
+    startBattle(enemies[enemyIdx], enemyIdx);
+    return;
+  }
+
+  player.x = nx;
+  player.y = ny;
+  revealAround(nx, ny, 3);
+  turnCount++;
+
+  // Tile interactions
+  const tile = dungeon[ny][nx];
+  if (tile === STAIRS_TILE) {
+    nextFloor();
+    return;
+  }
+  if (tile === CHEST_TILE) {
+    openChest(nx, ny);
+  }
+  if (tile === TRAP_TILE) {
+    triggerTrap(nx, ny);
+  }
+  if (tile === SHOP_TILE) {
+    openShop();
+    return;
+  }
+  if (tile === SHRINE_TILE) {
+    activateShrine(nx, ny);
+  }
+
+  // Impostor actions every few turns
+  if (turnCount % 4 === 0) impostorAction();
+
+  // Enemy movement
+  moveEnemies();
+
+  updateHUD();
+  updatePartyBar();
+}
+
+function moveEnemies() {
+  for (const e of enemies) {
+    if (e.hp <= 0) continue;
+    if (dist(e, player) <= 5 && dist(e, player) > 1) {
+      const dx = Math.sign(player.x - e.x);
+      const dy = Math.sign(player.y - e.y);
+      // Try to move toward player
+      if (rand(0, 1) === 0) {
+        const nx = e.x + dx;
+        if (nx >= 0 && nx < dungeon[0].length && dungeon[e.y][nx] !== WALL_TILE &&
+            !enemies.some(oe => oe !== e && oe.x === nx && oe.y === e.y && oe.hp > 0) &&
+            !(player.x === nx && player.y === e.y)) {
+          e.x = nx;
+        }
+      } else {
+        const ny = e.y + dy;
+        if (ny >= 0 && ny < dungeon.length && dungeon[ny][e.x] !== WALL_TILE &&
+            !enemies.some(oe => oe !== e && oe.x === e.x && oe.y === ny && oe.hp > 0) &&
+            !(player.x === e.x && player.y === ny)) {
+          e.y = ny;
+        }
+      }
+    }
+    // Check if now adjacent to player - auto battle
+    if (dist(e, player) <= 1) {
+      startBattle(e, enemies.indexOf(e));
+      return;
+    }
+  }
+}
+
+// ===== TILE INTERACTIONS =====
+function openChest(x, y) {
+  dungeon[y][x] = FLOOR_TILE;
+  // Impostor may steal
+  const impThief = party.find(m => m.isImpostor && m.alive && !m.ejected && rand(1, 100) <= 40);
+  if (impThief) {
+    addLog(`${impThief.name}が宝箱に素早く手を伸ばした……中身が少ない気がする`, 'danger');
+    impThief.behaviorLog.push({text: `宝箱の中身に手を伸ばした`, suspicious: true});
+    impThief.suspicion = Math.min(100, impThief.suspicion + rand(8, 15));
+    goldTotal += rand(2, 5);
+  } else {
+    const loot = rand(1, 100);
+    if (loot <= 40) {
+      const g = rand(8, 20 + floor * 3);
+      goldTotal += g;
+      addLog(`宝箱から${g}ゴールドを発見！`, 'gold');
+    } else if (loot <= 70) {
+      const item = pick(ITEM_POOL.slice(0, 6));
+      player.inventory.push({...item});
+      addLog(`宝箱から${item.emoji}${item.name}を発見！`, 'success');
+    } else if (loot <= 85) {
+      keysTotal++;
+      addLog('宝箱から🔑鍵を発見！', 'success');
+    } else {
+      const g = rand(15, 30 + floor * 5);
+      goldTotal += g;
+      const item = pick(ITEM_POOL.slice(0, 4));
+      player.inventory.push({...item});
+      addLog(`大当たり！${g}ゴールド+${item.emoji}${item.name}！`, 'gold');
+    }
+  }
+  updateHUD();
+}
+
+function triggerTrap(x, y) {
+  dungeon[y][x] = FLOOR_TILE;
+  // Impostor may have sabotaged the trap
+  const sabotaged = party.find(m => m.isImpostor && m.alive && !m.ejected && rand(1, 100) <= 30);
+  let dmg = rand(5, 12 + floor * 2);
+  if (sabotaged) {
+    dmg = Math.floor(dmg * 1.8);
+    addLog(`罠だ！${dmg}ダメージ！(異常に強力な罠だ……)`, 'danger');
+    sabotaged.behaviorLog.push({text: `罠発動時に付近にいた`, suspicious: true});
+    sabotaged.suspicion = Math.min(100, sabotaged.suspicion + rand(5, 10));
+  } else {
+    addLog(`罠だ！${dmg}ダメージ！`, 'danger');
+  }
+  player.hp = Math.max(0, player.hp - dmg);
+  if (player.hp <= 0) gameOver('罠によって力尽きた……');
+  updateHUD();
+}
+
+function activateShrine(x, y) {
+  dungeon[y][x] = FLOOR_TILE;
+  const effect = rand(1, 4);
+  if (effect === 1) {
+    player.hp = player.maxHp;
+    addLog('祠の光に包まれ、HPが全回復した！', 'success');
+  } else if (effect === 2) {
+    player.atk += 2;
+    addLog('祠の力で攻撃力+2！', 'success');
+  } else if (effect === 3) {
+    player.def += 2;
+    addLog('祠の力で防御力+2！', 'success');
+  } else {
+    player.maxHp += 15;
+    player.hp += 15;
+    addLog('祠の力で最大HP+15！', 'success');
+  }
+  updateHUD();
+}
+
+function openShop() {
+  const shopItems = [];
+  for (let i = 0; i < 4; i++) {
+    const item = {...pick(ITEM_POOL)};
+    item.cost = Math.floor(item.cost * (1 + floor * 0.1));
+    shopItems.push(item);
+  }
+  let html = '<h3>🏪 闇商人の店</h3><p>何を買う？</p>';
+  shopItems.forEach((item, i) => {
+    html += `<button class="btn btn-vote" onclick="buyItem(${i})" id="shop-btn-${i}">
+      <span>${item.emoji} ${item.name}</span>
+      <span style="margin-left:auto;color:var(--gold)">💰${item.cost}</span>
+    </button>`;
+  });
+  html += `<div style="text-align:center;margin-top:12px;color:var(--gold)">所持金: ${goldTotal}G</div>`;
+  html += `<div style="text-align:center;margin-top:8px"><button class="btn" onclick="closeModal()">立ち去る</button></div>`;
+  showModal(html);
+  window._shopItems = shopItems;
+}
+
+window.buyItem = function(idx) {
+  const item = window._shopItems[idx];
+  if (!item) return;
+  if (goldTotal < item.cost) {
+    addLog('ゴールドが足りない！', 'danger');
+    return;
+  }
+  goldTotal -= item.cost;
+  player.inventory.push({...item});
+  addLog(`${item.emoji}${item.name}を購入した`, 'info');
+  window._shopItems[idx] = null;
+  document.getElementById(`shop-btn-${idx}`).style.opacity = '0.3';
+  document.getElementById(`shop-btn-${idx}`).disabled = true;
+  updateHUD();
+};
+
+// ===== BATTLE SYSTEM =====
+function startBattle(enemy, enemyIdx) {
+  gameState = 'battle';
+  battleState = {
+    enemy: enemy,
+    enemyIdx: enemyIdx,
+    turn: 'player',
+    partyActions: [],
+    log: [],
+  };
+  showBattleUI();
+}
+
+function showBattleUI() {
+  const e = battleState.enemy;
+  const hpPct = (e.hp / e.maxHp) * 100;
+  let html = `
+    <h3>${e.isBoss ? '⚠️ BOSS ' : ''}${e.emoji} ${e.name}</h3>
+    <div class="hud-bar" style="margin:8px 0"><div class="hud-bar-fill hp-fill" style="width:${hpPct}%"></div></div>
+    <p style="font-size:12px">HP: ${e.hp}/${e.maxHp} | ATK: ${e.atk} | DEF: ${e.def}</p>
+    <div style="margin:12px 0;max-height:100px;overflow-y:auto;font-size:12px;color:var(--text2)">
+      ${battleState.log.slice(-6).map(l => `<div style="color:${l.color || 'var(--text2)'}">${l.text}</div>`).join('')}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+      <button class="btn btn-accent" onclick="battleAction('attack')">⚔️ 攻撃</button>
+      <button class="btn" onclick="battleAction('skill')">✨ 技</button>
+      <button class="btn" onclick="battleAction('item')">🎒 道具</button>
+      <button class="btn" onclick="battleAction('flee')">💨 逃走</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+window.battleAction = function(action) {
+  const e = battleState.enemy;
+
+  if (action === 'attack') {
+    const dmg = Math.max(1, player.atk - e.def + rand(-2, 3));
+    e.hp -= dmg;
+    battleState.log.push({text: `あなたの攻撃！ ${dmg}ダメージ！`, color: 'var(--blue2)'});
+    showCombatFlash();
+  }
+  else if (action === 'skill') {
+    // Power strike: higher damage, slight self-damage
+    const dmg = Math.max(1, Math.floor(player.atk * 1.6) - e.def + rand(0, 5));
+    e.hp -= dmg;
+    player.hp -= rand(2, 5);
+    battleState.log.push({text: `渾身の一撃！ ${dmg}ダメージ！(反動あり)`, color: 'var(--purple2)'});
+    showCombatFlash();
+  }
+  else if (action === 'item') {
+    showBattleItemSelect();
+    return;
+  }
+  else if (action === 'flee') {
+    if (e.isBoss) {
+      battleState.log.push({text: `ボスからは逃げられない！`, color: 'var(--accent)'});
+      showBattleUI();
+      return;
+    }
+    if (rand(1, 100) <= 60) {
+      addLog('戦闘から逃走した！', 'info');
+      endBattle(false);
+      return;
+    } else {
+      battleState.log.push({text: '逃走失敗！', color: 'var(--accent)'});
+    }
+  }
+
+  // Party members attack
+  partyBattleTurn(e);
+
+  // Check if enemy dead
+  if (e.hp <= 0) {
+    e.hp = 0;
+    endBattle(true);
+    return;
+  }
+
+  // Enemy attacks
+  enemyBattleTurn(e);
+
+  if (player.hp <= 0) {
+    gameOver(`${e.name}に倒された……`);
+    return;
+  }
+
+  showBattleUI();
+};
+
+function partyBattleTurn(enemy) {
+  const alive = party.filter(m => m.alive && !m.ejected);
+  for (const m of alive) {
+    if (m.isImpostor) {
+      // Impostor behavior: sometimes attack allies, sometimes pretend to fight
+      const betrayRoll = rand(1, 100);
+      if (betrayRoll <= 20 + (floor * 3)) {
+        // Attack player
+        const dmg = rand(2, Math.floor(m.atk * 0.6));
+        player.hp -= dmg;
+        battleState.log.push({text: `${m.name}の攻撃が味方に当たった！ ${dmg}ダメージ`, color: 'var(--orange)'});
+        m.behaviorLog.push({text: `戦闘中、味方に攻撃が当たった`, suspicious: true});
+        m.suspicion = Math.min(100, m.suspicion + rand(10, 20));
+      } else if (betrayRoll <= 45 + (floor * 2)) {
+        // Pretend to miss
+        battleState.log.push({text: `${m.name}の攻撃は外れた`, color: 'var(--text3)'});
+        m.behaviorLog.push({text: `攻撃を外した`, suspicious: false});
+        m.suspicion = Math.min(100, m.suspicion + rand(1, 3));
+      } else {
+        // Actually fight (to blend in)
+        const dmg = Math.max(1, Math.floor(m.atk * 0.5) - enemy.def);
+        enemy.hp -= dmg;
+        battleState.log.push({text: `${m.name}の攻撃！ ${dmg}ダメージ`, color: 'var(--text2)'});
+        m.behaviorLog.push({text: `敵に${dmg}ダメージ`, suspicious: false});
+      }
+    } else {
+      // Normal ally attacks
+      const dmg = Math.max(1, m.atk - enemy.def + rand(-1, 2));
+      enemy.hp -= dmg;
+      battleState.log.push({text: `${m.name}の攻撃！ ${dmg}ダメージ`, color: 'var(--green)'});
+      m.behaviorLog.push({text: `敵に${dmg}ダメージ`, suspicious: false});
+    }
+  }
+}
+
+function enemyBattleTurn(enemy) {
+  // Enemy attacks player or random party member
+  const target = rand(1, 100) <= 70 ? 'player' : 'party';
+  if (target === 'player') {
+    const dmg = Math.max(1, enemy.atk - player.def + rand(-2, 3));
+    player.hp -= dmg;
+    battleState.log.push({text: `${enemy.name}の攻撃！ あなたに${dmg}ダメージ！`, color: 'var(--accent)'});
+  } else {
+    const alive = party.filter(m => m.alive && !m.ejected);
+    if (alive.length > 0) {
+      const target = pick(alive);
+      const dmg = Math.max(1, enemy.atk - target.def + rand(-2, 3));
+      target.hp -= dmg;
+      battleState.log.push({text: `${enemy.name}の攻撃！ ${target.name}に${dmg}ダメージ`, color: 'var(--accent)'});
+      if (target.hp <= 0) {
+        target.hp = 0;
+        target.alive = false;
+        addLog(`${target.name}が戦闘中に倒れた！`, 'danger');
+        deathCauses[target.name] = 'killed_in_battle';
+      }
+    }
+  }
+}
+
+function endBattle(victory) {
+  if (victory) {
+    const e = battleState.enemy;
+    const xpGain = e.xp;
+    const goldGain = e.gold;
+    player.xp += xpGain;
+    goldTotal += goldGain;
+    addLog(`${e.emoji}${e.name}を撃破！ +${xpGain}XP +${goldGain}G`, 'success');
+    enemies[battleState.enemyIdx].hp = 0;
+    // Level up check
+    while (player.xp >= player.xpNext) {
+      player.xp -= player.xpNext;
+      player.level++;
+      player.xpNext = Math.floor(player.xpNext * 1.4);
+      player.maxHp += 10;
+      player.hp = Math.min(player.hp + 10, player.maxHp);
+      player.atk += 2;
+      player.def += 1;
+      addLog(`レベルアップ！ Lv.${player.level}！ HP/ATK/DEF上昇！`, 'gold');
+    }
+    if (e.isBoss && floor >= maxFloor - 1) {
+      gameWin();
+      return;
+    }
+  }
+  battleState = null;
+  gameState = 'explore';
+  closeModal();
+  updateHUD();
+  updatePartyBar();
+  updateActionBar();
+}
+
+function showBattleItemSelect() {
+  if (player.inventory.length === 0) {
+    battleState.log.push({text: '道具がない！', color: 'var(--text3)'});
+    showBattleUI();
+    return;
+  }
+  let html = '<h3>🎒 道具を使う</h3>';
+  player.inventory.forEach((item, i) => {
+    html += `<button class="btn btn-vote" onclick="useBattleItem(${i})">${item.emoji} ${item.name}</button>`;
+  });
+  html += `<button class="btn" onclick="showBattleUI()" style="margin-top:8px;width:100%">戻る</button>`;
+  showModal(html);
+}
+
+window.showBattleUI = function() { showBattleUI(); };
+
+window.useBattleItem = function(idx) {
+  const item = player.inventory[idx];
+  if (!item) return;
+  player.inventory.splice(idx, 1);
+  applyItem(item, true);
+  // Enemy still attacks after item use
+  if (battleState && battleState.enemy.hp > 0) {
+    enemyBattleTurn(battleState.enemy);
+    if (player.hp <= 0) {
+      gameOver(`${battleState.enemy.name}に倒された……`);
+      return;
+    }
+  }
+  if (battleState) showBattleUI();
+};
+
+function applyItem(item, inBattle) {
+  switch (item.type) {
+    case 'heal':
+      player.hp = Math.min(player.maxHp, player.hp + item.value);
+      if (inBattle) battleState.log.push({text: `${item.name}でHP${item.value}回復！`, color: 'var(--green)'});
+      else addLog(`${item.emoji}${item.name}でHP${item.value}回復！`, 'success');
+      break;
+    case 'healAll':
+      player.hp = Math.min(player.maxHp, player.hp + item.value);
+      party.filter(m => m.alive && !m.ejected).forEach(m => { m.hp = Math.min(m.maxHp, m.hp + item.value); });
+      addLog(`${item.emoji}全員のHPが${item.value}回復！`, 'success');
+      break;
+    case 'atkUp':
+      player.atk += item.value;
+      addLog(`攻撃力+${item.value}！`, 'success');
+      break;
+    case 'defUp':
+      player.def += item.value;
+      addLog(`防御力+${item.value}！`, 'success');
+      break;
+    case 'key':
+      keysTotal++;
+      addLog('🔑 鍵を入手！', 'info');
+      break;
+    case 'bomb':
+      if (inBattle) {
+        battleState.enemy.hp -= item.value;
+        battleState.log.push({text: `爆弾で${item.value}ダメージ！`, color: 'var(--gold)'});
+      }
+      break;
+    case 'escape':
+      if (inBattle) {
+        addLog('煙玉で戦闘から離脱！', 'info');
+        endBattle(false);
+      }
+      break;
+    case 'reveal':
+      // Reveal one impostor
+      const hidden = party.filter(m => m.alive && !m.ejected && !m.revealed);
+      if (hidden.length > 0) {
+        const target = pick(hidden);
+        target.revealed = true;
+        if (target.isImpostor) {
+          target.suspicion = 100;
+          addLog(`👁️ ${target.name}の正体は……裏切り者だ！！`, 'danger');
+        } else {
+          target.suspicion = 0;
+          addLog(`👁️ ${target.name}は信頼できる味方だ`, 'success');
+        }
+      } else {
+        addLog('全員の正体は既に判明している', 'info');
+      }
+      break;
+    case 'cure':
+      player.statusEffects = [];
+      addLog('状態異常が回復した！', 'success');
+      break;
+  }
+  updateHUD();
+  updatePartyBar();
+}
+
+// ===== IMPOSTOR ACTIONS =====
+function impostorAction() {
+  const imps = party.filter(m => m.isImpostor && m.alive && !m.ejected);
+  for (const imp of imps) {
+    if (imp.sabotageCD > 0) { imp.sabotageCD--; continue; }
+    const roll = rand(1, 100);
+    if (roll <= 15) {
+      // Sabotage: weaken a party member
+      const targets = party.filter(m => !m.isImpostor && m.alive && !m.ejected);
+      if (targets.length > 0) {
+        const target = pick(targets);
+        const dmg = rand(3, 8);
+        target.hp = Math.max(1, target.hp - dmg);
+        imp.behaviorLog.push({text: `${target.name}の近くで不審な動きをした`, suspicious: true});
+        imp.suspicion = Math.min(100, imp.suspicion + rand(5, 12));
+        // Sometimes the target notices
+        if (rand(1, 100) <= 40) {
+          addLog(`${target.name}が${imp.name}の不審な動きに気づいた……`, 'danger');
+        }
+        imp.sabotageCD = rand(2, 4);
+      }
+    } else if (roll <= 25) {
+      // Poison player subtly
+      const dmg = rand(2, 5);
+      player.hp = Math.max(1, player.hp - dmg);
+      imp.behaviorLog.push({text: `食料を分けてくれたが、少し体調が悪くなった`, suspicious: true});
+      imp.suspicion = Math.min(100, imp.suspicion + rand(3, 8));
+      if (rand(1, 100) <= 30) {
+        addLog(`${imp.name}にもらった水を飲んだら少し気分が悪い……`, 'danger');
+      }
+      imp.sabotageCD = rand(3, 5);
+    } else if (roll <= 35) {
+      // Frame another member
+      const innocents = party.filter(m => !m.isImpostor && m.alive && !m.ejected);
+      if (innocents.length > 0) {
+        const framed = pick(innocents);
+        framed.suspicion = Math.min(100, framed.suspicion + rand(8, 18));
+        framed.behaviorLog.push({text: `怪しい行動をしているのが目撃された(?)`, suspicious: true});
+        addLog(`${imp.name}が「${framed.name}の動きが怪しい」と報告した`, 'info');
+        imp.behaviorLog.push({text: `${framed.name}を告発した`, suspicious: false});
+      }
+    } else {
+      // Act normal
+      const normalActions = [
+        '周囲を警戒していた',
+        '通路を偵察した',
+        '地図を確認していた',
+        '武器の手入れをしていた',
+      ];
+      imp.behaviorLog.push({text: pick(normalActions), suspicious: false});
+    }
+  }
+  // Normal members also do things
+  const normals = party.filter(m => !m.isImpostor && m.alive && !m.ejected);
+  for (const m of normals) {
+    if (rand(1, 100) <= 25) {
+      const actions = [
+        '周囲を見張っていた',
+        '仲間の傷を手当てした',
+        '罠を警戒していた',
+        '地図を描いていた',
+        '通路の先を偵察した',
+      ];
+      m.behaviorLog.push({text: pick(actions), suspicious: false});
+    }
+  }
+}
+
+// ===== VOTE SYSTEM =====
+function callVote() {
+  if (gameState !== 'explore') return;
+  const alive = party.filter(m => m.alive && !m.ejected);
+  if (alive.length === 0) {
+    addLog('投票する対象がいない', 'info');
+    return;
+  }
+  gameState = 'vote';
+  showVoteSpotlight();
+  let html = '<h3>🗳️ 緊急投票</h3><p>裏切り者と思う仲間を選べ：</p>';
+  alive.forEach((m, i) => {
+    const realIdx = party.indexOf(m);
+    const suspColor = m.suspicion >= 70 ? 'var(--accent)' : m.suspicion >= 40 ? 'var(--orange)' : 'var(--green)';
+    html += `<button class="btn btn-vote" onclick="castVote(${realIdx})">
+      <span>${m.emoji}</span>
+      <span>${m.name}（${m.role}）</span>
+      <span style="margin-left:auto;color:${suspColor}">疑惑:${m.suspicion}%</span>
+    </button>`;
+  });
+  html += `<button class="btn" onclick="skipVote()" style="margin-top:12px;width:100%">投票しない（スキップ）</button>`;
+  showModal(html);
+}
+
+window.castVote = function(idx) {
+  const target = party[idx];
+  // Other party members also vote
+  let votes = {};
+  party.filter(m => m.alive && !m.ejected).forEach(m => {
+    const mi = party.indexOf(m);
+    if (mi === idx) return; // can't vote for self
+    if (m.isImpostor) {
+      // Impostors try to deflect - vote for non-impostors
+      const innocents = party.filter(p => !p.isImpostor && p.alive && !p.ejected && party.indexOf(p) !== idx);
+      if (innocents.length > 0 && rand(1, 100) <= 60) {
+        const deflect = pick(innocents);
+        votes[party.indexOf(deflect)] = (votes[party.indexOf(deflect)] || 0) + 1;
+      } else {
+        votes[idx] = (votes[idx] || 0) + 1;
+      }
+    } else {
+      // Normal members vote based on suspicion
+      if (rand(1, 100) <= target.suspicion) {
+        votes[idx] = (votes[idx] || 0) + 1;
+      } else {
+        // Vote for someone random or most suspicious
+        const most = party.filter(p => p.alive && !p.ejected && party.indexOf(p) !== mi)
+          .sort((a, b) => b.suspicion - a.suspicion)[0];
+        if (most) votes[party.indexOf(most)] = (votes[party.indexOf(most)] || 0) + 1;
+      }
+    }
+  });
+  // Player's vote
+  votes[idx] = (votes[idx] || 0) + 2; // player vote counts double
+  // Find most voted
+  let maxVotes = 0, maxIdx = -1;
+  for (const [k, v] of Object.entries(votes)) {
+    if (v > maxVotes) { maxVotes = v; maxIdx = parseInt(k); }
+  }
+  const ejected = party[maxIdx];
+  ejected.ejected = true;
+  ejected.alive = false;
+  showImpostorReveal(ejected.emoji, ejected.name, ejected.isImpostor);
+  let resultHtml = '<div class="vote-result">';
+  resultHtml += `<div style="font-size:24px;margin-bottom:12px">${ejected.emoji}</div>`;
+  resultHtml += `<div style="font-size:18px;margin-bottom:8px">${ejected.name}が追放された</div>`;
+  if (ejected.isImpostor) {
+    resultHtml += `<div style="color:var(--green);font-size:16px">✅ ${ejected.name}は裏切り者だった！</div>`;
+    addLog(`${ejected.name}は裏切り者だった！正しい判断だ！`, 'success');
+  } else {
+    resultHtml += `<div style="color:var(--accent);font-size:16px">❌ ${ejected.name}は無実だった……</div>`;
+    addLog(`${ejected.name}は無実だった……取り返しのつかない過ちを犯した`, 'danger');
+  }
+  // Show remaining impostor count
+  const remainingImps = party.filter(m => m.isImpostor && m.alive && !m.ejected).length;
+  resultHtml += `<div style="color:var(--text3);margin-top:8px;font-size:13px">残りの裏切り者: ${remainingImps}人</div>`;
+  resultHtml += `<div style="margin-top:16px"><button class="btn btn-accent" onclick="closeVote()">続行</button></div>`;
+  resultHtml += '</div>';
+  showModal(resultHtml);
+};
+
+window.skipVote = function() {
+  addLog('投票をスキップした', 'info');
+  closeVote();
+};
+
+window.closeVote = function() {
+  gameState = 'explore';
+  closeModal();
+  updatePartyBar();
+  updateActionBar();
+  // Check win condition: all impostors ejected
+  const remainingImps = party.filter(m => m.isImpostor && m.alive && !m.ejected).length;
+  if (remainingImps === 0) {
+    addLog('全ての裏切り者を追放した！安全に探索を続けられる', 'success');
+  }
+};
+
+// ===== REST =====
+function rest() {
+  if (gameState !== 'explore') return;
+  const heal = rand(8, 15);
+  player.hp = Math.min(player.maxHp, player.hp + heal);
+  addLog(`小休止……HP${heal}回復`, 'info');
+  // Impostor may poison during rest
+  const imp = party.find(m => m.isImpostor && m.alive && !m.ejected && rand(1, 100) <= 25);
+  if (imp) {
+    const dmg = rand(3, 7);
+    player.hp = Math.max(1, player.hp - dmg);
+    addLog(`休息中に体調が悪化した…… (-${dmg}HP)`, 'danger');
+    imp.behaviorLog.push({text: '休息中に見張りをしていた(?)が…', suspicious: true});
+    imp.suspicion = Math.min(100, imp.suspicion + rand(3, 7));
+  }
+  turnCount += 2;
+  if (turnCount % 4 === 0) impostorAction();
+  updateHUD();
+  updatePartyBar();
+}
+
+// ===== INVESTIGATE =====
+function investigate() {
+  if (gameState !== 'explore') return;
+  const alive = party.filter(m => m.alive && !m.ejected);
+  if (alive.length === 0) {
+    addLog('調査対象がいない', 'info');
+    return;
+  }
+  // Reveal slight info about one member
+  const target = pick(alive);
+  const clue = rand(1, 100);
+  if (target.isImpostor) {
+    if (clue <= 60) {
+      target.suspicion = Math.min(100, target.suspicion + rand(10, 20));
+      addLog(`${target.name}の持ち物から不審な道具を発見……`, 'danger');
+      target.behaviorLog.push({text: '不審な道具を所持していた', suspicious: true});
+    } else {
+      addLog(`${target.name}は平然としている。特に異常なし`, 'info');
+      target.behaviorLog.push({text: '調査に応じた', suspicious: false});
+    }
+  } else {
+    if (clue <= 70) {
+      target.suspicion = Math.max(0, target.suspicion - rand(5, 15));
+      addLog(`${target.name}の荷物は問題なし。信頼できそうだ`, 'success');
+      target.behaviorLog.push({text: '調査に快く応じた', suspicious: false});
+    } else {
+      // False positive
+      target.suspicion = Math.min(100, target.suspicion + rand(3, 8));
+      addLog(`${target.name}が調査に少し抵抗した……`, 'info');
+      target.behaviorLog.push({text: '調査に抵抗気味だった', suspicious: true});
+    }
+  }
+  turnCount++;
+  updatePartyBar();
+}
+
+// ===== INVENTORY =====
+function openInventory() {
+  if (player.inventory.length === 0) {
+    addLog('所持品がない', 'info');
+    return;
+  }
+  let html = '<h3>🎒 所持品</h3>';
+  player.inventory.forEach((item, i) => {
+    html += `<button class="btn btn-vote" onclick="useItem(${i})">${item.emoji} ${item.name}</button>`;
+  });
+  html += `<div style="text-align:center;margin-top:12px"><button class="btn" onclick="closeModal()">閉じる</button></div>`;
+  showModal(html);
+}
+
+window.useItem = function(idx) {
+  const item = player.inventory[idx];
+  if (!item) return;
+  player.inventory.splice(idx, 1);
+  applyItem(item, false);
+  closeModal();
+  updateHUD();
+  updatePartyBar();
+};
+
+// ===== FLOOR PROGRESSION =====
+function nextFloor() {
+  floor++;
+  if (floor >= maxFloor) {
+    gameWin();
+    return;
+  }
+  showFloorWipe(floor + 1);
+  addLog(`地下${floor + 1}階に到達！`, 'gold');
+  // Every 4 floors, refresh party
+  if (floor % 4 === 0) {
+    addLog('新しい冒険者が合流した……だが信用できるか？', 'danger');
+    initParty(floor);
+  }
+  // Heal slightly between floors
+  player.hp = Math.min(player.maxHp, player.hp + Math.floor(player.maxHp * 0.15));
+  generateDungeon(floor);
+  updateHUD();
+  updatePartyBar();
+  updateActionBar();
+  // Vote opportunity announcement
+  if (floor % 2 === 0) {
+    addLog('仲間の動きをよく観察しよう……投票で裏切り者を追放できる', 'info');
+  }
+}
+
+// ===== GAME OVER / WIN =====
+function gameOver(reason) {
+  gameState = 'gameover';
+  const revealHtml = party.map(m =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span>${m.emoji}</span>
+      <span>${m.name}</span>
+      <span style="color:${m.isImpostor ? 'var(--accent)' : 'var(--green)'}">${m.isImpostor ? '裏切り者' : '味方'}</span>
+    </div>`
+  ).join('');
+  showModal(`
+    <h3 style="color:var(--accent)">💀 探索失敗</h3>
+    <p>${reason}</p>
+    <p>到達階: 地下${floor + 1}階 | Lv.${player.level} | ${goldTotal}G</p>
+    <div style="margin:12px 0;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
+      <div style="font-size:13px;margin-bottom:6px">正体公開:</div>
+      ${revealHtml}
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn btn-accent" onclick="location.reload()">再挑戦</button>
+    </div>
+  `);
+}
+
+function gameWin() {
+  gameState = 'victory';
+  const revealHtml = party.map(m =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:4px 0">
+      <span>${m.emoji}</span>
+      <span>${m.name}</span>
+      <span style="color:${m.isImpostor ? 'var(--accent)' : 'var(--green)'}">${m.isImpostor ? '裏切り者' : '味方'}</span>
+      <span style="color:var(--text3)">${m.ejected ? '(追放済)' : m.alive ? '(生存)' : '(死亡)'}</span>
+    </div>`
+  ).join('');
+  const ejectedImps = party.filter(m => m.isImpostor && m.ejected).length;
+  const totalImps = party.filter(m => m.isImpostor).length;
+  showModal(`
+    <h3 style="color:var(--gold)">👑 地下迷宮制覇！</h3>
+    <p>最深部を攻略し、生還した！</p>
+    <p>最終Lv: ${player.level} | 獲得G: ${goldTotal} | ターン: ${turnCount}</p>
+    <p>追放成功: ${ejectedImps}/${totalImps} 裏切り者</p>
+    <div style="margin:12px 0;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">
+      <div style="font-size:13px;margin-bottom:6px">全員の正体:</div>
+      ${revealHtml}
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <button class="btn btn-accent" onclick="location.reload()">もう一度</button>
+    </div>
+  `);
+}
+
+// ===== RENDERING =====
+const COLORS = {
+  bg: '#0a0a16',
+  wall: '#1a1a3e',
+  wallHi: '#252555',
+  floor: '#0e0e20',
+  floorHi: '#141430',
+  door: '#665533',
+  stairs: '#ffd700',
+  chest: '#ff8844',
+  trap: '#ff4466',
+  shop: '#44ff88',
+  shrine: '#aa44ff',
+  fog: '#070710',
+  player: '#4488ff',
+  enemy: '#ff4444',
+  boss: '#ff2222',
+};
+
+function render() {
+  ctx.fillStyle = COLORS.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  if (gameState === 'title') {
+    renderTitle();
+  } else {
+    renderDungeon();
+    renderMinimap();
+    // v1.2: fog reveal particles
+    fogParticles=fogParticles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.life-=0.02;if(p.life<=0)return false;
+      ctx.globalAlpha=p.life*0.3;ctx.fillStyle='#4488ff';ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();return true});
+    ctx.globalAlpha=1;
+  }
+
+  animFrame++;
+  requestAnimationFrame(render);
+}
+
+function renderTitle() {
+  const t = animFrame * 0.02;
+  // Animated particles
+  for (let i = 0; i < 40; i++) {
+    const px = (Math.sin(t + i * 0.8) * 0.5 + 0.5) * W;
+    const py = (Math.cos(t * 0.7 + i * 1.1) * 0.5 + 0.5) * H;
+    const alpha = Math.sin(t + i) * 0.3 + 0.3;
+    ctx.fillStyle = `rgba(255,68,102,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(px, py, 2 + Math.sin(t + i * 0.5) * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Dungeon silhouette at bottom
+  for (let x = 0; x < W; x += 20) {
+    const h = 30 + Math.sin(x * 0.05 + t * 0.5) * 15 + Math.cos(x * 0.08) * 10;
+    ctx.fillStyle = `rgba(26,26,62,${0.5 + Math.sin(t + x * 0.01) * 0.2})`;
+    ctx.fillRect(x, H - h, 18, h);
+  }
+}
+
+function renderDungeon() {
+  if (!dungeon || !dungeon.length) return;
+  const dw = dungeon[0].length;
+  const dh = dungeon.length;
+  // Camera centered on player
+  const camX = player.x * TILE - Math.floor(W / 2) + TILE / 2;
+  const camY = player.y * TILE - Math.floor(H / 2) + TILE / 2;
+  const startCol = Math.max(0, Math.floor(camX / TILE) - 1);
+  const endCol = Math.min(dw, Math.ceil((camX + W) / TILE) + 1);
+  const startRow = Math.max(0, Math.floor(camY / TILE) - 1);
+  const endRow = Math.min(dh, Math.ceil((camY + H) / TILE) + 1);
+
+  const pulse = Math.sin(animFrame * 0.05) * 0.15 + 0.85;
+
+  for (let y = startRow; y < endRow; y++) {
+    for (let x = startCol; x < endCol; x++) {
+      const sx = x * TILE - camX;
+      const sy = y * TILE - camY;
+      if (!discovered[y] || !discovered[y][x]) {
+        ctx.fillStyle = COLORS.fog;
+        ctx.fillRect(sx, sy, TILE, TILE);
+        // v1.2: smooth fog edge glow
+        const hasDiscoveredNeighbor = (y>0&&discovered[y-1]&&discovered[y-1][x])||(y<dh-1&&discovered[y+1]&&discovered[y+1][x])||(x>0&&discovered[y]&&discovered[y][x-1])||(x<dw-1&&discovered[y]&&discovered[y][x+1]);
+        if(hasDiscoveredNeighbor){
+          const grad=ctx.createRadialGradient(sx+TILE/2,sy+TILE/2,0,sx+TILE/2,sy+TILE/2,TILE*0.8);
+          grad.addColorStop(0,`rgba(68,136,255,${0.08+Math.sin(animFrame*0.03+x+y)*0.04})`);grad.addColorStop(1,'rgba(68,136,255,0)');
+          ctx.fillStyle=grad;ctx.fillRect(sx-4,sy-4,TILE+8,TILE+8);
+        }
+        continue;
+      }
+      const tile = dungeon[y][x];
+      // Floor/wall
+      if (tile === WALL_TILE) {
+        ctx.fillStyle = COLORS.wall;
+        ctx.fillRect(sx, sy, TILE, TILE);
+        // Wall detail
+        ctx.fillStyle = COLORS.wallHi;
+        ctx.fillRect(sx + 2, sy + 2, TILE - 4, 2);
+        ctx.fillRect(sx + 2, sy + 2, 2, TILE - 4);
+      } else {
+        ctx.fillStyle = (x + y) % 2 === 0 ? COLORS.floor : COLORS.floorHi;
+        ctx.fillRect(sx, sy, TILE, TILE);
+      }
+      // Special tiles
+      if (tile === STAIRS_TILE) {
+        ctx.fillStyle = COLORS.floor;
+        ctx.fillRect(sx, sy, TILE, TILE);
+        ctx.fillStyle = `rgba(255,215,0,${pulse * 0.6})`;
+        ctx.fillRect(sx + 4, sy + 4, TILE - 8, TILE - 8);
+        ctx.font = `${TILE * 0.6}px game`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🪜', sx + TILE / 2, sy + TILE / 2);
+      }
+      if (tile === CHEST_TILE) {
+        ctx.font = `${TILE * 0.6}px game`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('📦', sx + TILE / 2, sy + TILE / 2);
+      }
+      if (tile === TRAP_TILE) {
+        // Hidden trap - subtle visual only
+        ctx.fillStyle = `rgba(255,68,102,${0.1 + Math.sin(animFrame * 0.1 + x + y) * 0.05})`;
+        ctx.fillRect(sx + 6, sy + 6, TILE - 12, TILE - 12);
+      }
+      if (tile === SHOP_TILE) {
+        ctx.font = `${TILE * 0.6}px game`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🏪', sx + TILE / 2, sy + TILE / 2);
+      }
+      if (tile === SHRINE_TILE) {
+        ctx.fillStyle = `rgba(170,68,255,${pulse * 0.3})`;
+        ctx.fillRect(sx + 2, sy + 2, TILE - 4, TILE - 4);
+        ctx.font = `${TILE * 0.6}px game`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('⛩️', sx + TILE / 2, sy + TILE / 2);
+      }
+    }
+  }
+
+  // Render enemies
+  for (const e of enemies) {
+    if (e.hp <= 0) continue;
+    if (!discovered[e.y] || !discovered[e.y][e.x]) continue;
+    const ex = e.x * TILE - camX;
+    const ey = e.y * TILE - camY;
+    if (ex < -TILE || ex > W + TILE || ey < -TILE || ey > H + TILE) continue;
+    // Enemy glow
+    ctx.fillStyle = e.isBoss ? `rgba(255,34,34,${pulse * 0.3})` : `rgba(255,68,68,${0.15})`;
+    ctx.beginPath();
+    ctx.arc(ex + TILE / 2, ey + TILE / 2, TILE * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = `${TILE * 0.65}px game`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(e.emoji, ex + TILE / 2, ey + TILE / 2);
+    // HP bar
+    const hpPct = e.hp / e.maxHp;
+    ctx.fillStyle = 'rgba(0,0,0,.5)';
+    ctx.fillRect(ex + 4, ey - 4, TILE - 8, 3);
+    ctx.fillStyle = hpPct > 0.5 ? '#44ff88' : hpPct > 0.25 ? '#ffaa44' : '#ff4444';
+    ctx.fillRect(ex + 4, ey - 4, (TILE - 8) * hpPct, 3);
+  }
+
+  // Render player
+  const px = player.x * TILE - camX;
+  const py = player.y * TILE - camY;
+  // Player glow
+  ctx.fillStyle = `rgba(68,136,255,${pulse * 0.3})`;
+  ctx.beginPath();
+  ctx.arc(px + TILE / 2, py + TILE / 2, TILE * 0.7, 0, Math.PI * 2);
+  ctx.fill();
+  // Player body
+  ctx.fillStyle = COLORS.player;
+  ctx.beginPath();
+  ctx.arc(px + TILE / 2, py + TILE / 2, TILE * 0.35, 0, Math.PI * 2);
+  ctx.fill();
+  // Player highlight
+  ctx.fillStyle = 'rgba(255,255,255,.3)';
+  ctx.beginPath();
+  ctx.arc(px + TILE / 2 - 3, py + TILE / 2 - 3, TILE * 0.12, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Vision radius indicator
+  ctx.strokeStyle = 'rgba(68,136,255,0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(px + TILE / 2, py + TILE / 2, TILE * 3.5, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+function renderMinimap() {
+  if (!dungeon || !dungeon.length) return;
+  const mw = MC.width;
+  const mh = MC.height;
+  const dw = dungeon[0].length;
+  const dh = dungeon.length;
+  const sx = mw / dw;
+  const sy = mh / dh;
+  mctx.fillStyle = 'rgba(10,10,22,.9)';
+  mctx.fillRect(0, 0, mw, mh);
+  for (let y = 0; y < dh; y++) {
+    for (let x = 0; x < dw; x++) {
+      if (!discovered[y][x]) continue;
+      const tile = dungeon[y][x];
+      if (tile === WALL_TILE) {
+        mctx.fillStyle = '#222244';
+      } else if (tile === STAIRS_TILE) {
+        mctx.fillStyle = '#ffd700';
+      } else {
+        mctx.fillStyle = '#1a1a3e';
+      }
+      mctx.fillRect(x * sx, y * sy, Math.ceil(sx), Math.ceil(sy));
+    }
+  }
+  // Enemies
+  for (const e of enemies) {
+    if (e.hp <= 0 || !discovered[e.y] || !discovered[e.y][e.x]) continue;
+    mctx.fillStyle = e.isBoss ? '#ff2222' : '#ff6666';
+    mctx.fillRect(e.x * sx, e.y * sy, Math.ceil(sx) + 1, Math.ceil(sy) + 1);
+  }
+  // Player
+  mctx.fillStyle = '#4488ff';
+  mctx.fillRect(player.x * sx - 1, player.y * sy - 1, Math.ceil(sx) + 2, Math.ceil(sy) + 2);
+}
+
+// ===== INPUT =====
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (gameState !== 'explore') return;
+  switch (e.key) {
+    case 'ArrowUp': case 'w': case 'W': tryMove(0, -1); break;
+    case 'ArrowDown': case 's': case 'S': tryMove(0, 1); break;
+    case 'ArrowLeft': case 'a': case 'A': tryMove(-1, 0); break;
+    case 'ArrowRight': case 'd': case 'D': tryMove(1, 0); break;
+    case 'i': case 'I': openInventory(); break;
+    case 'v': case 'V': callVote(); break;
+  }
+});
+
+// Touch/Swipe
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+C.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  touchStartTime = Date.now();
+  e.preventDefault();
+}, {passive: false});
+
+C.addEventListener('touchend', e => {
+  if (gameState !== 'explore') return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const elapsed = Date.now() - touchStartTime;
+
+  if (dist < 15 && elapsed < 300) {
+    // Tap - move toward tap position
+    const camX = player.x * TILE - Math.floor(W / 2) + TILE / 2;
+    const camY = player.y * TILE - Math.floor(H / 2) + TILE / 2;
+    const tileX = Math.floor((t.clientX + camX) / TILE);
+    const tileY = Math.floor((t.clientY + camY) / TILE);
+    const tdx = Math.sign(tileX - player.x);
+    const tdy = Math.sign(tileY - player.y);
+    if (Math.abs(tileX - player.x) >= Math.abs(tileY - player.y)) {
+      tryMove(tdx, 0);
+    } else {
+      tryMove(0, tdy);
+    }
+  } else if (dist >= 20) {
+    // Swipe
+    if (Math.abs(dx) > Math.abs(dy)) {
+      tryMove(dx > 0 ? 1 : -1, 0);
+    } else {
+      tryMove(0, dy > 0 ? 1 : -1);
+    }
+  }
+  e.preventDefault();
+}, {passive: false});
+
+// Mouse click for desktop
+C.addEventListener('click', e => {
+  if (gameState !== 'explore') return;
+  const camX = player.x * TILE - Math.floor(W / 2) + TILE / 2;
+  const camY = player.y * TILE - Math.floor(H / 2) + TILE / 2;
+  const tileX = Math.floor((e.clientX + camX) / TILE);
+  const tileY = Math.floor((e.clientY + camY) / TILE);
+  const tdx = Math.sign(tileX - player.x);
+  const tdy = Math.sign(tileY - player.y);
+  if (Math.abs(tileX - player.x) >= Math.abs(tileY - player.y)) {
+    if (tdx !== 0) tryMove(tdx, 0);
+    else if (tdy !== 0) tryMove(0, tdy);
+  } else {
+    if (tdy !== 0) tryMove(0, tdy);
+    else if (tdx !== 0) tryMove(tdx, 0);
+  }
+});
+
+// Prevent scrolling
+document.addEventListener('touchmove', e => e.preventDefault(), {passive: false});
+
+// ===== START =====
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

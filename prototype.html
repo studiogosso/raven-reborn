@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レイヴン・ポータル - プロトタイプ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a12;
+  color: #c8c8e0;
+  font-family: 'Segoe UI', 'Meiryo', sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+#game-container {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+#map-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  position: relative;
+}
+#gameCanvas {
+  border: 2px solid #2a1a4a;
+  border-radius: 4px;
+  cursor: pointer;
+}
+#sidebar {
+  width: 260px;
+  background: #0e0e1a;
+  border-left: 1px solid #2a1a4a;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+.panel {
+  background: #12122a;
+  border: 1px solid #2a1a4a;
+  border-radius: 6px;
+  padding: 12px;
+}
+.panel h3 {
+  font-size: 13px;
+  color: #9080c0;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #2a1a4a;
+  padding-bottom: 4px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin: 4px 0;
+}
+.stat-label { color: #8888aa; }
+.stat-val { font-weight: bold; }
+.hp-player { color: #4488ff; }
+.hp-bot { color: #ff4444; }
+.xp-val { color: #aa88ff; }
+.noise-val { color: #ffaa44; }
+#log-area {
+  flex: 1;
+  min-height: 80px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.6;
+}
+#log-area .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2a; }
+.log-dmg { color: #ff6666; }
+.log-heal { color: #66ff88; }
+.log-info { color: #88aaff; }
+.log-ambush { color: #ff44ff; font-weight: bold; }
+.log-card { color: #ffcc44; }
+#bottom-bar {
+  background: #0e0e1a;
+  border-top: 1px solid #2a1a4a;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 130px;
+}
+#phase-info {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  color: #9080c0;
+  padding-right: 10px;
+  border-right: 1px solid #2a1a4a;
+  text-align: center;
+  min-width: 30px;
+}
+#hand-area {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  overflow-x: auto;
+  padding: 5px 0;
+}
+.card {
+  min-width: 130px;
+  max-width: 150px;
+  background: linear-gradient(135deg, #1a1a3a, #12122a);
+  border: 2px solid #3a2a6a;
+  border-radius: 8px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  position: relative;
+}
+.card:hover {
+  border-color: #7060c0;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 15px rgba(100, 60, 200, 0.3);
+}
+.card.selected {
+  border-color: #aa88ff;
+  box-shadow: 0 0 20px rgba(150, 100, 255, 0.5);
+  transform: translateY(-8px);
+}
+.card.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none !important;
+}
+.card-name {
+  font-size: 13px;
+  font-weight: bold;
+  color: #ddccff;
+  margin-bottom: 4px;
+}
+.card-type {
+  font-size: 10px;
+  color: #7766aa;
+  margin-bottom: 6px;
+}
+.card-effect {
+  font-size: 11px;
+  color: #aaaacc;
+  line-height: 1.4;
+}
+.card-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 10px;
+}
+.card-ap { color: #44aaff; }
+.card-noise { color: #ffaa44; }
+#action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 100px;
+}
+.btn {
+  background: linear-gradient(135deg, #2a1a5a, #1a1a3a);
+  border: 1px solid #4a3a7a;
+  color: #ccbbee;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.15s;
+}
+.btn:hover { background: linear-gradient(135deg, #3a2a7a, #2a2a5a); border-color: #6a5a9a; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-end { border-color: #aa4444; color: #ff8888; }
+.btn-end:hover { border-color: #ff6666; }
+#turn-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36px;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(100, 60, 255, 0.8);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 100;
+}
+#ambush-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255, 0, 100, 0.15);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 99;
+}
+#game-over-screen {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 200;
+}
+#game-over-screen h1 { font-size: 48px; margin-bottom: 20px; }
+#game-over-screen .win { color: #44aaff; text-shadow: 0 0 30px rgba(60,120,255,0.8); }
+#game-over-screen .lose { color: #ff4444; text-shadow: 0 0 30px rgba(255,60,60,0.8); }
+#game-over-screen button {
+  margin-top: 20px;
+  padding: 12px 30px;
+  font-size: 18px;
+  cursor: pointer;
+  background: #2a1a5a;
+  border: 2px solid #6a5a9a;
+  color: #ccbbee;
+  border-radius: 8px;
+}
+#move-hint {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #6666aa;
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <div id="map-area">
+    <canvas id="gameCanvas"></canvas>
+    <div id="move-hint"></div>
+  </div>
+  <div id="sidebar">
+    <div class="panel">
+      <h3>プレイヤー (青)</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-player" id="player-hp">10</span></div>
+      <div class="stat-row"><span class="stat-label">XP</span><span class="stat-val xp-val" id="player-xp">0</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="player-noise">0</span></div>
+      <div class="stat-row"><span class="stat-label">移動力</span><span class="stat-val" id="player-moves" style="color:#44ddaa">3</span></div>
+      <div class="stat-row"><span class="stat-label">防御</span><span class="stat-val" id="player-def" style="color:#aaaaff">0</span></div>
+    </div>
+    <div class="panel">
+      <h3>ボットAI (赤)</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-bot" id="bot-hp">10</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="bot-noise">0</span></div>
+    </div>
+    <div class="panel">
+      <h3>ターン情報</h3>
+      <div class="stat-row"><span class="stat-label">ターン</span><span class="stat-val" id="turn-num">1</span></div>
+      <div class="stat-row"><span class="stat-label">フェーズ</span><span class="stat-val" id="phase-name" style="color:#aa88ff">カード選択</span></div>
+      <div class="stat-row"><span class="stat-label">デッキ残り</span><span class="stat-val" id="deck-count">5</span></div>
+    </div>
+    <div class="panel" style="flex:1; min-height:0; display:flex; flex-direction:column;">
+      <h3>ログ</h3>
+      <div id="log-area"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bottom-bar">
+  <div id="phase-info">カード選択</div>
+  <div id="hand-area"></div>
+  <div id="action-buttons">
+    <button class="btn" id="btn-skip-card" onclick="skipCard()">カードスキップ</button>
+    <button class="btn" id="btn-skip-move" onclick="skipMove()" disabled>移動スキップ</button>
+    <button class="btn btn-end" id="btn-end-turn" onclick="endTurn()" disabled>ターン終了</button>
+  </div>
+</div>
+
+<div id="turn-banner"></div>
+<div id="ambush-overlay"></div>
+<div id="game-over-screen">
+  <h1 id="game-over-text"></h1>
+  <p id="game-over-detail" style="font-size:18px; color:#aaa;"></p>
+  <button onclick="location.reload()">もう一度プレイ</button>
+</div>
+
+<script>
+// ======================================
+// レイヴン・ポータル プロトタイプ
+// ======================================
+
+const GRID = 10;
+const TILE_FLOOR = 0, TILE_WALL = 1, TILE_ALTAR = 2, TILE_SPRING = 3;
+const VIEW_RADIUS = 2;
+
+// Card definitions
+const CARD_DEFS = [
+  { id:'shoes',   name:'旅人の靴',  type:'移動', ap:1, noise:1, desc:'移動力+1',              effect:'moveBonus' },
+  { id:'stone',   name:'石つぶて',  type:'攻撃', ap:1, noise:2, desc:'攻撃力2 射程1',         effect:'attack', power:2, range:1 },
+  { id:'shield',  name:'木の盾',    type:'防御', ap:1, noise:0, desc:'防御+2（1ターン）',       effect:'defense', power:2 },
+  { id:'listen',  name:'聞き耳',    type:'索敵', ap:1, noise:0, desc:'周囲3マスの敵を感知',     effect:'detect', range:3 },
+  { id:'shadow',  name:'影歩き',    type:'隠密', ap:1, noise:0, desc:'移動してもノイズ0',       effect:'silentMove' },
+  { id:'meditate',name:'瞑想',      type:'隠密', ap:1, noise:0, desc:'移動力+1 & ノイズ-1',    effect:'meditate' },
+  { id:'herb',    name:'薬草',      type:'回復', ap:1, noise:1, desc:'HP+3 回復',              effect:'heal', power:3 },
+  { id:'throw',   name:'投石',      type:'攻撃', ap:1, noise:2, desc:'攻撃力1 射程2',          effect:'attack', power:1, range:2 },
+  { id:'torch',   name:'松明',      type:'索敵', ap:1, noise:3, desc:'視界+1（1ターン）ノイズ大',effect:'torch' },
+  { id:'cover',   name:'かばう',    type:'防御', ap:1, noise:0, desc:'ダメージ半減（1ターン）',   effect:'cover' },
+];
+
+// Game state
+let map = [];
+let fogState = []; // 0=hidden, 1=memory, 2=visible
+let player, bot;
+let turnNumber = 1;
+let phase = 'card'; // 'card', 'move', 'botTurn', 'gameOver'
+let selectedCardIndex = -1;
+let cardPlayed = false;
+let movesRemaining = 3;
+let noiseRipples = []; // {x, y, radius, maxRadius, alpha}
+let gameOver = false;
+
+// Canvas
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let tileSize = 50;
+
+function resizeCanvas() {
+  const area = document.getElementById('map-area');
+  const maxW = area.clientWidth - 20;
+  const maxH = area.clientHeight - 20;
+  tileSize = Math.floor(Math.min(maxW, maxH) / GRID);
+  tileSize = Math.max(30, Math.min(60, tileSize));
+  canvas.width = GRID * tileSize;
+  canvas.height = GRID * tileSize;
+  render();
+}
+
+// ======= MAP GENERATION =======
+function generateMap() {
+  map = [];
+  for (let y = 0; y < GRID; y++) {
+    map[y] = [];
+    for (let x = 0; x < GRID; x++) {
+      map[y][x] = TILE_FLOOR;
+    }
+  }
+  // Walls ~20%
+  let wallCount = 0;
+  const target = Math.floor(GRID * GRID * 0.2);
+  let attempts = 0;
+  while (wallCount < target && attempts < 500) {
+    const x = Math.floor(Math.random() * GRID);
+    const y = Math.floor(Math.random() * GRID);
+    if (map[y][x] === TILE_FLOOR && !(x===0&&y===0) && !(x===GRID-1&&y===GRID-1)) {
+      // Don't block corners
+      if (!((x<=1&&y<=1)||(x>=GRID-2&&y>=GRID-2))) {
+        map[y][x] = TILE_WALL;
+        wallCount++;
+      }
+    }
+    attempts++;
+  }
+  // Ensure connectivity with BFS
+  ensureConnectivity();
+  // Place altars (2)
+  placeSpecial(TILE_ALTAR, 2);
+  // Place springs (2)
+  placeSpecial(TILE_SPRING, 2);
+}
+
+function ensureConnectivity() {
+  // BFS from (0,0), remove walls that block connectivity to (GRID-1, GRID-1)
+  let tries = 0;
+  while (tries < 50) {
+    if (isConnected(0, 0, GRID-1, GRID-1)) return;
+    // Remove a random wall
+    const walls = [];
+    for (let y = 0; y < GRID; y++)
+      for (let x = 0; x < GRID; x++)
+        if (map[y][x] === TILE_WALL) walls.push({x,y});
+    if (walls.length === 0) return;
+    const w = walls[Math.floor(Math.random() * walls.length)];
+    map[w.y][w.x] = TILE_FLOOR;
+    tries++;
+  }
+}
+
+function isConnected(x1, y1, x2, y2) {
+  const visited = Array.from({length:GRID}, ()=>Array(GRID).fill(false));
+  const queue = [{x:x1,y:y1}];
+  visited[y1][x1] = true;
+  while (queue.length > 0) {
+    const {x,y} = queue.shift();
+    if (x===x2 && y===y2) return true;
+    for (const [dx,dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
+      const nx = x+dx, ny = y+dy;
+      if (nx>=0&&nx<GRID&&ny>=0&&ny<GRID&&!visited[ny][nx]&&map[ny][nx]!==TILE_WALL) {
+        visited[ny][nx] = true;
+        queue.push({x:nx,y:ny});
+      }
+    }
+  }
+  return false;
+}
+
+function placeSpecial(type, count) {
+  let placed = 0, attempts = 0;
+  while (placed < count && attempts < 200) {
+    const x = Math.floor(Math.random() * GRID);
+    const y = Math.floor(Math.random() * GRID);
+    if (map[y][x] === TILE_FLOOR && !(x===player.x&&y===player.y) && !(x===bot.x&&y===bot.y)) {
+      map[y][x] = type;
+      placed++;
+    }
+    attempts++;
+  }
+}
+
+// ======= DECK / CARDS =======
+function createDeck() {
+  const deck = CARD_DEFS.map((d,i) => ({...d, uid: Math.random()}));
+  return shuffle(deck);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function drawCards(entity, count) {
+  for (let i = 0; i < count; i++) {
+    if (entity.hand.length >= 5) break;
+    if (entity.deck.length === 0) {
+      // Reshuffle discard into deck
+      if (entity.discard.length === 0) break;
+      entity.deck = shuffle([...entity.discard]);
+      entity.discard = [];
+      addLog('デッキを再構築しました', 'info');
+    }
+    entity.hand.push(entity.deck.pop());
+  }
+}
+
+// ======= FOG OF WAR =======
+function updateFog() {
+  // Set all visible to memory first
+  for (let y = 0; y < GRID; y++)
+    for (let x = 0; x < GRID; x++)
+      if (fogState[y][x] === 2) fogState[y][x] = 1;
+  // Calculate player visibility
+  const vr = player.viewRadius;
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      const dist = Math.abs(x - player.x) + Math.abs(y - player.y);
+      if (dist <= vr) {
+        // Check line of sight (simple: no wall blocking)
+        if (hasLineOfSight(player.x, player.y, x, y)) {
+          fogState[y][x] = 2;
+        }
+      }
+    }
+  }
+}
+
+function hasLineOfSight(x1, y1, x2, y2) {
+  // Bresenham-ish line check
+  const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
+  const sx = x1 < x2 ? 1 : -1, sy = y1 < y2 ? 1 : -1;
+  let err = dx - dy;
+  let cx = x1, cy = y1;
+  while (cx !== x2 || cy !== y2) {
+    const e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; cx += sx; }
+    if (e2 < dx) { err += dx; cy += sy; }
+    if (cx === x2 && cy === y2) return true;
+    if (cx >= 0 && cx < GRID && cy >= 0 && cy < GRID && map[cy][cx] === TILE_WALL) return false;
+  }
+  return true;
+}
+
+// ======= NOISE SYSTEM =======
+function addNoise(entity, amount) {
+  if (entity.silentMove && amount > 0) {
+    // Shadow walk active - no noise for movement
+    return;
+  }
+  entity.noise += amount;
+  if (amount > 0) {
+    noiseRipples.push({
+      x: entity.x, y: entity.y,
+      radius: 0.3,
+      maxRadius: amount * 1.5 + 1,
+      alpha: 0.6,
+      color: entity === player ? '#4488ff' : '#ff4444'
+    });
+  }
+}
+
+// ======= RENDERING =======
+function render() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const ts = tileSize;
+
+  // Draw tiles
+  for (let y = 0; y < GRID; y++) {
+    for (let x = 0; x < GRID; x++) {
+      const fog = fogState[y][x];
+      let bgColor;
+
+      if (fog === 0) {
+        // Hidden
+        ctx.fillStyle = '#05050a';
+        ctx.fillRect(x*ts, y*ts, ts, ts);
+        continue;
+      }
+
+      const tile = map[y][x];
+      switch(tile) {
+        case TILE_FLOOR: bgColor = '#1a1a2e'; break;
+        case TILE_WALL:  bgColor = '#2a2244'; break;
+        case TILE_ALTAR: bgColor = '#2a1a3e'; break;
+        case TILE_SPRING: bgColor = '#0a2a3e'; break;
+      }
+
+      if (fog === 1) {
+        // Memory - darken
+        ctx.fillStyle = '#0a0a15';
+        ctx.fillRect(x*ts, y*ts, ts, ts);
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(x*ts, y*ts, ts, ts);
+        ctx.globalAlpha = 1;
+        // Draw tile icon dimmed
+        drawTileIcon(x, y, tile, 0.25);
+      } else {
+        // Visible
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(x*ts, y*ts, ts, ts);
+        drawTileIcon(x, y, tile, 1);
+      }
+
+      // Grid lines
+      ctx.strokeStyle = fog === 2 ? '#222244' : '#111122';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(x*ts, y*ts, ts, ts);
+    }
+  }
+
+  // Move highlights
+  if (phase === 'move' && movesRemaining > 0) {
+    const reachable = getReachableTiles(player.x, player.y, 1);
+    for (const {x,y} of reachable) {
+      ctx.fillStyle = 'rgba(60, 180, 120, 0.15)';
+      ctx.fillRect(x*ts, y*ts, ts, ts);
+      ctx.strokeStyle = 'rgba(60, 180, 120, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x*ts+1, y*ts+1, ts-2, ts-2);
+    }
+  }
+
+  // Attack range highlights
+  if (selectedCardIndex >= 0 && phase === 'card') {
+    const card = player.hand[selectedCardIndex];
+    if (card && card.effect === 'attack') {
+      const range = card.range;
+      for (let y = 0; y < GRID; y++) {
+        for (let x = 0; x < GRID; x++) {
+          const dist = Math.abs(x - player.x) + Math.abs(y - player.y);
+          if (dist > 0 && dist <= range && fogState[y][x] === 2) {
+            ctx.fillStyle = 'rgba(255, 60, 60, 0.15)';
+            ctx.fillRect(x*ts, y*ts, ts, ts);
+            ctx.strokeStyle = 'rgba(255, 60, 60, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(x*ts+1, y*ts+1, ts-2, ts-2);
+          }
+        }
+      }
+    }
+  }
+
+  // Draw entities
+  // Bot (only if visible)
+  if (fogState[bot.y][bot.x] === 2 && !gameOver) {
+    drawEntity(bot.x, bot.y, '#cc3333', '#ff4444', 'B');
+  }
+  // Detected bot indicator
+  if (player.detected && player.detected.length > 0) {
+    for (const d of player.detected) {
+      if (fogState[d.y][d.x] !== 2) {
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = '#ff8844';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4,4]);
+        ctx.beginPath();
+        ctx.arc(d.x*ts+ts/2, d.y*ts+ts/2, ts/3, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+    }
+  }
+
+  // Player
+  drawEntity(player.x, player.y, '#2244cc', '#4488ff', 'P');
+
+  // Noise ripples
+  for (const r of noiseRipples) {
+    ctx.beginPath();
+    ctx.arc(r.x * ts + ts/2, r.y * ts + ts/2, r.radius * ts, 0, Math.PI * 2);
+    ctx.strokeStyle = r.color || 'rgba(255,170,60,' + r.alpha + ')';
+    ctx.globalAlpha = r.alpha;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  updateUI();
+}
+
+function drawTileIcon(x, y, tile, alpha) {
+  const ts = tileSize;
+  const cx = x * ts + ts/2, cy = y * ts + ts/2;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (tile === TILE_WALL) {
+    ctx.fillStyle = '#3a3060';
+    ctx.fillRect(x*ts+3, y*ts+3, ts-6, ts-6);
+    ctx.fillStyle = '#4a4080';
+    ctx.fillRect(x*ts+5, y*ts+5, ts-10, ts-10);
+  } else if (tile === TILE_ALTAR) {
+    ctx.fillStyle = '#aa66ff';
+    ctx.font = `${ts*0.5}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('祭', cx, cy);
+  } else if (tile === TILE_SPRING) {
+    ctx.fillStyle = '#44ccff';
+    ctx.font = `${ts*0.5}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('泉', cx, cy);
+  }
+  ctx.restore();
+}
+
+function drawEntity(x, y, darkColor, lightColor, label) {
+  const ts = tileSize;
+  const cx = x * ts + ts/2, cy = y * ts + ts/2;
+  // Glow
+  const grad = ctx.createRadialGradient(cx, cy, 2, cx, cy, ts/2);
+  grad.addColorStop(0, lightColor);
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.globalAlpha = 0.3;
+  ctx.fillRect(x*ts, y*ts, ts, ts);
+  ctx.globalAlpha = 1;
+  // Circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, ts/3, 0, Math.PI*2);
+  ctx.fillStyle = darkColor;
+  ctx.fill();
+  ctx.strokeStyle = lightColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Label
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${ts*0.35}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, cy);
+}
+
+function getReachableTiles(px, py, maxDist) {
+  const tiles = [];
+  for (const [dx, dy] of [[0,-1],[0,1],[-1,0],[1,0]]) {
+    const nx = px + dx, ny = py + dy;
+    if (nx >= 0 && nx < GRID && ny >= 0 && ny < GRID && map[ny][nx] !== TILE_WALL) {
+      tiles.push({x: nx, y: ny});
+    }
+  }
+  return tiles;
+}
+
+// ======= UI UPDATE =======
+function updateUI() {
+  document.getElementById('player-hp').textContent = player.hp;
+  document.getElementById('player-xp').textContent = player.xp;
+  document.getElementById('player-noise').textContent = player.noise;
+  document.getElementById('player-moves').textContent = movesRemaining;
+  document.getElementById('player-def').textContent = player.defense;
+  document.getElementById('bot-hp').textContent = bot.hp;
+  document.getElementById('bot-noise').textContent = bot.noise;
+  document.getElementById('turn-num').textContent = turnNumber;
+  document.getElementById('deck-count').textContent = player.deck.length;
+
+  const phaseNames = {card:'カード選択', move:'移動', botTurn:'ボットのターン', gameOver:'ゲーム終了'};
+  document.getElementById('phase-name').textContent = phaseNames[phase] || phase;
+  document.getElementById('phase-info').textContent = phaseNames[phase] || phase;
+
+  document.getElementById('btn-skip-card').disabled = phase !== 'card' || cardPlayed;
+  document.getElementById('btn-skip-move').disabled = phase !== 'move';
+  document.getElementById('btn-end-turn').disabled = phase === 'botTurn' || phase === 'gameOver';
+
+  const hint = document.getElementById('move-hint');
+  if (phase === 'move' && movesRemaining > 0) {
+    hint.textContent = `WASD/矢印キー または マスをクリックで移動（残り${movesRemaining}歩）`;
+  } else if (phase === 'card' && !cardPlayed) {
+    hint.textContent = 'カードを選んでクリック、または攻撃カードはマップの敵をクリック';
+  } else {
+    hint.textContent = '';
+  }
+
+  renderHand();
+}
+
+function renderHand() {
+  const area = document.getElementById('hand-area');
+  area.innerHTML = '';
+  player.hand.forEach((card, i) => {
+    const div = document.createElement('div');
+    div.className = 'card' + (i === selectedCardIndex ? ' selected' : '') + (cardPlayed ? ' disabled' : '');
+    const typeColors = {
+      '移動':'#44ddaa','攻撃':'#ff6666','防御':'#6688ff','索敵':'#ffcc44','隠密':'#aa66ff','回復':'#66ff88'
+    };
+    div.innerHTML = `
+      <div class="card-name">${card.name}</div>
+      <div class="card-type" style="color:${typeColors[card.type]||'#888'}">${card.type}</div>
+      <div class="card-effect">${card.desc}</div>
+      <div class="card-stats">
+        <span class="card-ap">AP:${card.ap}</span>
+        <span class="card-noise">N:${card.noise}</span>
+      </div>
+    `;
+    if (!cardPlayed) {
+      div.onclick = () => selectCard(i);
+    }
+    area.appendChild(div);
+  });
+}
+
+function selectCard(index) {
+  if (phase !== 'card' || cardPlayed) return;
+  if (selectedCardIndex === index) {
+    // Double click = play non-targeted cards
+    const card = player.hand[index];
+    if (card.effect !== 'attack') {
+      playCard(index);
+    }
+    return;
+  }
+  selectedCardIndex = index;
+  render();
+}
+
+// ======= CARD EFFECTS =======
+function playCard(index, targetX, targetY) {
+  if (cardPlayed) return;
+  const card = player.hand[index];
+  if (!card) return;
+
+  addLog(`カード使用: ${card.name}`, 'card');
+  addNoise(player, card.noise);
+
+  switch(card.effect) {
+    case 'moveBonus':
+      movesRemaining += 1;
+      addLog('移動力+1！', 'info');
+      break;
+    case 'attack': {
+      // Need target
+      if (targetX !== undefined && targetY !== undefined) {
+        const dist = Math.abs(targetX - player.x) + Math.abs(targetY - player.y);
+        if (dist > card.range) {
+          addLog('射程外です！', 'info');
+          return;
+        }
+        if (targetX === bot.x && targetY === bot.y) {
+          let dmg = card.power;
+          let isAmbush = false;
+          // Ambush check: bot can't see player
+          if (!canSee(bot, player.x, player.y)) {
+            dmg *= 2;
+            isAmbush = true;
+          }
+          if (bot.defense > 0) {
+            dmg = Math.max(0, dmg - bot.defense);
+          }
+          if (bot.coverActive) {
+            dmg = Math.ceil(dmg / 2);
+          }
+          bot.hp -= dmg;
+          if (isAmbush) {
+            addLog(`奇襲成功！ ${card.name}で${dmg}ダメージ！`, 'ambush');
+            showAmbush();
+          } else {
+            addLog(`${card.name}で${dmg}ダメージ！`, 'dmg');
+          }
+          player.xp += dmg;
+          checkGameOver();
+        } else {
+          addLog('そこに敵はいません', 'info');
+          return;
+        }
+      } else {
+        // No target specified - select mode
+        selectedCardIndex = index;
+        addLog('攻撃対象をマップ上でクリックしてください', 'info');
+        render();
+        return;
+      }
+      break;
+    }
+    case 'defense':
+      player.defense += card.power;
+      addLog(`防御+${card.power}！`, 'info');
+      break;
+    case 'detect': {
+      const range = card.range;
+      player.detected = [];
+      const dist = Math.abs(bot.x - player.x) + Math.abs(bot.y - player.y);
+      if (dist <= range) {
+        player.detected.push({x: bot.x, y: bot.y});
+        addLog(`敵を感知！ 距離${dist}の位置に存在`, 'info');
+      } else {
+        addLog('周囲に敵の気配なし', 'info');
+      }
+      break;
+    }
+    case 'silentMove':
+      player.silentMove = true;
+      addLog('この移動フェーズはノイズ0！', 'info');
+      break;
+    case 'meditate':
+      movesRemaining += 1;
+      player.noise = Math.max(0, player.noise - 1);
+      addLog('瞑想... 移動力+1、ノイズ-1', 'info');
+      break;
+    case 'heal':
+      player.hp = Math.min(10, player.hp + card.power);
+      addLog(`HP ${card.power} 回復！ (HP: ${player.hp})`, 'heal');
+      break;
+    case 'torch':
+      player.viewRadius = VIEW_RADIUS + 1;
+      addLog('松明を灯した！ 視界+1、しかしノイズ大...', 'info');
+      break;
+    case 'cover':
+      player.coverActive = true;
+      addLog('かばう発動！ ダメージ半減', 'info');
+      break;
+  }
+
+  // Move card to discard
+  player.hand.splice(index, 1);
+  player.discard.push(card);
+  cardPlayed = true;
+  selectedCardIndex = -1;
+
+  updateFog();
+  render();
+
+  if (!gameOver) {
+    // Auto transition to move phase
+    setTimeout(() => {
+      phase = 'move';
+      render();
+    }, 300);
+  }
+}
+
+function canSee(entity, tx, ty) {
+  const vr = entity.viewRadius || VIEW_RADIUS;
+  const dist = Math.abs(tx - entity.x) + Math.abs(ty - entity.y);
+  return dist <= vr && hasLineOfSight(entity.x, entity.y, tx, ty);
+}
+
+// ======= PLAYER MOVEMENT =======
+function movePlayer(dx, dy) {
+  if (phase !== 'move' || movesRemaining <= 0) return;
+  const nx = player.x + dx, ny = player.y + dy;
+  if (nx < 0 || nx >= GRID || ny < 0 || ny >= GRID) return;
+  if (map[ny][nx] === TILE_WALL) return;
+
+  player.x = nx;
+  player.y = ny;
+  movesRemaining--;
+
+  if (!player.silentMove) {
+    addNoise(player, 1);
+  }
+
+  // Tile effects
+  if (map[ny][nx] === TILE_ALTAR) {
+    player.xp += 3;
+    addLog('祭壇に触れた！ XP+3', 'info');
+  } else if (map[ny][nx] === TILE_SPRING) {
+    player.hp = Math.min(10, player.hp + 2);
+    addLog('泉で回復！ HP+2', 'heal');
+  }
+
+  updateFog();
+  render();
+
+  if (movesRemaining <= 0) {
+    setTimeout(() => {
+      if (!gameOver) {
+        phase = 'move'; // still in move but no moves left
+        render();
+      }
+    }, 100);
+  }
+}
+
+function skipCard() {
+  if (phase !== 'card' || cardPlayed) return;
+  addLog('カードをスキップ', 'info');
+  cardPlayed = true;
+  selectedCardIndex = -1;
+  phase = 'move';
+  render();
+}
+
+function skipMove() {
+  if (phase !== 'move') return;
+  movesRemaining = 0;
+  addLog('移動をスキップ', 'info');
+  endTurn();
+}
+
+function endTurn() {
+  if (gameOver) return;
+  // Clear per-turn states
+  player.silentMove = false;
+  player.coverActive = false;
+
+  phase = 'botTurn';
+  render();
+  setTimeout(botTurn, 500);
+}
+
+// ======= BOT AI =======
+function botTurn() {
+  if (gameOver) return;
+  addLog('--- ボットのターン ---', 'info');
+
+  bot.defense = 0;
+  bot.coverActive = false;
+  bot.noise = 0;
+
+  // Bot card play (simplified - random useful card)
+  if (bot.hand.length > 0) {
+    botPlayCard();
+  }
+
+  // Bot movement
+  botMove();
+
+  // Check tile effects for bot
+  if (map[bot.y][bot.x] === TILE_SPRING) {
+    bot.hp = Math.min(10, bot.hp + 2);
+    addLog('ボットが泉で回復した', 'info');
+  }
+
+  // End bot turn
+  if (!gameOver) {
+    turnNumber++;
+    startPlayerTurn();
+  }
+}
+
+function botPlayCard() {
+  const canSeePlayer = canSee(bot, player.x, player.y);
+  const dist = Math.abs(player.x - bot.x) + Math.abs(player.y - bot.y);
+
+  // Pick a card to play
+  let cardIndex = -1;
+
+  if (canSeePlayer) {
+    // Try to attack
+    cardIndex = bot.hand.findIndex(c => c.effect === 'attack' && dist <= c.range);
+    if (cardIndex === -1) {
+      // Try move bonus to close distance
+      cardIndex = bot.hand.findIndex(c => c.effect === 'moveBonus');
+    }
+  } else {
+    // Not seeing player - try detect or move bonus
+    cardIndex = bot.hand.findIndex(c => c.effect === 'detect');
+    if (cardIndex === -1) {
+      cardIndex = bot.hand.findIndex(c => c.effect === 'moveBonus' || c.effect === 'heal');
+    }
+  }
+
+  if (cardIndex === -1 && bot.hand.length > 0) {
+    // Play a random non-attack card, or just any card
+    const nonAttack = bot.hand.findIndex(c => c.effect !== 'attack');
+    cardIndex = nonAttack >= 0 ? nonAttack : 0;
+  }
+
+  if (cardIndex >= 0) {
+    const card = bot.hand[cardIndex];
+    addNoise(bot, card.noise);
+
+    switch(card.effect) {
+      case 'attack': {
+        let dmg = card.power;
+        let isAmbush = !canSee(player, bot.x, bot.y);
+        if (isAmbush) dmg *= 2;
+        if (player.defense > 0) dmg = Math.max(0, dmg - player.defense);
+        if (player.coverActive) dmg = Math.ceil(dmg / 2);
+        player.hp -= dmg;
+        if (isAmbush) {
+          addLog(`ボットの奇襲！ ${card.name}で${dmg}ダメージ！`, 'ambush');
+          showAmbush();
+        } else {
+          addLog(`ボットの${card.name}！ ${dmg}ダメージ`, 'dmg');
+        }
+        break;
+      }
+      case 'moveBonus':
+        bot.movesExtra = (bot.movesExtra || 0) + 1;
+        addLog(`ボットが${card.name}を使用`, 'card');
+        break;
+      case 'defense':
+        bot.defense += card.power;
+        addLog(`ボットが${card.name}を使用（防御+${card.power}）`, 'card');
+        break;
+      case 'heal':
+        bot.hp = Math.min(10, bot.hp + card.power);
+        addLog(`ボットがHP回復（+${card.power}）`, 'heal');
+        break;
+      case 'detect':
+        addLog(`ボットが索敵を行った`, 'card');
+        break;
+      case 'silentMove':
+        bot.silentMove = true;
+        addLog('ボットが影歩きを使用', 'card');
+        break;
+      case 'cover':
+        bot.coverActive = true;
+        addLog('ボットがかばうを使用', 'card');
+        break;
+      case 'torch':
+        bot.viewRadius = VIEW_RADIUS + 1;
+        addLog('ボットが松明を使用', 'card');
+        break;
+      default:
+        addLog(`ボットが${card.name}を使用`, 'card');
+    }
+
+    bot.hand.splice(cardIndex, 1);
+    bot.discard.push(card);
+    checkGameOver();
+  }
+}
+
+function botMove() {
+  if (gameOver) return;
+  const canSeePlayer = canSee(bot, player.x, player.y);
+  let moves = 3 + (bot.movesExtra || 0);
+  bot.movesExtra = 0;
+
+  // Check if noise ripples from player give direction
+  let noiseDir = null;
+  if (player.noise > 0) {
+    noiseDir = {x: player.x - bot.x, y: player.y - bot.y};
+  }
+
+  for (let m = 0; m < moves; m++) {
+    if (gameOver) break;
+    let dx = 0, dy = 0;
+
+    if (canSeePlayer || canSee(bot, player.x, player.y)) {
+      // Chase player
+      const pdx = player.x - bot.x, pdy = player.y - bot.y;
+      if (Math.abs(pdx) >= Math.abs(pdy)) {
+        dx = pdx > 0 ? 1 : -1;
+      } else {
+        dy = pdy > 0 ? 1 : -1;
+      }
+    } else if (noiseDir) {
+      // Move toward noise
+      if (Math.abs(noiseDir.x) >= Math.abs(noiseDir.y)) {
+        dx = noiseDir.x > 0 ? 1 : (noiseDir.x < 0 ? -1 : 0);
+      } else {
+        dy = noiseDir.y > 0 ? 1 : (noiseDir.y < 0 ? -1 : 0);
+      }
+    } else {
+      // Random
+      const dirs = [[0,-1],[0,1],[-1,0],[1,0]];
+      const d = dirs[Math.floor(Math.random()*dirs.length)];
+      dx = d[0]; dy = d[1];
+    }
+
+    const nx = bot.x + dx, ny = bot.y + dy;
+    if (nx >= 0 && nx < GRID && ny >= 0 && ny < GRID && map[ny][nx] !== TILE_WALL) {
+      bot.x = nx; bot.y = ny;
+      if (!bot.silentMove) addNoise(bot, 1);
+    }
+  }
+
+  bot.silentMove = false;
+  bot.viewRadius = VIEW_RADIUS;
+  addLog('ボットが移動した', 'info');
+}
+
+// ======= TURN MANAGEMENT =======
+function startPlayerTurn() {
+  if (gameOver) return;
+
+  // Reset per-turn
+  player.defense = 0;
+  player.noise = 0;
+  player.detected = [];
+  player.viewRadius = VIEW_RADIUS;
+  cardPlayed = false;
+  selectedCardIndex = -1;
+  movesRemaining = 3;
+  bot.noise = 0;
+
+  // Draw to 5
+  drawCards(player, 5 - player.hand.length);
+
+  phase = 'card';
+  updateFog();
+  render();
+
+  showBanner(`ターン ${turnNumber}`);
+}
+
+// ======= GAME OVER =======
+function checkGameOver() {
+  if (player.hp <= 0) {
+    gameOver = true;
+    phase = 'gameOver';
+    document.getElementById('game-over-screen').style.display = 'flex';
+    document.getElementById('game-over-text').className = 'lose';
+    document.getElementById('game-over-text').textContent = '敗北...';
+    document.getElementById('game-over-detail').textContent = `ターン${turnNumber} - ボットに倒されました`;
+    render();
+  } else if (bot.hp <= 0) {
+    gameOver = true;
+    phase = 'gameOver';
+    document.getElementById('game-over-screen').style.display = 'flex';
+    document.getElementById('game-over-text').className = 'win';
+    document.getElementById('game-over-text').textContent = '勝利！';
+    document.getElementById('game-over-detail').textContent = `ターン${turnNumber} - XP: ${player.xp}`;
+    render();
+  }
+}
+
+// ======= EFFECTS =======
+function showBanner(text) {
+  const el = document.getElementById('turn-banner');
+  el.textContent = text;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 1200);
+}
+
+function showAmbush() {
+  const el = document.getElementById('ambush-overlay');
+  el.style.opacity = '1';
+  showBanner('AMBUSH!');
+  setTimeout(() => { el.style.opacity = '0'; }, 600);
+}
+
+function addLog(text, cls) {
+  const area = document.getElementById('log-area');
+  const div = document.createElement('div');
+  div.className = 'log-entry' + (cls ? ' log-'+cls : '');
+  div.textContent = text;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+// ======= ANIMATION LOOP =======
+let lastRippleCount = 0;
+function animate() {
+  // Update ripples
+  if (noiseRipples.length > 0) {
+    for (let i = noiseRipples.length - 1; i >= 0; i--) {
+      const r = noiseRipples[i];
+      r.radius += 0.04;
+      r.alpha -= 0.008;
+      if (r.alpha <= 0 || r.radius >= r.maxRadius) {
+        noiseRipples.splice(i, 1);
+      }
+    }
+    render();
+  } else if (lastRippleCount > 0) {
+    render(); // one final render after all ripples gone
+  }
+  lastRippleCount = noiseRipples.length;
+  requestAnimationFrame(animate);
+}
+
+// ======= INPUT HANDLING =======
+document.addEventListener('keydown', (e) => {
+  if (gameOver) return;
+  if (phase === 'move') {
+    switch(e.key) {
+      case 'w': case 'ArrowUp':    movePlayer(0, -1); break;
+      case 's': case 'ArrowDown':  movePlayer(0, 1); break;
+      case 'a': case 'ArrowLeft':  movePlayer(-1, 0); break;
+      case 'd': case 'ArrowRight': movePlayer(1, 0); break;
+    }
+    e.preventDefault();
+  }
+  if (e.key === 'Enter' && phase === 'move') {
+    endTurn();
+  }
+});
+
+canvas.addEventListener('click', (e) => {
+  if (gameOver) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = Math.floor((e.clientX - rect.left) / tileSize);
+  const my = Math.floor((e.clientY - rect.top) / tileSize);
+  if (mx < 0 || mx >= GRID || my < 0 || my >= GRID) return;
+
+  if (phase === 'card' && selectedCardIndex >= 0) {
+    const card = player.hand[selectedCardIndex];
+    if (card && card.effect === 'attack') {
+      playCard(selectedCardIndex, mx, my);
+      return;
+    }
+  }
+
+  if (phase === 'move' && movesRemaining > 0) {
+    const dx = mx - player.x, dy = my - player.y;
+    if (Math.abs(dx) + Math.abs(dy) === 1) {
+      movePlayer(dx, dy);
+    }
+  }
+});
+
+// ======= INIT =======
+function init() {
+  player = {
+    x: 0, y: 0, hp: 10, xp: 0, noise: 0,
+    defense: 0, viewRadius: VIEW_RADIUS,
+    silentMove: false, coverActive: false,
+    detected: [],
+    deck: createDeck(), hand: [], discard: []
+  };
+  bot = {
+    x: GRID-1, y: GRID-1, hp: 10, noise: 0,
+    defense: 0, viewRadius: VIEW_RADIUS,
+    silentMove: false, coverActive: false,
+    deck: createDeck(), hand: [], discard: [],
+    movesExtra: 0
+  };
+
+  generateMap();
+
+  // Initialize fog
+  fogState = Array.from({length: GRID}, () => Array(GRID).fill(0));
+
+  // Draw initial hands
+  drawCards(player, 5);
+  drawCards(bot, 5);
+
+  turnNumber = 1;
+  phase = 'card';
+  cardPlayed = false;
+  selectedCardIndex = -1;
+  movesRemaining = 3;
+  gameOver = false;
+
+  updateFog();
+  resizeCanvas();
+
+  addLog('=== レイヴン・ポータル ===', 'info');
+  addLog('カードを選んで使用し、WASDまたはクリックで移動。', 'info');
+  addLog('相手のHPを0にすれば勝利！', 'info');
+
+  showBanner('ターン 1');
+  animate();
+}
+
+window.addEventListener('resize', resizeCanvas);
+init();
+</script>
+</body>
+</html>

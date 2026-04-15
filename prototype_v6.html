@@ -1,0 +1,2583 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レイヴン・ポータル v6 - 環状マップ+ボス+杖カード</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a12;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+#top-bar{background:#0e0e1a;border-bottom:1px solid #2a1a4a;padding:6px 15px;display:flex;align-items:center;gap:20px;font-size:13px;min-height:36px;flex-wrap:wrap}
+.top-item{display:flex;align-items:center;gap:6px}
+.top-label{color:#8888aa}
+.top-val{font-weight:bold;color:#ddccff}
+.phase-badge{padding:2px 10px;border-radius:10px;font-size:12px;font-weight:bold}
+.phase-early{background:#1a3a1a;color:#44dd66;border:1px solid #2a6a2a}
+.phase-mid{background:#3a3a1a;color:#dddd44;border:1px solid #6a6a2a}
+.phase-late{background:#3a1a1a;color:#ff6644;border:1px solid #6a2a2a}
+.phase-final{background:#3a0a0a;color:#ff2222;border:1px solid #8a1a1a}
+.ap-big{font-size:22px;color:#44ddff;font-weight:bold;text-shadow:0 0 10px rgba(60,180,255,.5)}
+.res-badge{background:#1a1a3a;border:1px solid #3a2a6a;border-radius:6px;padding:2px 8px;font-size:12px}
+.res-badge .rb-val{font-weight:bold;margin-left:3px}
+.vp-display{font-size:16px;font-weight:bold;color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,.4)}
+#game-container{display:flex;flex:1;min-height:0}
+#map-area{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;position:relative}
+#gameCanvas{border:2px solid #2a1a4a;border-radius:4px;cursor:pointer}
+#sidebar{width:300px;background:#0e0e1a;border-left:1px solid #2a1a4a;padding:10px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.panel{background:#12122a;border:1px solid #2a1a4a;border-radius:6px;padding:8px}
+.panel h3{font-size:12px;color:#9080c0;margin-bottom:4px;border-bottom:1px solid #2a1a4a;padding-bottom:3px}
+.stat-row{display:flex;justify-content:space-between;font-size:12px;margin:2px 0}
+.stat-label{color:#8888aa}
+.stat-val{font-weight:bold}
+.hp-player{color:#4488ff}
+.hp-bot{color:#ff4444}
+.xp-val{color:#aa88ff}
+.noise-val{color:#ffaa44}
+.ap-val{color:#44aaff}
+.flag-status{color:#ffd700;font-weight:bold}
+.vp-val{color:#ffd700;font-weight:bold}
+#log-area{flex:1;min-height:60px;overflow-y:auto;font-size:10px;line-height:1.5}
+#log-area .log-entry{padding:1px 0;border-bottom:1px solid #1a1a2a}
+.log-dmg{color:#ff6666}
+.log-heal{color:#66ff88}
+.log-info{color:#88aaff}
+.log-ambush{color:#ff44ff;font-weight:bold}
+.log-card{color:#ffcc44}
+.log-flag{color:#ffd700;font-weight:bold}
+.log-shop{color:#aa66ff}
+.log-buy{color:#66ddaa;font-weight:bold}
+.log-mob{color:#ff8844}
+.log-event{color:#ff88ff;font-weight:bold}
+.log-vp{color:#ffd700;font-weight:bold}
+.log-player-action{color:#e0e0ff}
+.log-bot-action{color:#ff4444;font-weight:bold}
+.log-mob-action{color:#ff8844}
+.log-boss-action{color:#cc44ff;font-weight:bold}
+.log-system{color:#ffdd44}
+#enemy-turn-indicator{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;font-weight:bold;color:#ff6644;text-shadow:0 0 20px rgba(255,80,40,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:90;background:rgba(0,0,0,0.5);padding:10px 30px;border-radius:10px;border:2px solid #ff4422}
+@keyframes screen-shake{0%{transform:translate(0,0)}25%{transform:translate(-4px,3px)}50%{transform:translate(3px,-4px)}75%{transform:translate(-3px,2px)}100%{transform:translate(0,0)}}
+.shake{animation:screen-shake 0.3s ease-in-out}
+#boss-hp-overlay{position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);border:2px solid #ff2200;border-radius:8px;padding:6px 16px;z-index:80;display:none;text-align:center;min-width:200px}
+#boss-hp-overlay .boss-name{color:#ff4400;font-weight:bold;font-size:14px}
+#boss-hp-overlay .boss-bar{background:#333;height:10px;border-radius:5px;margin-top:4px;overflow:hidden}
+#boss-hp-overlay .boss-fill{background:linear-gradient(90deg,#ff0000,#ff6600);height:100%;transition:width 0.3s;border-radius:5px}
+#boss-hp-overlay .boss-hp-text{color:#ffaa88;font-size:11px;margin-top:2px}
+#bottom-bar{background:#0e0e1a;border-top:1px solid #2a1a4a;padding:8px 12px;display:flex;align-items:center;gap:8px;min-height:120px}
+#phase-info{writing-mode:vertical-rl;font-size:11px;color:#9080c0;padding-right:8px;border-right:1px solid #2a1a4a;text-align:center;min-width:28px}
+#hand-area{display:flex;gap:6px;flex:1;overflow-x:auto;padding:4px 0}
+.card{min-width:120px;max-width:140px;background:linear-gradient(135deg,#1a1a3a,#12122a);border:2px solid #3a2a6a;border-radius:8px;padding:8px;cursor:pointer;transition:all .2s;flex-shrink:0;position:relative}
+.card:hover{border-color:#7060c0;transform:translateY(-4px);box-shadow:0 4px 15px rgba(100,60,200,.3)}
+.card.selected{border-color:#aa88ff;box-shadow:0 0 20px rgba(150,100,255,.5);transform:translateY(-8px)}
+.card.disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.card.no-ap{border-color:#662222}
+.card.starter{border-color:#444455}
+.card.dead-card{border-color:#666633;opacity:.6}
+.card-name{font-size:12px;font-weight:bold;color:#ddccff;margin-bottom:3px}
+.card-type{font-size:10px;margin-bottom:4px}
+.card-effect{font-size:10px;color:#aaaacc;line-height:1.3}
+.card-stats{display:flex;justify-content:space-between;margin-top:6px;font-size:10px}
+.card-ap{color:#44aaff}
+.card-noise{color:#ffaa44}
+.card-cost{position:absolute;top:4px;right:6px;background:#2244aa;color:#fff;font-size:10px;font-weight:bold;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+#action-buttons{display:flex;flex-direction:column;gap:5px;min-width:110px}
+.btn{background:linear-gradient(135deg,#2a1a5a,#1a1a3a);border:1px solid #4a3a7a;color:#ccbbee;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:linear-gradient(135deg,#3a2a7a,#2a2a5a);border-color:#6a5a9a}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-end{border-color:#aa4444;color:#ff8888}
+.btn-end:hover{border-color:#ff6666}
+.btn-shop{border-color:#aa66ff;color:#cc88ff}
+.btn-deck{border-color:#44aa88;color:#66ddaa}
+#turn-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;color:#fff;text-shadow:0 0 30px rgba(100,60,255,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:100}
+#event-banner{position:fixed;top:60px;left:50%;transform:translateX(-50%);padding:12px 30px;border-radius:8px;font-size:16px;font-weight:bold;pointer-events:none;opacity:0;transition:opacity .3s;z-index:100;text-align:center;border:2px solid #555}
+#respawn-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:180;pointer-events:none;transition:background .5s}
+#respawn-overlay.active{display:flex}
+#respawn-overlay .respawn-text{font-size:28px;font-weight:bold;color:#fff;text-shadow:0 0 20px rgba(255,100,100,.8);opacity:0;transition:opacity .5s}
+#game-over-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:200}
+#game-over-screen h1{font-size:42px;margin-bottom:15px}
+#game-over-screen .win{color:#44aaff;text-shadow:0 0 30px rgba(60,120,255,.8)}
+#game-over-screen .lose{color:#ff4444;text-shadow:0 0 30px rgba(255,60,60,.8)}
+#game-over-screen p{font-size:16px;color:#aaa;margin-bottom:15px}
+#game-over-screen button{padding:10px 25px;font-size:16px;cursor:pointer;background:#2a1a5a;border:2px solid #6a5a9a;color:#ccbbee;border-radius:8px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:150}
+.modal-overlay.active{display:flex}
+.modal{background:#12122a;border:2px solid #4a3a7a;border-radius:12px;padding:20px;max-width:950px;width:95%;max-height:85vh;overflow-y:auto}
+.modal h2{color:#aa88ff;margin-bottom:12px;font-size:18px;border-bottom:1px solid #3a2a6a;padding-bottom:8px}
+.shop-tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.shop-tab{padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer;font-size:12px;font-weight:bold;border:1px solid #3a2a6a;border-bottom:none;background:#0e0e1a;color:#8888aa;transition:all .15s}
+.shop-tab.active{background:#1a1a3a;color:#ddccff;border-color:#6a5aaa}
+.shop-tab.tier1{border-top:2px solid #44dd66}
+.shop-tab.tier2{border-top:2px solid #dddd44}
+.shop-tab.tier3{border-top:2px solid #ff6644}
+.shop-tab.tier-legend{border-top:2px solid #ffd700}
+.shop-tab.tier-vp{border-top:2px solid #ffd700}
+.shop-tab.tier-hp{border-top:2px solid #ff66aa}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.shop-section-label{font-size:13px;font-weight:bold;padding:4px 10px;border-radius:4px;margin:8px 0 4px 0;display:inline-block}
+.shop-section-label.tier1-label{background:#1a3a1a;color:#44dd66;border:1px solid #2a6a2a}
+.shop-section-label.tier2-label{background:#3a3a1a;color:#dddd44;border:1px solid #6a6a2a}
+.shop-section-label.tier3-label{background:#3a1a1a;color:#ff6644;border:1px solid #6a2a2a}
+.shop-section-label.legend-label{background:#3a3a0a;color:#ffd700;border:1px solid #6a6a2a}
+.shop-section-label.vp-label{background:#2a2a0a;color:#ffd700;border:1px solid #4a4a1a}
+.shop-section-label.hp-label{background:#2a0a1a;color:#ff66aa;border:1px solid #4a1a2a}
+.shop-card.tier1-border{border-left:3px solid #44dd66}
+.shop-card.tier2-border{border-left:3px solid #dddd44}
+.shop-card.tier3-border{border-left:3px solid #ff6644}
+.shop-card.legend-border{border-left:3px solid #ffd700}
+.deck-detail-panel{background:#0e0e20;border:1px solid #3a2a6a;border-radius:8px;padding:12px;margin-top:10px;font-size:12px;color:#ccccee}
+.deck-detail-panel .detail-name{font-size:16px;font-weight:bold;color:#ddccff;margin-bottom:6px}
+.deck-detail-panel .detail-desc{color:#aaaacc;margin-bottom:8px}
+.deck-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;text-align:center;font-size:11px}
+.deck-stats .ds-item{background:#1a1a3a;border-radius:4px;padding:4px}
+.deck-stats .ds-val{font-size:16px;font-weight:bold;color:#aa88ff}
+.shop-card{background:linear-gradient(135deg,#1a1a3a,#0e0e1e);border:2px solid #3a2a6a;border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;position:relative}
+.shop-card:hover{border-color:#aa88ff;box-shadow:0 0 15px rgba(150,100,255,.3)}
+.shop-card.legendary{border-color:#ffd700;background:linear-gradient(135deg,#2a2a1a,#1a1a0e)}
+.shop-card.vp-card{border-color:#cc9900;background:linear-gradient(135deg,#2a2a0e,#1a1a08)}
+.shop-card.hp-card{border-color:#ff66aa;background:linear-gradient(135deg,#2a0e1a,#1a0810)}
+.shop-card.sold{opacity:.3;cursor:not-allowed;pointer-events:none}
+.shop-card .sc-name{font-size:12px;font-weight:bold;color:#ddccff;margin-bottom:3px}
+.shop-card .sc-type{font-size:10px;margin-bottom:4px}
+.shop-card .sc-effect{font-size:10px;color:#aaaacc;line-height:1.3;margin-bottom:6px}
+.shop-card .sc-bottom{display:flex;justify-content:space-between;font-size:10px}
+.shop-card .sc-cost{color:#aa88ff;font-weight:bold}
+.shop-card .sc-ap{color:#44aaff}
+.shop-card .sc-stock{position:absolute;top:4px;right:6px;background:#2a2a4a;color:#aaa;font-size:9px;padding:1px 5px;border-radius:8px}
+.modal-close{background:#3a1a1a;border:1px solid #6a2a2a;color:#ff8888;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;float:right}
+.modal-close:hover{background:#5a2a2a}
+.deck-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.deck-card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:8px;font-size:11px;cursor:default}
+.deck-card .dc-name{font-weight:bold;color:#ddccff}
+.deck-card .dc-type{font-size:10px;color:#7766aa}
+.deck-card.dc-starter{border-color:#444455;opacity:0.7}
+#move-hint{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);font-size:11px;color:#6666aa;pointer-events:none}
+.blind-cursor{cursor:crosshair!important}
+.score-panel .vp-bar{background:#1a1a0a;border:1px solid #4a4a1a;border-radius:4px;height:12px;margin:3px 0;position:relative;overflow:hidden}
+.score-panel .vp-fill{height:100%;border-radius:3px;transition:width .3s}
+.score-panel .vp-text{position:absolute;top:0;left:4px;font-size:9px;color:#fff;line-height:12px}
+#minimap-canvas{border:1px solid #2a1a4a;border-radius:4px;display:block;margin:0 auto;cursor:pointer}
+.shop-tab-content{display:none}
+.shop-tab-content.active{display:block}
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+  <div class="top-item"><span class="top-label">ターン</span><span class="top-val" id="top-turn">1</span><span class="top-val">/50</span></div>
+  <div class="top-item"><span class="top-label">フェーズ</span><span id="top-phase-badge" class="phase-badge phase-early">序盤:探索</span></div>
+  <div class="top-item"><span class="top-label">AP</span><span class="ap-big" id="top-ap">4</span></div>
+  <div class="top-item">
+    <span class="res-badge"><span class="top-label">ドロー</span><span class="rb-val" id="top-draws" style="color:#88ccff">0</span></span>
+    <span class="res-badge"><span class="top-label">購入</span><span class="rb-val" id="top-buys" style="color:#66ddaa">無制限</span></span>
+  </div>
+  <div class="top-item"><span class="top-label">XP</span><span class="top-val" id="top-xp" style="color:#aa88ff">0</span></div>
+  <div class="top-item"><span class="top-label">VP</span><span class="vp-display" id="top-vp">0</span><span class="top-val" style="color:#ffd700">/30</span></div>
+  <div class="top-item" style="margin-left:auto"><span class="top-label">勝利条件</span><span class="top-val" style="color:#ffd700">勝利点30VP</span></div>
+</div>
+
+<div id="game-container">
+  <div id="map-area">
+    <canvas id="gameCanvas"></canvas>
+    <div id="move-hint"></div>
+  </div>
+  <div id="sidebar">
+    <div class="panel score-panel">
+      <h3>スコアボード (30VP で勝利)</h3>
+      <div style="margin-bottom:6px">
+        <div style="font-size:12px;color:#4488ff;font-weight:bold">プレイヤー (青) <span id="score-player-vp" style="color:#ffd700">0</span> VP</div>
+        <div class="vp-bar"><div class="vp-fill" id="score-player-bar" style="width:0%;background:#4488ff"></div><div class="vp-text" id="score-player-detail">旗:0 カード:0 キル:0</div></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#ff4444;font-weight:bold">ボットAI (赤) <span id="score-bot-vp" style="color:#ffd700">0</span> VP</div>
+        <div class="vp-bar"><div class="vp-fill" id="score-bot-bar" style="width:0%;background:#ff4444"></div><div class="vp-text" id="score-bot-detail">旗:0 カード:0 キル:0</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>プレイヤー (青)</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-player" id="player-hp">1/1</span></div>
+      <div class="stat-row"><span class="stat-label">AP</span><span class="stat-val ap-val" id="player-ap">4</span></div>
+      <div class="stat-row"><span class="stat-label">XP</span><span class="stat-val xp-val" id="player-xp">0</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="player-noise">0</span></div>
+      <div class="stat-row"><span class="stat-label">旗</span><span class="stat-val flag-status" id="player-flag">なし</span></div>
+      <div class="stat-row"><span class="stat-label">防御</span><span class="stat-val" id="player-def" style="color:#aaaaff">0</span></div>
+      <div class="stat-row"><span class="stat-label">無敵</span><span class="stat-val" id="player-invuln" style="color:#ffdd44">-</span></div>
+    </div>
+    <div class="panel">
+      <h3>ボットAI (赤)</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-bot" id="bot-hp">1/1</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="bot-noise">0</span></div>
+      <div class="stat-row"><span class="stat-label">旗</span><span class="stat-val flag-status" id="bot-flag">なし</span></div>
+    </div>
+    <div class="panel">
+      <h3>ターン / モブ情報</h3>
+      <div class="stat-row"><span class="stat-label">ターン</span><span class="stat-val" id="turn-num">1</span></div>
+      <div class="stat-row"><span class="stat-label">状態</span><span class="stat-val" id="phase-name" style="color:#aa88ff">自由行動</span></div>
+      <div class="stat-row"><span class="stat-label">デッキ残り</span><span class="stat-val" id="deck-count">10</span></div>
+      <div class="stat-row"><span class="stat-label">捨て札</span><span class="stat-val" id="discard-count">0</span></div>
+      <div class="stat-row"><span class="stat-label">購入</span><span class="stat-val" id="buy-count" style="color:#66ddaa">無制限</span></div>
+      <div class="stat-row"><span class="stat-label">モブ</span><span class="stat-val" id="mob-count" style="color:#ff8844">0/15</span></div>
+      <div class="stat-row"><span class="stat-label">次モブ出現</span><span class="stat-val" id="mob-next" style="color:#ff8844">-</span></div>
+      <div class="stat-row"><span class="stat-label">次イベント</span><span class="stat-val" id="event-next" style="color:#ff88ff">-</span></div>
+    </div>
+    <div class="panel" style="padding:4px">
+      <h3>ミニマップ</h3>
+      <canvas id="minimap-canvas" width="150" height="150"></canvas>
+    </div>
+    <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <h3>ログ</h3>
+      <div id="log-area"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bottom-bar">
+  <div id="phase-info">自由行動</div>
+  <div id="hand-area"></div>
+  <div id="action-buttons">
+    <button class="btn btn-shop" id="btn-shop" onclick="openShop()">サプライ確認</button>
+    <button class="btn btn-deck" id="btn-deck" onclick="openDeck()">デッキ確認</button>
+    <button class="btn btn-end" id="btn-end-turn" onclick="endTurnFull()">ターン終了</button>
+  </div>
+</div>
+
+<div id="turn-banner"></div>
+<div id="event-banner"></div>
+<div id="enemy-turn-indicator">敵ターン中...</div>
+<div id="boss-hp-overlay"><div class="boss-name">深淵の守護者</div><div class="boss-bar"><div class="boss-fill" id="boss-hp-fill" style="width:100%"></div></div><div class="boss-hp-text" id="boss-hp-text">10/10</div></div>
+<div id="respawn-overlay"><div class="respawn-text" id="respawn-text"></div></div>
+
+<div id="game-over-screen">
+  <h1 id="game-over-text"></h1>
+  <p id="game-over-detail"></p>
+  <p id="game-over-scores" style="font-size:14px;color:#ccc;margin-bottom:15px"></p>
+  <button onclick="location.reload()">もう一度プレイ</button>
+</div>
+
+<div class="modal-overlay" id="shop-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShop()">閉じる</button>
+    <h2>サプライ（ショップ）</h2>
+    <p style="font-size:12px;color:#8888aa;margin-bottom:10px">所持XP: <span id="shop-xp" style="color:#aa88ff;font-weight:bold">0</span> | XPがある限り何枚でも購入可能 | デッキ: <span id="shop-deck-count">3</span>枚 | MaxHP: <span id="shop-maxhp" style="color:#ff66aa">1</span></p>
+    <div id="shop-all-grid"></div>
+    <button class="btn" onclick="closeShop()" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="trash-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeTrash()">キャンセル</button>
+    <h2>廃棄するカードを選択</h2>
+    <p style="font-size:12px;color:#ff8866;margin-bottom:10px">手札から1枚を永久除外します（デッキ圧縮）</p>
+    <div class="deck-list" id="trash-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deck-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeDeck()">閉じる</button>
+    <h2>デッキ一覧 (<span id="deck-total">3</span>枚)</h2>
+    <div class="deck-stats" id="deck-stats"></div>
+    <div class="deck-list" id="deck-list"></div>
+    <div class="deck-detail-panel" id="deck-detail" style="display:none"></div>
+  </div>
+</div>
+
+<script>
+// ========================================================
+// レイヴン・ポータル v6 プロトタイプ
+// 環状マップ + ボス + 杖カード + 1画面サプライ
+// ========================================================
+
+const MAP_W=30, MAP_H=30, VIEWPORT=15, MAX_TURNS=50, HAND_LIMIT=5, MAX_AP=6, MAX_MOBS=15;
+const TILE_FLOOR=0,TILE_WALL=1,TILE_ALTAR=2,TILE_SPRING=3,TILE_PORTAL=4,TILE_BUSH=5,TILE_TREASURE=7,TILE_BOSS_FLOOR=8;
+const VIEW_RADIUS=3, VP_WIN=30;
+
+// ===== INITIAL DECK (3 cards, minimal) =====
+function makeInitialDeck(){
+  const cards=[];
+  cards.push({id:'ayumi',name:'歩み',type:'移動',ap:0,noise:1,desc:'移動+1',range:0,move:1,starter:true});
+  cards.push({id:'koishi',name:'小石',type:'攻撃',ap:1,noise:1,desc:'攻撃1、射程1',range:1,power:1,starter:true});
+  cards.push({id:'ibuki',name:'息吹',type:'回復',ap:0,noise:0,desc:'AP+1回復',range:0,apRecover:1,starter:true});
+  return cards.map(c=>({...c,uid:Math.random()}));
+}
+
+// ===== 3-TIER SUPPLY (Dominion-style) - v6: XPコスト引き下げ + 23枚構成 =====
+const TIER1_SUPPLY=[
+  {id:'shunsokunokutsu',name:'駿足の靴',type:'移動',ap:0,noise:1,xpCost:1,desc:'移動+2',range:0,move:2,stock:5,tier:1},
+  {id:'tetsunoken',name:'鉄の短剣',type:'攻撃',ap:1,noise:2,xpCost:2,desc:'攻撃力2、射程1',range:1,power:2,stock:5,tier:1},
+  {id:'shuuchuu',name:'集中',type:'回復',ap:0,noise:0,xpCost:1,desc:'AP+2回復',range:0,apRecover:2,stock:5,tier:1},
+  {id:'haikiro',name:'廃棄炉',type:'合成',ap:0,noise:0,xpCost:1,desc:'手札1枚を永久除外',range:0,trash:true,stock:5,tier:1},
+  {id:'shoko',name:'書庫',type:'回復',ap:1,noise:0,xpCost:2,desc:'ドロー+2',range:0,extraDraw:2,stock:4,tier:1},
+  {id:'yakusou',name:'薬草',type:'回復',ap:0,noise:0,xpCost:1,desc:'HP+2回復',range:0,healPower:2,stock:5,tier:1},
+];
+const TIER2_SUPPLY=[
+  {id:'teisatsu',name:'偵察',type:'索敵',ap:1,noise:1,xpCost:3,desc:'周囲3マス索敵',range:3,recon:true,stock:4,tier:2},
+  {id:'kagenomanto',name:'影のマント',type:'隠密',ap:1,noise:0,xpCost:3,desc:'2ターン隠密+攻撃力+1',range:0,silence:2,atkBoost:1,atkBoostTurns:2,stock:4,tier:2},
+  {id:'dokugiri',name:'毒霧の瓶',type:'攻撃',ap:2,noise:2,xpCost:4,desc:'範囲攻撃(2マス)+ブラインド可',range:4,power:2,blind:true,aoe:'circle1',stock:4,tier:2},
+  {id:'shunpo',name:'瞬歩',type:'移動',ap:2,noise:2,xpCost:3,desc:'3マス瞬間移動',range:0,move:3,warp:true,stock:4,tier:2},
+  {id:'ryakudatsu',name:'略奪の手',type:'攻撃',ap:1,noise:2,xpCost:3,desc:'ダメージ2+XP+2。射程1',range:1,power:2,atkXpGain:2,stock:4,tier:2},
+  {id:'irekaenotsue',name:'入替の杖',type:'杖',ap:1,noise:1,xpCost:4,desc:'直線上の敵と位置交換',range:1,swap:true,stock:3,tier:2},
+];
+const TIER3_SUPPLY=[
+  {id:'ougonnohai',name:'黄金の杯',type:'回復',ap:0,noise:0,xpCost:6,desc:'AP+2、ドロー+2、XP+2',range:0,apRecover:2,extraDraw:2,xpGain:2,stock:3,tier:3},
+  {id:'yaminoooogama',name:'闇の大鎌',type:'攻撃',ap:3,noise:3,xpCost:6,desc:'攻撃力5、射程2、周囲も1ダメージ',range:2,power:5,aoeDmg:1,stock:3,tier:3},
+  {id:'zenchinome',name:'全知の目',type:'索敵',ap:2,noise:0,xpCost:6,desc:'マップ全体を3ターン可視化',range:99,fullVision:3,stock:3,tier:3},
+  {id:'kontonnotsue',name:'混沌の杖',type:'杖',ap:2,noise:2,xpCost:7,desc:'全敵をランダム位置にテレポート',range:99,chaosWarp:true,stock:2,tier:3},
+];
+const LEGENDARY_SUPPLY=[];
+const SYNERGY_CARDS=[];
+
+// v6: Victory Point cards - XPコスト引き下げ (2/4/7)
+const VP_SUPPLY=[
+  {id:'yashiki',name:'屋敷',type:'勝利点',ap:99,noise:0,xpCost:2,desc:'勝利点+1。デッドカード',range:0,vpValue:1,stock:8,tier:5,isVP:true},
+  {id:'kouryou',name:'公領',type:'勝利点',ap:99,noise:0,xpCost:4,desc:'勝利点+3。デッドカード',range:0,vpValue:3,stock:8,tier:5,isVP:true},
+  {id:'zoushou',name:'属州',type:'勝利点',ap:99,noise:0,xpCost:7,desc:'勝利点+6。デッドカード',range:0,vpValue:6,stock:8,tier:5,isVP:true},
+];
+
+// v6: HP upgrade cards
+const HP_SUPPLY=[
+  {id:'seinomi',name:'生命の実',type:'HP強化',ap:0,noise:0,xpCost:3,desc:'最大HP+1（永続）。即HP+1回復',range:0,hpUp:1,stock:4,tier:6,isHP:true},
+];
+
+// ===== MOB DEFINITIONS (v5 ranked) =====
+const MOB_DEFS=[
+  {name:'影蟲',icon:'蟲',rank:'E',hp:1,atk:1,xp:1},
+  {name:'闇鼠',icon:'鼠',rank:'E',hp:1,atk:1,xp:1},
+  {name:'骸蝙蝠',icon:'蝙',rank:'D',hp:2,atk:1,xp:2},
+  {name:'毒蛙',icon:'蛙',rank:'D',hp:2,atk:1,xp:2},
+  {name:'幽霊蜘蛛',icon:'蛛',rank:'C',hp:3,atk:1,xp:3},
+  {name:'腐食蛇',icon:'蛇',rank:'C',hp:3,atk:1,xp:3},
+  {name:'呪いの目',icon:'目',rank:'B',hp:4,atk:2,xp:4},
+  {name:'灰狼',icon:'狼',rank:'B',hp:4,atk:2,xp:4},
+];
+const RANK_COLORS={E:'#cccccc',D:'#44dd66',C:'#ff8844',B:'#ff4444'};
+
+// ===== RANDOM EVENT DEFS =====
+const EVENT_DEFS=[
+  {name:'霧が濃くなった',desc:'全員の視界半径-1 (3ターン)',prob:20,color:'#6688aa',icon:'霧',
+    apply:()=>{eventState.fogTurns=3;addLog('イベント: 霧! 視界-1 (3T)','event');}},
+  {name:'祝福の光',desc:'次の購入XPコスト-2',prob:15,color:'#ffd700',icon:'光',
+    apply:()=>{eventState.blessBuyDiscount=2;addLog('イベント: 祝福! 次購入XP-2','event');}},
+  {name:'地震',desc:'通路の一部が崩壊、新通路が開通',prob:15,color:'#ff8844',icon:'震',
+    apply:()=>{earthquakeEffect();addLog('イベント: 地震! マップが変化した','event');}},
+  {name:'モブの大量発生',desc:'モブが3体追加出現',prob:20,color:'#ff4444',icon:'群',
+    apply:()=>{for(let i=0;i<3;i++)spawnOneMob(true);addLog('イベント: モブ大量発生! +3体','event');}},
+  {name:'宝箱出現',desc:'XP+5の宝箱がマップに出現',prob:15,color:'#ffdd44',icon:'宝',
+    apply:()=>{placeTreasure();addLog('イベント: 宝箱がどこかに出現!','event');}},
+  {name:'闇の潮流',desc:'全モブが最寄りプレイヤーに2マス接近',prob:15,color:'#aa44ff',icon:'闇',
+    apply:()=>{darkTideEffect();addLog('イベント: 闇の潮流! モブが接近!','event');}},
+];
+
+// ===== GAME STATE =====
+let map=[],fogState=[],rooms=[],player,bot;
+let turnNumber=1,gamePhase='action';
+let selectedCardIndex=-1,gameOver=false;
+let noiseRipples=[],phantoms=[],poisonClouds=[];
+let blindShotMode=false,blindShotCard=null,trashMode=false;
+let supplyTier1=[],supplyTier2=[],supplyTier3=[],supplyLegendary=[],supplyVP=[],supplyHP=[];
+let flagBlue={},flagRed={};
+let mobs=[];
+let nextApDiscount=0;
+let activeShopTab='vp';
+// v6: Boss state
+let boss=null; // {x,y,hp,maxHp,atk,alive,name,icon}
+
+// v5 state
+let camX=0,camY=0; // viewport camera top-left
+let eventState={lastEventTurn:0,fogTurns:0,blessBuyDiscount:0};
+let mobSpawnCounter=0,nextMobSpawnIn=4;
+let playerStartX=0,playerStartY=0,botStartX=0,botStartY=0;
+let respawning=false;
+let enemyTurnActive=false;
+
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const miniCanvas=document.getElementById('minimap-canvas');
+const miniCtx=miniCanvas.getContext('2d');
+let tileSize=40;
+
+// ===== v6: RING MAP GENERATION (環状構造) =====
+function generateMap(){
+  map=[];rooms=[];
+  for(let y=0;y<MAP_H;y++){map[y]=[];for(let x=0;x<MAP_W;x++)map[y][x]=TILE_WALL;}
+  const cx=Math.floor(MAP_W/2),cy=Math.floor(MAP_H/2);
+  // 1. Boss room in center (8x8)
+  const bossW=8,bossH=8;
+  const bossRx=cx-Math.floor(bossW/2),bossRy=cy-Math.floor(bossH/2);
+  const bossRoom={x:bossRx,y:bossRy,w:bossW,h:bossH,cx:cx,cy:cy,isBoss:true};
+  rooms.push(bossRoom);
+  for(let dy=0;dy<bossH;dy++)for(let dx=0;dx<bossW;dx++){
+    if(bossRy+dy>=0&&bossRy+dy<MAP_H&&bossRx+dx>=0&&bossRx+dx<MAP_W)
+      map[bossRy+dy][bossRx+dx]=TILE_BOSS_FLOOR;
+  }
+  // 2. Surrounding rooms in a ring (4-5 rooms)
+  const numSurrounding=randInt(4,5);
+  const radius=10; // distance from center to surrounding room centers
+  const angleOffset=Math.random()*Math.PI*2;
+  for(let i=0;i<numSurrounding;i++){
+    const angle=angleOffset+(Math.PI*2*i/numSurrounding);
+    const rcx=Math.round(cx+radius*Math.cos(angle));
+    const rcy=Math.round(cy+radius*Math.sin(angle));
+    const rw=randInt(6,8),rh=randInt(6,8);
+    const rx=Math.max(1,Math.min(MAP_W-rw-1,rcx-Math.floor(rw/2)));
+    const ry=Math.max(1,Math.min(MAP_H-rh-1,rcy-Math.floor(rh/2)));
+    const room={x:rx,y:ry,w:rw,h:rh,cx:Math.floor(rx+rw/2),cy:Math.floor(ry+rh/2)};
+    rooms.push(room);
+    for(let dy=0;dy<rh;dy++)for(let dx=0;dx<rw;dx++){
+      if(ry+dy>=0&&ry+dy<MAP_H&&rx+dx>=0&&rx+dx<MAP_W) map[ry+dy][rx+dx]=TILE_FLOOR;
+    }
+  }
+  // 3. Connect surrounding rooms in a ring (each to next, last to first)
+  for(let i=1;i<rooms.length;i++){
+    const next=(i+1<rooms.length)?i+1:1; // wrap: last surrounding -> first surrounding
+    connectRoomsWide(rooms[i],rooms[next]);
+  }
+  // 4. Connect each surrounding room to boss room
+  for(let i=1;i<rooms.length;i++){
+    connectRoomsWide(rooms[i],rooms[0]);
+  }
+  // Place special tiles
+  placeSpecialTiles();
+  // Ensure connectivity
+  ensureFullConnectivity();
+}
+
+// Wide corridor (width 2) for ring map
+function connectRoomsWide(a,b){
+  let ax=a.cx,ay=a.cy,bx=b.cx,by=b.cy;
+  if(Math.random()>0.5){
+    carveCorrHWide(ay,ax,bx);carveCorrVWide(bx,ay,by);
+  }else{
+    carveCorrVWide(ax,ay,by);carveCorrHWide(by,ax,bx);
+  }
+}
+function carveCorrHWide(y,x1,x2){
+  const mn=Math.min(x1,x2),mx=Math.max(x1,x2);
+  for(let x=mn;x<=mx;x++){
+    for(let dy=0;dy<2;dy++){
+      const yy=y+dy;
+      if(yy>=0&&yy<MAP_H&&x>=0&&x<MAP_W&&map[yy][x]===TILE_WALL)map[yy][x]=TILE_FLOOR;
+    }
+  }
+}
+function carveCorrVWide(x,y1,y2){
+  const mn=Math.min(y1,y2),mx=Math.max(y1,y2);
+  for(let y=mn;y<=mx;y++){
+    for(let dx=0;dx<2;dx++){
+      const xx=x+dx;
+      if(y>=0&&y<MAP_H&&xx>=0&&xx<MAP_W&&map[y][xx]===TILE_WALL)map[y][xx]=TILE_FLOOR;
+    }
+  }
+}
+
+function connectRooms(a,b){
+  let cx=a.cx,cy=a.cy,tx=b.cx,ty=b.cy;
+  // L-shaped corridor
+  if(Math.random()>0.5){
+    carveCorrH(cy,cx,tx);carveCorrV(tx,cy,ty);
+  }else{
+    carveCorrV(cx,cy,ty);carveCorrH(ty,cx,tx);
+  }
+}
+function carveCorrH(y,x1,x2){
+  const mn=Math.min(x1,x2),mx=Math.max(x1,x2);
+  for(let x=mn;x<=mx;x++)if(y>=0&&y<MAP_H&&x>=0&&x<MAP_W)map[y][x]=TILE_FLOOR;
+}
+function carveCorrV(x,y1,y2){
+  const mn=Math.min(y1,y2),mx=Math.max(y1,y2);
+  for(let y=mn;y<=mx;y++)if(y>=0&&y<MAP_H&&x>=0&&x<MAP_W)map[y][x]=TILE_FLOOR;
+}
+
+function placeSpecialTiles(){
+  if(rooms.length<2)return;
+  // v6: Boss room is rooms[0], surrounding rooms are rooms[1..N]
+  // Altar in boss room (offset from center so boss doesn't sit on it)
+  const bossRoom=rooms[0];
+  map[bossRoom.cy-2][bossRoom.cx]=TILE_ALTAR;
+  // Springs in 2 surrounding rooms
+  if(rooms.length>=3){const sr=rooms[1];map[sr.cy][sr.cx]=TILE_SPRING;}
+  if(rooms.length>=4){const sr=rooms[3];map[sr.cy][sr.cx]=TILE_SPRING;}
+  // Portal remnants on corridors
+  let portalCount=0;
+  for(let att=0;att<200&&portalCount<4;att++){
+    const x=randInt(1,MAP_W-2),y=randInt(1,MAP_H-2);
+    if(map[y][x]===TILE_FLOOR&&!isInAnyRoom(x,y)){map[y][x]=TILE_PORTAL;portalCount++;}
+  }
+  // Bushes in room corners
+  let bushCount=0;
+  for(let att=0;att<300&&bushCount<8;att++){
+    const r=rooms[randInt(1,rooms.length-1)]; // Skip boss room for bushes
+    const bx=Math.random()>0.5?r.x:r.x+r.w-1;
+    const by=Math.random()>0.5?r.y:r.y+r.h-1;
+    if(bx>=0&&bx<MAP_W&&by>=0&&by<MAP_H&&map[by][bx]===TILE_FLOOR){map[by][bx]=TILE_BUSH;bushCount++;}
+  }
+  // Player start: surrounding room 1 (first), Bot start: opposite surrounding room
+  const surr=rooms.slice(1);
+  const halfIdx=Math.floor(surr.length/2);
+  playerStartX=surr[0].cx;playerStartY=surr[0].cy;
+  botStartX=surr[halfIdx].cx;botStartY=surr[halfIdx].cy;
+  // Ensure start positions are floor
+  map[playerStartY][playerStartX]=TILE_FLOOR;
+  map[botStartY][botStartX]=TILE_FLOOR;
+}
+
+function isInAnyRoom(x,y){return rooms.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h);}
+
+function ensureFullConnectivity(){
+  // BFS from player start, if bot start unreachable, carve path
+  let tries=0;
+  while(tries<100){
+    if(isConnected(playerStartX,playerStartY,botStartX,botStartY))return;
+    // Find a wall adjacent to explored area and carve
+    const vis=bfs(playerStartX,playerStartY);
+    let carved=false;
+    for(let y=1;y<MAP_H-1&&!carved;y++)for(let x=1;x<MAP_W-1&&!carved;x++){
+      if(vis[y][x]&&map[y][x]!==TILE_WALL){
+        for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+          const nx=x+dx,ny=y+dy;
+          if(nx>0&&nx<MAP_W-1&&ny>0&&ny<MAP_H-1&&map[ny][nx]===TILE_WALL){
+            map[ny][nx]=TILE_FLOOR;carved=true;break;
+          }
+        }
+      }
+    }
+    tries++;
+  }
+}
+
+function bfs(sx,sy){
+  const vis=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+  const q=[{x:sx,y:sy}];vis[sy][sx]=true;
+  while(q.length){
+    const{x,y}=q.shift();
+    for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){
+      const nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&!vis[ny][nx]&&map[ny][nx]!==TILE_WALL){vis[ny][nx]=true;q.push({x:nx,y:ny});}
+    }
+  }
+  return vis;
+}
+
+function isConnected(x1,y1,x2,y2){
+  const vis=bfs(x1,y1);
+  return vis[y2]&&vis[y2][x2];
+}
+
+function isWalkable(x,y){if(x<0||x>=MAP_W||y<0||y>=MAP_H)return false;const t=map[y][x];return t!==TILE_WALL;}
+function isBossFloor(x,y){return x>=0&&x<MAP_W&&y>=0&&y<MAP_H&&map[y][x]===TILE_BOSS_FLOOR;}
+function isOccupied(x,y,ex){
+  if(ex!==player&&player.x===x&&player.y===y)return true;
+  if(ex!==bot&&bot.x===x&&bot.y===y)return true;
+  if(boss&&boss.alive&&boss.x===x&&boss.y===y)return true;
+  return false;
+}
+function getBossAt(x,y){return boss&&boss.alive&&boss.x===x&&boss.y===y?boss:null;}
+function damageBoss(amount,attacker){
+  if(!boss||!boss.alive)return false;
+  boss.hp-=amount;
+  if(boss.hp<=0){
+    boss.alive=false;
+    attacker.xp+=10;
+    attacker.bossKill=(attacker.bossKill||0)+1;
+    // VP+5 via bossKill mechanism
+    if(attacker===player){
+      addLog('ボス撃破! XP+10! VP+5!','vp');
+      // Add legendary card reward
+      const legendReward={id:'bossReward',name:'龍の心臓',type:'伝説',ap:0,noise:0,desc:'ボス撃破報酬: AP+2,ドロー+2,XP+3',range:0,apRecover:2,extraDraw:2,xpGain:3,legendary:true,stock:1,tier:4,uid:Math.random()};
+      attacker.discard.push(legendReward);
+      addLog('伝説カード「龍の心臓」を獲得!','flag');
+    }else{
+      addLog('ボットがボスを撃破!','mob');
+      const legendReward={id:'bossReward',name:'龍の心臓',type:'伝説',ap:0,noise:0,desc:'ボス撃破報酬: AP+2,ドロー+2,XP+3',range:0,apRecover:2,extraDraw:2,xpGain:3,legendary:true,stock:1,tier:4,uid:Math.random()};
+      attacker.discard.push(legendReward);
+    }
+    return true;
+  }
+  return false;
+}
+// v6: Boss VP calculation helper
+const BOSS_VP_REWARD=5;
+
+// ===== UTILITY =====
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+
+// ===== MOB SYSTEM (v5) =====
+function spawnInitialMobs(){
+  mobs=[];
+  const count=randInt(5,8);
+  for(let i=0;i<count;i++)spawnOneMob(false);
+}
+
+function spawnOneMob(allowStrong){
+  if(mobs.filter(m=>m.alive).length>=MAX_MOBS)return;
+  // Pick rank based on turn
+  let def;
+  if(!allowStrong||turnNumber<10){
+    def=Math.random()<0.7?MOB_DEFS[randInt(0,1)]:MOB_DEFS[randInt(2,3)]; // E or D
+  }else if(turnNumber<20){
+    const r=Math.random();
+    if(r<0.3)def=MOB_DEFS[randInt(0,1)];
+    else if(r<0.7)def=MOB_DEFS[randInt(2,3)];
+    else def=MOB_DEFS[randInt(4,5)];
+  }else{
+    const r=Math.random();
+    if(r<0.2)def=MOB_DEFS[randInt(2,3)];
+    else if(r<0.6)def=MOB_DEFS[randInt(4,5)];
+    else def=MOB_DEFS[randInt(6,7)];
+  }
+  // Find spawn position
+  for(let att=0;att<200;att++){
+    const x=randInt(1,MAP_W-2),y=randInt(1,MAP_H-2);
+    if(map[y][x]===TILE_FLOOR&&Math.abs(x-player.x)+Math.abs(y-player.y)>5
+      &&Math.abs(x-bot.x)+Math.abs(y-bot.y)>5
+      &&!mobs.some(m=>m.alive&&m.x===x&&m.y===y)){
+      mobs.push({x,y,hp:def.hp,maxHp:def.hp,name:def.name,icon:def.icon,rank:def.rank,atk:def.atk,xpReward:def.xp,alive:true});
+      return;
+    }
+  }
+}
+
+function moveMobs(){
+  const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+  for(const m of mobs){
+    if(!m.alive)continue;
+    if(Math.random()<0.5)continue;
+    const seeRange=isInAnyRoom(m.x,m.y)?3:1;
+    const distP=Math.abs(m.x-player.x)+Math.abs(m.y-player.y);
+    const distB=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);
+    let tx=null,ty=null;
+    if(distP<=seeRange&&hasLOS(m.x,m.y,player.x,player.y)){tx=player.x;ty=player.y;}
+    else if(distB<=seeRange&&hasLOS(m.x,m.y,bot.x,bot.y)){tx=bot.x;ty=bot.y;}
+    if(tx!==null){
+      const path=findPath(m.x,m.y,tx,ty);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,null)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===n.x&&m2.y===n.y)){
+          m.x=n.x;m.y=n.y;
+        }
+      }
+    }else{
+      const sh=shuffle([...dirs]);
+      for(const[dx,dy]of sh){
+        const nx=m.x+dx,ny=m.y+dy;
+        if(isWalkable(nx,ny)&&!isOccupied(nx,ny,null)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===nx&&m2.y===ny)){
+          m.x=nx;m.y=ny;break;
+        }
+      }
+    }
+  }
+}
+
+async function moveMobsAnimated(){
+  const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+  for(const m of mobs){
+    if(!m.alive||gameOver)continue;
+    if(Math.random()<0.5)continue;
+    const seeRange=isInAnyRoom(m.x,m.y)?3:1;
+    const distP=Math.abs(m.x-player.x)+Math.abs(m.y-player.y);
+    const distB=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);
+    let tx=null,ty=null;
+    if(distP<=seeRange&&hasLOS(m.x,m.y,player.x,player.y)){tx=player.x;ty=player.y;}
+    else if(distB<=seeRange&&hasLOS(m.x,m.y,bot.x,bot.y)){tx=bot.x;ty=bot.y;}
+    const oldX=m.x,oldY=m.y;
+    let moved=false;
+    if(tx!==null){
+      const path=findPath(m.x,m.y,tx,ty);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,null)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===n.x&&m2.y===n.y)){
+          m.x=n.x;m.y=n.y;moved=true;
+        }
+      }
+    }else{
+      const sh=shuffle([...dirs]);
+      for(const[dx,dy]of sh){
+        const nx=m.x+dx,ny=m.y+dy;
+        if(isWalkable(nx,ny)&&!isOccupied(nx,ny,null)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===nx&&m2.y===ny)){
+          m.x=nx;m.y=ny;moved=true;break;
+        }
+      }
+    }
+    if(moved){
+      const isVisible=fogState[m.y]&&fogState[m.y][m.x]===2;
+      const wasVisible=fogState[oldY]&&fogState[oldY][oldX]===2;
+      if(isVisible||wasVisible){
+        addMobActionEffect(m.x,m.y);
+        addLog(`${m.name}が移動した`,'mob-action');
+        render();
+        await delay(300);
+      }else{
+        // Out of sight - show noise ripple if close
+        noiseRipples.push({x:m.x,y:m.y,radius:0.2,maxRadius:0.8,alpha:0.3,color:'#ff884488'});
+      }
+    }
+  }
+}
+
+async function mobsAttackAnimated(){
+  for(const m of mobs){
+    if(!m.alive||gameOver)continue;
+    const distP=Math.abs(m.x-player.x)+Math.abs(m.y-player.y);
+    if(distP===1){
+      addMobActionEffect(m.x,m.y);
+      if(player.invulnTurns>0){addLog(`${m.name}の攻撃を無敵で無効化!`,'mob-action');}
+      else{
+        player.hp-=m.atk;
+        addLog(`${m.name}がプレイヤーに攻撃! ${m.atk}ダメージ!`,'mob-action');
+        if(player.hp<=0&&player.hasFlag)dropFlag(player);
+      }
+      render();
+      await delay(300);
+    }
+    const distB=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);
+    if(distB===1){
+      if(bot.invulnTurns>0){}
+      else{bot.hp-=m.atk;if(bot.hp<=0&&bot.hasFlag)dropFlag(bot);}
+    }
+  }
+  // v6: Boss attacks adjacent players
+  if(boss&&boss.alive){
+    const distP=Math.abs(boss.x-player.x)+Math.abs(boss.y-player.y);
+    if(distP<=1){
+      screenShake();
+      if(player.invulnTurns>0){addLog(`${boss.name}の攻撃を無敵で無効化!`,'boss-action');}
+      else{
+        player.hp-=boss.atk;
+        addLog(`${boss.name}がプレイヤーに攻撃! ${boss.atk}ダメージ!`,'boss-action');
+        if(player.hp<=0&&player.hasFlag)dropFlag(player);
+      }
+      updateBossHPOverlay();
+      render();
+      await delay(500);
+    }
+    const distB=Math.abs(boss.x-bot.x)+Math.abs(boss.y-bot.y);
+    if(distB<=1){
+      if(bot.invulnTurns>0){}
+      else{
+        bot.hp-=boss.atk;
+        addLog(`${boss.name}がボットに攻撃! ${boss.atk}ダメージ!`,'boss-action');
+        if(bot.hp<=0&&bot.hasFlag)dropFlag(bot);
+      }
+      render();
+      await delay(500);
+    }
+  }
+}
+
+function mobsAttack(){
+  for(const m of mobs){
+    if(!m.alive)continue;
+    const distP=Math.abs(m.x-player.x)+Math.abs(m.y-player.y);
+    if(distP===1){
+      if(player.invulnTurns>0){addLog(`${m.name}の攻撃を無敵で無効化!`,'info');}
+      else{player.hp-=m.atk;addLog(`${m.name}が攻撃! ${m.atk}ダメージ!`,'mob');if(player.hp<=0&&player.hasFlag)dropFlag(player);}
+    }
+    const distB=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);
+    if(distB===1){
+      if(bot.invulnTurns>0){}
+      else{bot.hp-=m.atk;if(bot.hp<=0&&bot.hasFlag)dropFlag(bot);}
+    }
+  }
+  // v6: Boss attacks adjacent players
+  if(boss&&boss.alive){
+    const distP=Math.abs(boss.x-player.x)+Math.abs(boss.y-player.y);
+    if(distP<=1){
+      if(player.invulnTurns>0){addLog(`${boss.name}の攻撃を無敵で無効化!`,'info');}
+      else{player.hp-=boss.atk;addLog(`${boss.name}が攻撃! ${boss.atk}ダメージ!`,'mob');if(player.hp<=0&&player.hasFlag)dropFlag(player);}
+    }
+    const distB=Math.abs(boss.x-bot.x)+Math.abs(boss.y-bot.y);
+    if(distB<=1){
+      if(bot.invulnTurns>0){}
+      else{bot.hp-=boss.atk;if(bot.hp<=0&&bot.hasFlag)dropFlag(bot);}
+    }
+  }
+}
+
+function damageMob(m,amount,attacker){
+  m.hp-=amount;
+  if(m.hp<=0){
+    m.alive=false;
+    attacker.xp+=m.xpReward;
+    if(attacker===player)addLog(`${m.name}を撃破! XP+${m.xpReward}`,'buy');
+    return true;
+  }
+  return false;
+}
+
+function getMobAt(x,y){return mobs.find(m=>m.alive&&m.x===x&&m.y===y)||null;}
+
+// ===== EVENT SYSTEM =====
+function checkRandomEvent(){
+  const elapsed=turnNumber-eventState.lastEventTurn;
+  if(elapsed<5)return;
+  const chance=Math.min(100,(elapsed-4)*20);
+  if(Math.random()*100>=chance)return;
+  // Pick event by weighted probability
+  const total=EVENT_DEFS.reduce((s,e)=>s+e.prob,0);
+  let r=Math.random()*total;
+  for(const ev of EVENT_DEFS){
+    r-=ev.prob;
+    if(r<=0){
+      ev.apply();
+      showEventBanner(ev.icon+' '+ev.name,ev.desc,ev.color);
+      eventState.lastEventTurn=turnNumber;
+      return;
+    }
+  }
+}
+
+function earthquakeEffect(){
+  // Collapse 1-2 corridor tiles, open 1 new path
+  let collapsed=0;
+  for(let att=0;att<200&&collapsed<2;att++){
+    const x=randInt(1,MAP_W-2),y=randInt(1,MAP_H-2);
+    if(map[y][x]===TILE_FLOOR&&!isInAnyRoom(x,y)&&!(player.x===x&&player.y===y)&&!(bot.x===x&&bot.y===y)&&!getMobAt(x,y)){
+      // Check it won't disconnect the map
+      map[y][x]=TILE_WALL;
+      if(isConnected(playerStartX,playerStartY,botStartX,botStartY)){collapsed++;}
+      else{map[y][x]=TILE_FLOOR;}
+    }
+  }
+  // Open new path
+  for(let att=0;att<200;att++){
+    const x=randInt(1,MAP_W-2),y=randInt(1,MAP_H-2);
+    if(map[y][x]===TILE_WALL){
+      let adjFloor=0;
+      for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+        if(map[y+dy]&&map[y+dy][x+dx]!==TILE_WALL)adjFloor++;
+      }
+      if(adjFloor>=2){map[y][x]=TILE_FLOOR;break;}
+    }
+  }
+  // Push flags if on collapsed tiles
+  [flagBlue,flagRed].forEach(f=>{
+    if(f.carrier===null&&map[f.y]&&map[f.y][f.x]===TILE_WALL){
+      for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+        if(isWalkable(f.x+dx,f.y+dy)){f.x+=dx;f.y+=dy;break;}
+      }
+    }
+  });
+}
+
+function placeTreasure(){
+  for(let att=0;att<200;att++){
+    const x=randInt(1,MAP_W-2),y=randInt(1,MAP_H-2);
+    if(map[y][x]===TILE_FLOOR&&!getMobAt(x,y)&&!(player.x===x&&player.y===y)&&!(bot.x===x&&bot.y===y)){
+      map[y][x]=TILE_TREASURE;return;
+    }
+  }
+}
+
+function darkTideEffect(){
+  for(const m of mobs){
+    if(!m.alive)continue;
+    const distP=Math.abs(m.x-player.x)+Math.abs(m.y-player.y);
+    const distB=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);
+    const tx=distP<=distB?player.x:bot.x;
+    const ty=distP<=distB?player.y:bot.y;
+    for(let step=0;step<2;step++){
+      const path=findPath(m.x,m.y,tx,ty);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,null)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===n.x&&m2.y===n.y)){
+          m.x=n.x;m.y=n.y;
+        }
+      }
+    }
+  }
+}
+
+function showEventBanner(title,desc,color){
+  const el=document.getElementById('event-banner');
+  el.style.background='rgba(0,0,0,0.85)';
+  el.style.color=color;
+  el.style.borderColor=color;
+  el.innerHTML=`<div style="font-size:20px">${title}</div><div style="font-size:13px;color:#ccc;margin-top:4px">${desc}</div>`;
+  el.style.opacity=1;
+  setTimeout(()=>{el.style.opacity=0;},3000);
+}
+
+// ===== VICTORY POINTS =====
+function calcVP(entity){
+  let vp=0;
+  vp+=(entity.flagCaptures||0)*20;
+  vp+=(entity.killCount||0)*3;
+  vp+=(entity.bossKill||0)*BOSS_VP_REWARD; // v6: boss kill VP
+  // Count VP cards in deck
+  const all=getAllDeckCards(entity);
+  for(const c of all){if(c.vpValue)vp+=c.vpValue;}
+  return vp;
+}
+
+// ===== INIT =====
+function init(){
+  generateMap();
+  initSupply();
+
+  player={x:playerStartX,y:playerStartY,hp:1,maxHp:1,ap:4,xp:0,noise:0,defense:0,
+    deck:shuffle(makeInitialDeck()),hand:[],discard:[],
+    viewRadius:VIEW_RADIUS,hasFlag:false,flagColor:null,
+    silenceTurns:0,trackingTurns:0,shieldActive:false,reflectActive:false,
+    bindTurns:0,detected:[],passives:[],cumulativeNoise:0,
+    buysLeft:1,flagSilenceActive:false,tempVisionBonus:0,
+    atkBoostTurns:0,atkBoost:0,fullVisionTurns:0,invulnTurns:0,
+    flagCaptures:0,killCount:0,bossKill:0};
+  bot={x:botStartX,y:botStartY,hp:1,maxHp:1,ap:4,xp:0,noise:0,defense:0,
+    deck:shuffle(makeInitialDeck()),hand:[],discard:[],
+    viewRadius:VIEW_RADIUS,hasFlag:false,flagColor:null,
+    silenceTurns:0,trackingTurns:0,shieldActive:false,reflectActive:false,
+    bindTurns:0,detected:[],passives:[],cumulativeNoise:0,
+    lastKnownPlayerDir:null,lastKnownPlayerNoise:0,mode:'explore',
+    buysLeft:1,flagSilenceActive:false,tempVisionBonus:0,
+    atkBoostTurns:0,atkBoost:0,fullVisionTurns:0,invulnTurns:0,
+    flagCaptures:0,killCount:0,bossKill:0};
+
+  spawnInitialMobs();
+
+  // v6: Spawn boss in center of boss room
+  const bossRoom=rooms[0];
+  boss={x:bossRoom.cx,y:bossRoom.cy,hp:10,maxHp:10,atk:3,alive:true,name:'深淵の守護者',icon:'龍'};
+
+  // Flags near start points
+  flagBlue={x:playerStartX,y:Math.min(MAP_H-1,playerStartY+1),carrier:null,homeX:playerStartX,homeY:Math.min(MAP_H-1,playerStartY+1),dropTurn:0};
+  flagRed={x:botStartX,y:Math.min(MAP_H-1,botStartY+1),carrier:null,homeX:botStartX,homeY:Math.min(MAP_H-1,botStartY+1),dropTurn:0};
+  // Ensure flag positions walkable
+  if(!isWalkable(flagBlue.x,flagBlue.y)){flagBlue.y=playerStartY;flagBlue.homeY=playerStartY;}
+  if(!isWalkable(flagRed.x,flagRed.y)){flagRed.y=botStartY;flagRed.homeY=botStartY;}
+
+  fogState=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
+  phantoms=[];poisonClouds=[];blindShotMode=false;blindShotCard=null;
+  eventState={lastEventTurn:0,fogTurns:0,blessBuyDiscount:0};
+  mobSpawnCounter=0;nextMobSpawnIn=randInt(4,5);
+
+  drawCards(player,HAND_LIMIT);
+  drawCards(bot,HAND_LIMIT);
+  updateCamera();updateFog();resizeCanvas();
+  showBanner('v6 ゲーム開始!');
+  addLog('v6: 環状マップ! 中央にボス! 勝利点30VPで勝利!','flag');
+  addLog('初期デッキ3枚! XPを稼いでサプライで強化せよ!','info');
+  addLog('中央ボス(HP10)撃破でXP+10,VP+5,伝説カード!','event');
+  startPlayerTurn();
+}
+
+function initSupply(){
+  supplyTier1=[...TIER1_SUPPLY].map(c=>({...c,remaining:c.stock}));
+  supplyTier2=[...TIER2_SUPPLY].map(c=>({...c,remaining:c.stock}));
+  supplyTier3=[...TIER3_SUPPLY].map(c=>({...c,remaining:c.stock}));
+  supplyLegendary=[];
+  supplyVP=[...VP_SUPPLY].map(c=>({...c,remaining:c.stock}));
+  supplyHP=[...HP_SUPPLY].map(c=>({...c,remaining:c.stock}));
+}
+
+// ===== DECK / CARDS =====
+function drawCards(entity,count){
+  for(let i=0;i<count;i++){
+    if(entity.hand.length>=HAND_LIMIT)break;
+    if(entity.deck.length===0){
+      if(entity.discard.length===0)break;
+      entity.deck=shuffle([...entity.discard]);entity.discard=[];
+      if(entity===player)addLog('捨て札をシャッフルして新デッキ作成','info');
+    }
+    entity.hand.push(entity.deck.pop());
+  }
+}
+function getEffectiveNoise(entity,card){
+  let n=card.noise;
+  if(entity.hasFlag&&!entity.flagSilenceActive)n+=2;
+  if(entity.silenceTurns>0)n=0;
+  return n;
+}
+function getEffectiveAP(entity,card){
+  let ap=card.ap;
+  if(entity.passives.includes('apReduce'))ap=Math.max(0,ap-1);
+  if(entity===player&&nextApDiscount>0)ap=Math.max(0,ap-nextApDiscount);
+  return ap;
+}
+function getAllDeckCards(entity){return[...entity.deck,...entity.hand,...entity.discard];}
+
+// ===== FOG OF WAR =====
+function updateFog(){
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++)if(fogState[y][x]===2)fogState[y][x]=1;
+  let vr=player.viewRadius+player.tempVisionBonus;
+  if(eventState.fogTurns>0)vr=Math.max(1,vr-1);
+  if(player.fullVisionTurns>0){
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++)fogState[y][x]=2;
+  }else{
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+      const dist=Math.abs(x-player.x)+Math.abs(y-player.y);
+      if(dist<=vr&&hasLOS(player.x,player.y,x,y))fogState[y][x]=2;
+    }
+  }
+  if(player.trackingTurns>0)fogState[bot.y][bot.x]=2;
+}
+function hasLOS(x1,y1,x2,y2){
+  const dx=Math.abs(x2-x1),dy=Math.abs(y2-y1),sx=x1<x2?1:-1,sy=y1<y2?1:-1;
+  let err=dx-dy,cx=x1,cy=y1;
+  while(cx!==x2||cy!==y2){
+    const e2=2*err;if(e2>-dy){err-=dy;cx+=sx;}if(e2<dx){err+=dx;cy+=sy;}
+    if(cx===x2&&cy===y2)return true;
+    if(cx>=0&&cx<MAP_W&&cy>=0&&cy<MAP_H&&map[cy][cx]===TILE_WALL)return false;
+  }
+  return true;
+}
+function canSee(entity,tx,ty){
+  let vr=(entity.viewRadius||VIEW_RADIUS)+(entity.tempVisionBonus||0);
+  if(eventState.fogTurns>0)vr=Math.max(1,vr-1);
+  if(entity.fullVisionTurns&&entity.fullVisionTurns>0)return true;
+  return Math.abs(tx-entity.x)+Math.abs(ty-entity.y)<=vr&&hasLOS(entity.x,entity.y,tx,ty);
+}
+
+// ===== NOISE =====
+function addNoise(entity,amount){
+  if(entity.silenceTurns>0)amount=0;
+  if(entity.hasFlag&&!entity.flagSilenceActive)amount+=2;
+  entity.noise+=amount;entity.cumulativeNoise+=amount;
+  if(amount>0){
+    noiseRipples.push({x:entity.x,y:entity.y,radius:0.3,maxRadius:amount*1.2+1,alpha:0.6,
+      color:entity.hasFlag?'#ffd700':entity===player?'#4488ff':'#ff4444'});
+    if(entity===player){
+      bot.lastKnownPlayerDir=Math.atan2(player.y-bot.y,player.x-bot.x);
+      bot.lastKnownPlayerNoise=amount;bot.lastNoiseX=player.x;bot.lastNoiseY=player.y;
+    }
+  }
+}
+
+// ===== SUPPLY / SHOP =====
+function isOnAltar(entity){return map[entity.y]&&map[entity.y][entity.x]===TILE_ALTAR;}
+
+function openShop(){renderShopModal();document.getElementById('shop-modal').classList.add('active');}
+function closeShop(){document.getElementById('shop-modal').classList.remove('active');render();}
+
+function renderShopModal(){
+  document.getElementById('shop-xp').textContent=player.xp;
+  document.getElementById('shop-deck-count').textContent=getAllDeckCards(player).length;
+  document.getElementById('shop-maxhp').textContent=player.maxHp;
+
+  const container=document.getElementById('shop-all-grid');
+  container.innerHTML='';
+
+  // v6: All categories in one screen with section labels
+  const sections=[
+    {label:'勝利点カード',cls:'vp-label',cards:supplyVP,pool:'vp',extra:'vp-card',isLeg:false},
+    {label:'HP強化',cls:'hp-label',cards:supplyHP,pool:'hp',extra:'hp-card',isLeg:false},
+    {label:'Tier1 (XP 1-2)',cls:'tier1-label',cards:supplyTier1,pool:'t1',extra:'tier1-border',isLeg:false},
+    {label:'Tier2 (XP 3-4)',cls:'tier2-label',cards:supplyTier2,pool:'t2',extra:'tier2-border',isLeg:false},
+    {label:'Tier3 (XP 6-7)',cls:'tier3-label',cards:supplyTier3,pool:'t3',extra:'tier3-border',isLeg:false},
+  ];
+
+  sections.forEach(sec=>{
+    const lbl=document.createElement('div');
+    lbl.className='shop-section-label '+sec.cls;
+    lbl.textContent=sec.label;
+    container.appendChild(lbl);
+    container.appendChild(makeSupplyGrid(sec.cards,sec.isLeg,sec.pool,sec.extra));
+  });
+}
+
+function makeSupplyGrid(cards,isLeg,pool,extraCls){
+  const grid=document.createElement('div');grid.className='shop-grid';
+  cards.forEach((c,i)=>{
+    const sold=c.remaining<=0;
+    let effectiveCost=c.xpCost;
+    if(eventState.blessBuyDiscount>0)effectiveCost=Math.max(1,effectiveCost-eventState.blessBuyDiscount);
+    const canAfford=player.xp>=effectiveCost; // v6: no buy limit check
+    const div=document.createElement('div');
+    div.className='shop-card'+(isLeg?' legendary':'')+(extraCls?' '+extraCls:'')+(sold?' sold':'');
+    if(!canAfford&&!sold)div.style.opacity='0.5';
+    const tc=typeColor(c.type);
+    let costLabel=effectiveCost<c.xpCost?`<s>${c.xpCost}</s> ${effectiveCost}`:c.xpCost;
+    div.innerHTML=`<div class="sc-stock">残${c.remaining}</div>
+      <div class="sc-name"${isLeg?' style="color:#ffd700"':''}>${c.name}${isLeg?' [伝説]':''}</div>
+      <div class="sc-type" style="color:${tc}">${c.type}</div>
+      <div class="sc-effect">${c.desc}</div>
+      <div class="sc-bottom"><span class="sc-cost"${isLeg?' style="color:#ffd700"':''}>XP:${costLabel}</span>${c.isHP?'<span style="color:#ff66aa">消耗</span>':c.isVP?'<span style="color:#ffd700">VP:'+c.vpValue+'</span>':'<span class="sc-ap">AP:'+c.ap+'</span>'}</div>`;
+    if(!sold&&canAfford){div.style.cursor='pointer';div.onclick=()=>buyFromSupply(pool,i);}
+    grid.appendChild(div);
+  });
+  return grid;
+}
+
+function buyFromSupply(pool,idx){
+  // v6: no buy limit - XPがある限り何枚でも購入可能
+  let sc;
+  if(pool==='vp')sc=supplyVP[idx];
+  else if(pool==='hp')sc=supplyHP[idx];
+  else if(pool==='t1')sc=supplyTier1[idx];
+  else if(pool==='t2')sc=supplyTier2[idx];
+  else if(pool==='t3')sc=supplyTier3[idx];
+  else sc=supplyLegendary[idx];
+  if(!sc||sc.remaining<=0)return;
+  let cost=sc.xpCost;
+  if(eventState.blessBuyDiscount>0){cost=Math.max(1,cost-eventState.blessBuyDiscount);eventState.blessBuyDiscount=0;}
+  if(player.xp<cost){addLog('XP不足!','info');return;}
+  player.xp-=cost;sc.remaining--;
+
+  // HP upgrade cards: apply immediately, don't enter deck
+  if(sc.isHP){
+    player.maxHp+=sc.hpUp;
+    player.hp=Math.min(player.maxHp,player.hp+sc.hpUp);
+    addLog(`「${sc.name}」購入! 最大HP+${sc.hpUp} (HP:${player.hp}/${player.maxHp})`,'buy');
+    renderShopModal();render();return;
+  }
+
+  const nc={...sc,uid:Math.random()};delete nc.remaining;delete nc.stock;
+  player.discard.push(nc);
+  if(sc.isVP)addLog(`「${sc.name}」購入! 勝利点+${sc.vpValue} (XP-${cost})`,'vp');
+  else addLog(`「${sc.name}」を購入! (XP-${cost}) 捨て札へ追加`,'buy');
+  renderShopModal();render();
+}
+
+// ===== TRASH =====
+function openTrashSelect(){
+  const list=document.getElementById('trash-list');list.innerHTML='';
+  player.hand.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='deck-card'+(c.starter?' dc-starter':'');
+    div.style.cursor='pointer';
+    div.innerHTML=`<div class="dc-name">${c.name}</div><div class="dc-type" style="color:${typeColor(c.type)}">${c.type} | AP:${c.ap}</div>`;
+    div.onclick=()=>trashCard(i);
+    list.appendChild(div);
+  });
+  document.getElementById('trash-modal').classList.add('active');trashMode=true;
+}
+function trashCard(i){
+  const card=player.hand[i];if(!card)return;
+  player.hand.splice(i,1);
+  addLog(`「${card.name}」を永久除外!（デッキ圧縮）`,'shop');
+  closeTrash();updateFog();render();
+}
+function closeTrash(){document.getElementById('trash-modal').classList.remove('active');trashMode=false;}
+
+// ===== DECK VIEWER (v6: with detail panel + stats) =====
+function openDeck(){
+  const all=getAllDeckCards(player);
+  document.getElementById('deck-total').textContent=all.length;
+  // Stats
+  const statsEl=document.getElementById('deck-stats');
+  const moveCount=all.filter(c=>c.type==='移動').length;
+  const atkCount=all.filter(c=>c.type==='攻撃').length;
+  const utilCount=all.filter(c=>c.type!=='移動'&&c.type!=='攻撃'&&!c.isVP).length;
+  const vpCount=all.filter(c=>c.isVP).length;
+  const starterCount=all.filter(c=>c.starter).length;
+  const totalVP=all.reduce((s,c)=>s+(c.vpValue||0),0);
+  statsEl.innerHTML=`
+    <div class="ds-item"><div class="ds-val">${moveCount}</div>移動</div>
+    <div class="ds-item"><div class="ds-val">${atkCount}</div>攻撃</div>
+    <div class="ds-item"><div class="ds-val">${utilCount}</div>補助</div>
+    <div class="ds-item"><div class="ds-val">${vpCount}</div>VP札</div>
+    <div class="ds-item"><div class="ds-val">${starterCount}</div>初期</div>
+    <div class="ds-item"><div class="ds-val">${totalVP}</div>VP合計</div>`;
+  // Card list
+  const list=document.getElementById('deck-list');list.innerHTML='';
+  const detailEl=document.getElementById('deck-detail');detailEl.style.display='none';
+  all.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='deck-card'+(c.starter?' dc-starter':'');
+    div.style.cursor='pointer';
+    div.innerHTML=`<div class="dc-name">${c.name}</div><div class="dc-type" style="color:${typeColor(c.type)}">${c.type}${c.vpValue?' | VP:'+c.vpValue:' | AP:'+c.ap}</div>`;
+    div.onclick=()=>{
+      detailEl.style.display='block';
+      detailEl.innerHTML=`<div class="detail-name" style="color:${typeColor(c.type)}">${c.name}</div>
+        <div style="font-size:11px;color:#7766aa">${c.type}${c.starter?' [初期カード]':''}${c.isVP?' [デッドカード]':''}</div>
+        <div class="detail-desc">${c.desc}</div>
+        <div style="margin-top:4px;font-size:11px">AP: ${c.ap} | ノイズ: ${c.noise}${c.range?' | 射程: '+c.range:''}${c.vpValue?' | VP: '+c.vpValue:''}</div>`;
+    };
+    list.appendChild(div);
+  });
+  document.getElementById('deck-modal').classList.add('active');
+}
+function closeDeck(){document.getElementById('deck-modal').classList.remove('active');}
+
+// ===== DEATH & RESPAWN (v5) =====
+function handleDeath(entity){
+  // Drop flag
+  if(entity.hasFlag)dropFlag(entity);
+  // XP halved
+  entity.xp=Math.floor(entity.xp/2);
+  // Move to start
+  const sx=entity===player?playerStartX:botStartX;
+  const sy=entity===player?playerStartY:botStartY;
+  entity.x=sx;entity.y=sy;
+  // Full heal
+  entity.hp=entity.maxHp;
+  // Invuln 1 turn
+  entity.invulnTurns=1;
+
+  if(entity===player){
+    addLog('倒された... XP半減! 初期位置にリスポーン!','dmg');
+    showRespawnOverlay();
+  }else{
+    addLog('ボットが倒された! リスポーン!','info');
+  }
+}
+
+function showRespawnOverlay(){
+  respawning=true;
+  const ov=document.getElementById('respawn-overlay');
+  const tx=document.getElementById('respawn-text');
+  ov.classList.add('active');
+  ov.style.background='rgba(100,0,0,0.6)';
+  tx.textContent='倒された...';tx.style.opacity=1;tx.style.color='#ff4444';
+  setTimeout(()=>{
+    ov.style.background='rgba(0,0,0,0.9)';
+    tx.textContent='リスポーン中...';tx.style.color='#aaa';
+  },800);
+  setTimeout(()=>{
+    ov.style.background='rgba(255,255,200,0.15)';
+    tx.textContent='復活!';tx.style.color='#ffd700';
+    updateCamera();updateFog();render();
+  },2000);
+  setTimeout(()=>{
+    tx.style.opacity=0;ov.style.background='rgba(0,0,0,0)';
+    setTimeout(()=>{ov.classList.remove('active');respawning=false;},400);
+  },3000);
+}
+
+// ===== TURN FLOW =====
+function getAPRegen(){if(turnNumber<=10)return 4;if(turnNumber<=20)return 5;return 6;}
+function getGamePhaseName(){
+  if(turnNumber<=10)return{name:'序盤:探索',cls:'phase-early'};
+  if(turnNumber<=20)return{name:'中盤:構築',cls:'phase-mid'};
+  if(turnNumber<=35)return{name:'終盤:決戦',cls:'phase-late'};
+  return{name:'最終盤:収束',cls:'phase-final'};
+}
+
+function startPlayerTurn(){
+  if(gameOver)return;
+  const regen=getAPRegen();
+  player.ap=Math.min(MAX_AP,player.ap+regen);
+  player.noise=0;player.defense=0;player.shieldActive=false;player.reflectActive=false;
+  player.flagSilenceActive=false;player.tempVisionBonus=0;
+  nextApDiscount=0;
+  if(player.silenceTurns>0)player.silenceTurns--;
+  if(player.trackingTurns>0)player.trackingTurns--;
+  if(player.fullVisionTurns>0)player.fullVisionTurns--;
+  if(player.atkBoostTurns>0)player.atkBoostTurns--;
+  if(player.invulnTurns>0)player.invulnTurns--;
+  if(player.bindTurns>0){player.bindTurns--;if(player.bindTurns>0)addLog('束縛中! 移動不可','dmg');}
+  if(eventState.fogTurns>0)eventState.fogTurns--;
+  drawCards(player,HAND_LIMIT-player.hand.length);
+  checkFlagAutoReturn();
+  applyPoisonDamage();
+  phantoms=phantoms.filter(p=>{p.turnsLeft--;return p.turnsLeft>0;});
+  gamePhase='action';selectedCardIndex=-1;blindShotMode=false;
+  player.buysLeft=1;
+  if(isOnAltar(player)){player.buysLeft=2;addLog('祭壇上! 追加購入+1','buy');}
+  updateCamera();updateFog();render();showBanner(`ターン ${turnNumber}`);
+  checkVPWin();
+}
+
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+function setEnemyTurnActive(active){
+  enemyTurnActive=active;
+  const ind=document.getElementById('enemy-turn-indicator');
+  ind.style.opacity=active?'1':'0';
+  document.getElementById('btn-end-turn').disabled=active;
+  document.getElementById('btn-shop').disabled=active;
+}
+
+function screenShake(){
+  const el=document.getElementById('game-container');
+  el.classList.add('shake');
+  setTimeout(()=>el.classList.remove('shake'),300);
+}
+
+function addBotActionEffect(x,y){
+  noiseRipples.push({x:x,y:y,radius:0.2,maxRadius:1.5,alpha:0.7,color:'#ff4444'});
+}
+
+function addMobActionEffect(x,y){
+  noiseRipples.push({x:x,y:y,radius:0.2,maxRadius:1.0,alpha:0.5,color:'#ff8844'});
+}
+
+function updateBossHPOverlay(){
+  const el=document.getElementById('boss-hp-overlay');
+  if(boss&&boss.alive){
+    el.style.display='block';
+    document.getElementById('boss-hp-fill').style.width=Math.max(0,boss.hp/boss.maxHp*100)+'%';
+    document.getElementById('boss-hp-text').textContent=`${Math.max(0,boss.hp)}/${boss.maxHp}`;
+  }else{
+    el.style.display='none';
+  }
+}
+
+async function endTurnFull(){
+  if(gameOver||respawning||enemyTurnActive)return;
+  // Environment phase
+  environmentPhase();if(gameOver)return;
+  // Discard entire hand
+  while(player.hand.length>0)player.discard.push(player.hand.pop());
+
+  // === ENEMY TURN START ===
+  gamePhase='botTurn';
+  setEnemyTurnActive(true);
+  render();
+
+  // Mob movement (one by one)
+  await moveMobsAnimated();
+  if(gameOver){setEnemyTurnActive(false);return;}
+
+  // Mob attacks (one by one)
+  await mobsAttackAnimated();
+  if(gameOver){setEnemyTurnActive(false);return;}
+
+  // Check death
+  checkDeathAll();
+  if(gameOver){setEnemyTurnActive(false);return;}
+
+  // Mob spawning
+  mobSpawnCounter++;
+  if(mobSpawnCounter>=nextMobSpawnIn){
+    const cnt=randInt(1,2);
+    for(let i=0;i<cnt;i++)spawnOneMob(true);
+    mobSpawnCounter=0;
+    if(turnNumber<10)nextMobSpawnIn=randInt(4,5);
+    else if(turnNumber<20)nextMobSpawnIn=randInt(3,4);
+    else nextMobSpawnIn=3;
+    addLog(`モブ出現! (${mobs.filter(m=>m.alive).length}/${MAX_MOBS}体)`,'system');
+  }
+  // Random events
+  checkRandomEvent();
+  // VP check
+  checkVPWin();if(gameOver){setEnemyTurnActive(false);return;}
+
+  // Bot turn (animated)
+  await delay(300);
+  addLog('--- ボットのターン ---','bot-action');
+  render();
+  await botTurnAnimated();
+
+  setEnemyTurnActive(false);
+
+  if(!gameOver){
+    turnNumber++;
+    if(turnNumber>MAX_TURNS){endGameTimeout();return;}
+    startPlayerTurn();
+  }
+}
+
+function environmentPhase(){
+  // Treasure pickup
+  if(map[player.y][player.x]===TILE_TREASURE){
+    player.xp+=5;map[player.y][player.x]=TILE_FLOOR;
+    addLog('宝箱発見! XP+5!','buy');
+  }
+  // Portal remnant (v5: still gives XP)
+  if(map[player.y][player.x]===TILE_PORTAL){
+    const bonus=2;player.xp+=bonus;map[player.y][player.x]=TILE_FLOOR;
+    addLog(`ポータル残滓を回収! XP+${bonus}`,'info');
+  }
+  // Spring heal
+  if(map[player.y][player.x]===TILE_SPRING){
+    const heal=Math.min(1,player.maxHp-player.hp);
+    if(heal>0){player.hp+=heal;addLog(`泉で回復! HP+${heal}`,'heal');}
+  }
+  // v5: NO XP from stealth/movement
+  player.cumulativeNoise=0;
+}
+
+function checkDeathAll(){
+  if(player.hp<=0){
+    // Who killed player? If it was bot's attack, bot gets VP
+    // (simplified: check if bot is adjacent)
+    const distBot=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);
+    if(distBot<=2){bot.killCount=(bot.killCount||0)+1;addLog('ボットに倒された! 相手に勝利点+3','vp');}
+    handleDeath(player);
+    updateCamera();updateFog();render();
+  }
+  if(bot.hp<=0){
+    const distP=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);
+    if(distP<=2){player.killCount=(player.killCount||0)+1;addLog('対人キル! 勝利点+3!','vp');}
+    handleDeath(bot);
+  }
+}
+
+function checkVPWin(){
+  if(gameOver)return;
+  const pvp=calcVP(player),bvp=calcVP(bot);
+  if(pvp>=VP_WIN){endGame(true,`勝利点${pvp}で勝利!`);return;}
+  if(bvp>=VP_WIN){endGame(false,`ボットが勝利点${bvp}で勝利...`);return;}
+}
+
+// ===== FLAG SYSTEM =====
+function checkFlagPickup(e){
+  if(e===player){
+    if(!e.hasFlag&&flagRed.carrier===null&&e.x===flagRed.x&&e.y===flagRed.y){flagRed.carrier=player;e.hasFlag=true;e.flagColor='red';addLog('赤旗を拾った! 自陣に持ち帰れ!','flag');}
+    if(flagBlue.carrier===null&&e.x===flagBlue.x&&e.y===flagBlue.y&&(flagBlue.x!==flagBlue.homeX||flagBlue.y!==flagBlue.homeY)){flagBlue.x=flagBlue.homeX;flagBlue.y=flagBlue.homeY;flagBlue.dropTurn=0;addLog('青旗を回収! 自陣帰還','flag');}
+  }
+  if(e===bot){
+    if(!e.hasFlag&&flagBlue.carrier===null&&e.x===flagBlue.x&&e.y===flagBlue.y){flagBlue.carrier=bot;e.hasFlag=true;e.flagColor='blue';}
+    if(flagRed.carrier===null&&e.x===flagRed.x&&e.y===flagRed.y&&(flagRed.x!==flagRed.homeX||flagRed.y!==flagRed.homeY)){flagRed.x=flagRed.homeX;flagRed.y=flagRed.homeY;flagRed.dropTurn=0;}
+  }
+}
+function checkFlagCapture(e){
+  if(e===player&&e.hasFlag&&e.flagColor==='red'&&e.x===flagBlue.homeX&&e.y===flagBlue.homeY){
+    e.flagCaptures=(e.flagCaptures||0)+1;
+    flagRed.carrier=null;flagRed.x=flagRed.homeX;flagRed.y=flagRed.homeY;flagRed.dropTurn=0;
+    e.hasFlag=false;e.flagColor=null;
+    addLog('旗持ち帰り成功! 勝利点+20!','vp');
+    checkVPWin();return true;
+  }
+  if(e===bot&&e.hasFlag&&e.flagColor==='blue'&&e.x===flagRed.homeX&&e.y===flagRed.homeY){
+    e.flagCaptures=(e.flagCaptures||0)+1;
+    flagBlue.carrier=null;flagBlue.x=flagBlue.homeX;flagBlue.y=flagBlue.homeY;flagBlue.dropTurn=0;
+    e.hasFlag=false;e.flagColor=null;
+    addLog('ボットが旗持ち帰り! 勝利点+20!','vp');
+    checkVPWin();return true;
+  }
+  return false;
+}
+function dropFlag(e){
+  if(!e.hasFlag)return;
+  if(e.flagColor==='red'){flagRed.carrier=null;flagRed.x=e.x;flagRed.y=e.y;flagRed.dropTurn=turnNumber;addLog(e===player?'赤旗ドロップ!':'ボットが赤旗ドロップ!','flag');}
+  else{flagBlue.carrier=null;flagBlue.x=e.x;flagBlue.y=e.y;flagBlue.dropTurn=turnNumber;addLog(e===player?'青旗ドロップ!':'ボットが青旗ドロップ!','flag');}
+  e.hasFlag=false;e.flagColor=null;
+}
+function checkFlagAutoReturn(){
+  if(flagBlue.carrier===null&&flagBlue.dropTurn>0&&turnNumber-flagBlue.dropTurn>=5){flagBlue.x=flagBlue.homeX;flagBlue.y=flagBlue.homeY;flagBlue.dropTurn=0;addLog('青旗自動帰還','flag');}
+  if(flagRed.carrier===null&&flagRed.dropTurn>0&&turnNumber-flagRed.dropTurn>=5){flagRed.x=flagRed.homeX;flagRed.y=flagRed.homeY;flagRed.dropTurn=0;addLog('赤旗自動帰還','flag');}
+}
+
+// ===== POISON =====
+function applyPoisonDamage(){
+  for(const c of poisonClouds){
+    c.turnsLeft--;
+    if(player.x===c.x&&player.y===c.y&&player.invulnTurns<=0){player.hp--;addLog('毒霧で1ダメージ!','dmg');}
+    if(bot.x===c.x&&bot.y===c.y&&bot.invulnTurns<=0)bot.hp--;
+    for(const m of mobs){if(m.alive&&m.x===c.x&&m.y===c.y){m.hp--;if(m.hp<=0)m.alive=false;}}
+  }
+  poisonClouds=poisonClouds.filter(c=>c.turnsLeft>0);
+}
+
+// ===== DAMAGE =====
+function dealDamage(target,amount,source,isAmbush,isBlindShot){
+  if(target.invulnTurns>0){addLog('無敵でダメージ無効!','info');return 0;}
+  if(target.reflectActive&&!isBlindShot){
+    addLog(target===player?'鏡の盾! 攻撃反射!':'ボットの鏡の盾が反射!','info');
+    target.reflectActive=false;
+    if(source){source.hp-=amount;}
+    return 0;
+  }
+  if(target.shieldActive){addLog('盾でダメージ無効!','info');target.shieldActive=false;return 0;}
+  let dmg=amount;
+  if(source&&source.atkBoostTurns>0)dmg+=source.atkBoost;
+  if(isAmbush&&!isBlindShot){dmg=Math.ceil(dmg*1.5);if(target.defense===0)dmg+=1;}
+  if(isBlindShot)dmg=Math.ceil(amount*0.7);
+  dmg=Math.max(0,dmg-target.defense);
+  target.hp-=dmg;
+  // v5: no XP from combat damage (only from mob kills)
+  if(dmg>0&&target.hasFlag)dropFlag(target);
+  return dmg;
+}
+
+// ===== CARD PLAY (unified) =====
+function selectCard(index){
+  if(gameOver||gamePhase!=='action'||respawning||enemyTurnActive)return;
+  const card=player.hand[index];if(!card)return;
+  if(card.isVP){addLog('勝利点カードは使用できません(デッドカード)','info');return;}
+  if(player.ap<getEffectiveAP(player,card)){addLog('AP不足!','info');return;}
+  if(selectedCardIndex===index){
+    if(card.swap){/* need target click */return;}
+    if(card.type!=='攻撃'||card.range<=1)playCard(index);
+    return;
+  }
+  selectedCardIndex=index;render();
+}
+
+function playCard(index,targetX,targetY){
+  const card=player.hand[index];if(!card)return;
+  if(card.isVP){addLog('勝利点カードは使用不可','info');return;}
+  const eAP=getEffectiveAP(player,card);
+  if(player.ap<eAP){addLog('AP不足!','info');return;}
+  const apCost=eAP+(blindShotMode?1:0);
+  if(player.ap<apCost){addLog('AP不足','info');return;}
+  player.ap-=apCost;
+  const noise=getEffectiveNoise(player,card)+(blindShotMode?1:0);
+  addNoise(player,noise);
+  addLog(`${card.name} (AP${apCost}, N${noise})`,'card');
+  let consumed=true;
+
+  if(nextApDiscount>0)nextApDiscount=0;
+
+  switch(card.type){
+    case '移動':{
+      if(player.bindTurns>0){addLog('束縛中!','dmg');break;}
+      if(card.warp){
+        if(targetX!==undefined&&targetY!==undefined){
+          const dist=Math.abs(targetX-player.x)+Math.abs(targetY-player.y);
+          if(dist>(card.move||3)){addLog(`${card.move||3}マス以内のみ`,'info');player.ap+=apCost;consumed=false;break;}
+          if(!isWalkable(targetX,targetY)||isOccupied(targetX,targetY,player)){addLog('移動不可','info');player.ap+=apCost;consumed=false;break;}
+          const mob=getMobAt(targetX,targetY);
+          if(mob){addLog('雑魚がいて移動不可','info');player.ap+=apCost;consumed=false;break;}
+          player.x=targetX;player.y=targetY;
+        }else{addLog('移動先をクリック','info');selectedCardIndex=index;player.ap+=apCost;consumed=false;}
+      }else{
+        const bs=card.move||1,ms=player.hasFlag?Math.max(1,bs-1):bs;
+        moveEntity(player,ms,false);
+      }
+      if(consumed){checkFlagPickup(player);if(checkFlagCapture(player))return;checkTreasurePickup();}
+      break;
+    }
+    case '攻撃':{
+      if(card.apDrain){bot.ap=Math.max(0,bot.ap-card.apDrain);addLog(`呪詛! ボットのAP-${card.apDrain}!`,'ambush');break;}
+      if(blindShotMode){
+        if(player.hasFlag){addLog('旗所持中はブラインドショット不可','info');blindShotMode=false;blindShotCard=null;player.ap+=apCost;consumed=false;break;}
+        if(targetX===undefined){addLog('目標をクリック','info');player.ap+=apCost;consumed=false;break;}
+        executeBlindShot(card,targetX,targetY);blindShotMode=false;blindShotCard=null;break;
+      }
+      if(card.range<=1){
+        const distBot=Math.abs(bot.x-player.x)+Math.abs(bot.y-player.y);
+        let hitSomething=false;
+        if(targetX!==undefined&&targetY!==undefined){
+          const bossHere=getBossAt(targetX,targetY);
+          const mob=getMobAt(targetX,targetY);
+          if(bossHere&&Math.abs(targetX-player.x)+Math.abs(targetY-player.y)<=1){
+            const dmg=card.power+(player.atkBoostTurns>0?player.atkBoost:0);
+            damageBoss(dmg,player);
+            addLog(`${boss.name}に${dmg}ダメージ! (残HP:${Math.max(0,boss.hp)})`,'mob');
+            hitSomething=true;
+          }else if(mob&&Math.abs(targetX-player.x)+Math.abs(targetY-player.y)<=1){
+            const dmg=card.power+(player.atkBoostTurns>0?player.atkBoost:0);
+            damageMob(mob,dmg,player);
+            addLog(`${mob.name}に${dmg}ダメージ!`,'mob');
+            hitSomething=true;
+          }else if(targetX===bot.x&&targetY===bot.y&&distBot<=1){
+            const isAmb=!canSee(bot,player.x,player.y);
+            const dmg=dealDamage(bot,card.power,player,isAmb,false);
+            addLog(isAmb?`奇襲! ${dmg}ダメージ!`:`${dmg}ダメージ!`,isAmb?'ambush':'dmg');
+            if(card.atkXpGain){player.xp+=card.atkXpGain;addLog(`XP+${card.atkXpGain}!`,'buy');}
+            if(card.apRecover){player.ap=Math.min(MAX_AP,player.ap+card.apRecover);addLog(`AP+${card.apRecover}!`,'info');}
+            hitSomething=true;
+          }
+        }
+        if(!hitSomething){
+          // Check adjacent boss first
+          const adjBoss=boss&&boss.alive&&Math.abs(boss.x-player.x)+Math.abs(boss.y-player.y)<=1?boss:null;
+          if(adjBoss){
+            const dmg=card.power+(player.atkBoostTurns>0?player.atkBoost:0);
+            damageBoss(dmg,player);
+            addLog(`${boss.name}に${dmg}ダメージ! (残HP:${Math.max(0,boss.hp)})`,'mob');
+          }else if(distBot<=1){
+            const isAmb=!canSee(bot,player.x,player.y);
+            const dmg=dealDamage(bot,card.power,player,isAmb,false);
+            addLog(isAmb?`奇襲! ${dmg}ダメージ!`:`${dmg}ダメージ!`,isAmb?'ambush':'dmg');
+            if(card.atkXpGain){player.xp+=card.atkXpGain;addLog(`XP+${card.atkXpGain}!`,'buy');}
+            if(card.apRecover){player.ap=Math.min(MAX_AP,player.ap+card.apRecover);addLog(`AP+${card.apRecover}!`,'info');}
+          }else{
+            const adjMob=mobs.find(m=>m.alive&&Math.abs(m.x-player.x)+Math.abs(m.y-player.y)<=1);
+            if(adjMob){
+              const dmg=card.power+(player.atkBoostTurns>0?player.atkBoost:0);
+              damageMob(adjMob,dmg,player);
+              addLog(`${adjMob.name}に${dmg}ダメージ!`,'mob');
+            }else{addLog('隣接する敵がいません','info');player.ap+=apCost;consumed=false;}
+          }
+        }
+      }else{
+        if(targetX!==undefined&&targetY!==undefined){
+          if(Math.abs(targetX-player.x)+Math.abs(targetY-player.y)>card.range){addLog('射程外','info');player.ap+=apCost;consumed=false;break;}
+          const bossHere=getBossAt(targetX,targetY);
+          const mob=getMobAt(targetX,targetY);
+          if(bossHere){
+            const dmg=card.power+(player.atkBoostTurns>0?player.atkBoost:0);
+            damageBoss(dmg,player);
+            addLog(`${boss.name}に${dmg}ダメージ! (残HP:${Math.max(0,boss.hp)})`,'mob');
+            if(card.aoeDmg){for(const[dx2,dy2]of[[0,-1],[0,1],[-1,0],[1,0]]){const ax=targetX+dx2,ay=targetY+dy2;const m2=getMobAt(ax,ay);if(m2)damageMob(m2,card.aoeDmg,player);if(ax===bot.x&&ay===bot.y)dealDamage(bot,card.aoeDmg,player,false,false);}}
+          }else if(mob){
+            const dmg=card.power+(player.atkBoostTurns>0?player.atkBoost:0);
+            damageMob(mob,dmg,player);
+            addLog(`${mob.name}に${dmg}ダメージ!`,'mob');
+            if(card.aoeDmg){
+              for(const[dx2,dy2]of[[0,-1],[0,1],[-1,0],[1,0]]){
+                const ax=targetX+dx2,ay=targetY+dy2;
+                const m2=getMobAt(ax,ay);if(m2){damageMob(m2,card.aoeDmg,player);}
+                if(ax===bot.x&&ay===bot.y)dealDamage(bot,card.aoeDmg,player,false,false);
+                const b2=getBossAt(ax,ay);if(b2)damageBoss(card.aoeDmg,player);
+              }
+            }
+          }else if(targetX===bot.x&&targetY===bot.y){
+            const isAmb=!canSee(bot,player.x,player.y);
+            const dmg=dealDamage(bot,card.power,player,isAmb,false);
+            addLog(isAmb?`奇襲! ${dmg}ダメージ!`:`${dmg}ダメージ!`,isAmb?'ambush':'dmg');
+            if(card.aoeDmg){for(const[dx2,dy2]of[[0,-1],[0,1],[-1,0],[1,0]]){const ax=targetX+dx2,ay=targetY+dy2;const m2=getMobAt(ax,ay);if(m2)damageMob(m2,card.aoeDmg,player);const b2=getBossAt(ax,ay);if(b2)damageBoss(card.aoeDmg,player);}}
+          }else{addLog('敵がいません','info');player.ap+=apCost;consumed=false;break;}
+        }else{addLog('攻撃先をクリック','info');selectedCardIndex=index;player.ap+=apCost;consumed=false;}
+      }
+      break;
+    }
+    case '防御':{
+      if(card.reflect){player.reflectActive=true;addLog('鏡の盾発動!','info');}
+      if(card.phantom){
+        const count=card.phantom||1;
+        for(let p=0;p<count;p++){
+          const px2=player.x+(Math.random()>0.5?1:-1)*(1+Math.floor(Math.random()*2));
+          const py2=player.y+(Math.random()>0.5?1:-1)*(1+Math.floor(Math.random()*2));
+          phantoms.push({x:Math.max(0,Math.min(MAP_W-1,px2)),y:Math.max(0,Math.min(MAP_H-1,py2)),owner:'player',turnsLeft:2});
+        }
+        addLog(`影分身${count}体配置!`,'info');
+      }
+      break;
+    }
+    case '索敵':{
+      if(card.visionBonus){player.tempVisionBonus+=card.visionBonus;addLog(`視界+${card.visionBonus}（このターン）`,'info');}
+      if(card.fullVision){player.fullVisionTurns=card.fullVision;addLog(`マップ全体可視化! (${card.fullVision}ターン)`,'info');}
+      if(card.recon){
+        const dist=Math.abs(bot.x-player.x)+Math.abs(bot.y-player.y);
+        if(dist<=card.range){
+          addLog(`${getDirection(player.x,player.y,bot.x,bot.y)}方向にノイズ源! (距離${dist})`,'info');
+          player.detected=[{x:bot.x,y:bot.y}];
+          noiseRipples.push({x:bot.x,y:bot.y,radius:0.3,maxRadius:2,alpha:0.6,color:'#ffaa44'});
+        }else addLog('範囲内にノイズ源なし','info');
+        for(const m of mobs){
+          if(m.alive){
+            const md=Math.abs(m.x-player.x)+Math.abs(m.y-player.y);
+            if(md<=card.range)addLog(`${getDirection(player.x,player.y,m.x,m.y)}方向に${m.name}! (距離${md})`,'mob');
+          }
+        }
+      }
+      break;
+    }
+    case '隠密':{
+      if(card.silence){player.silenceTurns=card.silence;addLog(`${card.silence}Tノイズ0!`,'info');}
+      if(card.flagSilence){player.flagSilenceActive=true;addLog('旗ノイズペナルティ無効!','info');}
+      if(card.atkBoost){player.atkBoost=card.atkBoost;player.atkBoostTurns=card.atkBoostTurns;addLog(`${card.atkBoostTurns}T攻撃力+${card.atkBoost}!`,'info');}
+      break;
+    }
+    case '回復':{
+      if(card.apRecover){player.ap=Math.min(MAX_AP,player.ap+card.apRecover);addLog(`AP+${card.apRecover} (AP:${player.ap})`,'heal');}
+      if(card.healPower){player.hp=Math.min(player.maxHp,player.hp+card.healPower);addLog(`HP+${card.healPower} (HP:${player.hp}/${player.maxHp})`,'heal');}
+      if(card.extraDraw){drawCards(player,card.extraDraw);addLog(`${card.extraDraw}枚ドロー!`,'info');}
+      if(card.xpGain){player.xp+=card.xpGain;addLog(`XP+${card.xpGain}! (XP:${player.xp})`,'buy');}
+      if(card.extraBuy){player.buysLeft+=card.extraBuy;addLog(`購入権+${card.extraBuy}! (残:${player.buysLeft})`,'buy');}
+      if(card.nextApDiscount){nextApDiscount+=card.nextApDiscount;addLog(`次のカードAP-${card.nextApDiscount}!`,'info');}
+      if(card.altarFullAP){
+        if(isOnAltar(player)){player.ap=MAX_AP;addLog('祭壇の祈り! AP全回復!','heal');}
+        else addLog('祭壇上でないと効果なし','info');
+      }
+      break;
+    }
+    case '杖':{
+      // v6: Wand cards
+      if(card.swap){
+        // 入替の杖: swap position with adjacent enemy
+        let swapped=false;
+        if(targetX!==undefined&&targetY!==undefined){
+          const dist=Math.abs(targetX-player.x)+Math.abs(targetY-player.y);
+          if(dist>1){addLog('隣接する対象のみ','info');player.ap+=apCost;consumed=false;break;}
+          const mob=getMobAt(targetX,targetY);
+          if(mob){
+            const ox=player.x,oy=player.y;
+            player.x=mob.x;player.y=mob.y;mob.x=ox;mob.y=oy;
+            addLog(`${mob.name}と位置を入れ替えた!`,'info');swapped=true;
+          }else if(targetX===bot.x&&targetY===bot.y){
+            const ox=player.x,oy=player.y;
+            player.x=bot.x;player.y=bot.y;bot.x=ox;bot.y=oy;
+            addLog('ボットと位置を入れ替えた!','info');swapped=true;
+          }
+          if(!swapped){addLog('対象がいません','info');player.ap+=apCost;consumed=false;}
+        }else{addLog('入替対象をクリック','info');selectedCardIndex=index;player.ap+=apCost;consumed=false;}
+      }
+      if(card.chaosWarp){
+        // 混沌の杖: teleport all enemies to random floor tiles
+        let teleCount=0;
+        for(const m of mobs){
+          if(!m.alive)continue;
+          for(let att=0;att<100;att++){
+            const rx=randInt(1,MAP_W-2),ry=randInt(1,MAP_H-2);
+            if(isWalkable(rx,ry)&&!isOccupied(rx,ry,null)&&!getMobAt(rx,ry)&&!(boss&&boss.alive&&boss.x===rx&&boss.y===ry)){
+              m.x=rx;m.y=ry;teleCount++;break;
+            }
+          }
+        }
+        // Also teleport bot
+        for(let att=0;att<100;att++){
+          const rx=randInt(1,MAP_W-2),ry=randInt(1,MAP_H-2);
+          if(isWalkable(rx,ry)&&!isOccupied(rx,ry,bot)&&!getMobAt(rx,ry)&&!(boss&&boss.alive&&boss.x===rx&&boss.y===ry)){
+            bot.x=rx;bot.y=ry;teleCount++;break;
+          }
+        }
+        addLog(`混沌の杖! ${teleCount}体をテレポート!`,'ambush');
+      }
+      break;
+    }
+    case '合成':{
+      if(card.trash){
+        if(player.hand.length>1){
+          player.hand.splice(index,1);player.discard.push(card);
+          openTrashSelect();return;
+        }else{addLog('廃棄する手札がない','info');player.ap+=apCost;consumed=false;}
+      }
+      break;
+    }
+    case '伝説':{
+      // v6: Boss reward legendary cards have active effects
+      if(card.apRecover){player.ap=Math.min(MAX_AP,player.ap+card.apRecover);addLog(`AP+${card.apRecover}!`,'heal');}
+      if(card.extraDraw){drawCards(player,card.extraDraw);addLog(`${card.extraDraw}枚ドロー!`,'info');}
+      if(card.xpGain){player.xp+=card.xpGain;addLog(`XP+${card.xpGain}!`,'buy');}
+      if(card.passive)addLog(`「${card.name}」パッシブ適用済み`,'info');
+      else if(!card.apRecover&&!card.extraDraw&&!card.xpGain)addLog(`「${card.name}」使用`,'info');
+      break;
+    }
+  }
+
+  if(consumed){player.hand.splice(index,1);player.discard.push(card);selectedCardIndex=-1;}
+  checkDeathAll();
+  updateCamera();updateFog();render();checkVPWin();
+}
+
+function checkTreasurePickup(){
+  if(map[player.y][player.x]===TILE_TREASURE){
+    player.xp+=5;map[player.y][player.x]=TILE_FLOOR;
+    addLog('宝箱発見! XP+5!','buy');
+  }
+}
+
+function executeBlindShot(card,tx,ty){
+  addLog(`ブラインドショット! (${tx},${ty})`,'card');
+  const bd=Math.ceil((card.power||2)*0.7);let hit=false;
+  const targets=[];
+  if(card.aoe==='cross')targets.push([tx,ty],[tx-1,ty],[tx+1,ty],[tx,ty-1],[tx,ty+1]);
+  else if(card.aoe==='circle1'){for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)targets.push([tx+dx,ty+dy]);}
+  else targets.push([tx,ty]);
+  for(const[ax,ay]of targets){
+    if(ax===bot.x&&ay===bot.y){dealDamage(bot,bd,player,false,true);addLog(`命中! ${bd}ダメージ!`,'ambush');hit=true;}
+    const mob=getMobAt(ax,ay);if(mob){damageMob(mob,bd,player);addLog(`${mob.name}にBS命中!`,'mob');hit=true;}
+  }
+  if(card.aoe==='circle1')poisonClouds.push({x:tx,y:ty,turnsLeft:3});
+  if(!hit)addLog('空振り...','info');
+}
+
+function moveEntity(entity,steps){
+  if(entity.bindTurns>0)return;
+  entity._movesLeft=(entity._movesLeft||0)+steps;
+  if(entity===player)addLog(`移動力${steps} (残: ${entity._movesLeft}歩)`,'info');
+}
+
+// ===== PLAYER INPUT =====
+function handleMove(dx,dy){
+  if(gamePhase!=='action'||gameOver||respawning||enemyTurnActive)return;
+  if(player.bindTurns>0){addLog('束縛中!','dmg');return;}
+  if(player._movesLeft&&player._movesLeft>0)player._movesLeft--;
+  else{if(player.ap<1){addLog('AP不足!','info');return;}player.ap--;addNoise(player,1);}
+  const nx=player.x+dx,ny=player.y+dy;
+  if(!isWalkable(nx,ny)){addLog('壁!','info');return;}
+  if(isOccupied(nx,ny,player)){addLog('衝突!','info');addNoise(player,1);return;}
+  const mob=getMobAt(nx,ny);
+  if(mob){addLog('雑魚がいて移動不可! 攻撃カードで倒せ','info');return;}
+  player.x=nx;player.y=ny;
+  // v5: no XP from movement
+  if(player.hasFlag){/* no extra XP */}
+  checkFlagPickup(player);if(checkFlagCapture(player))return;
+  checkTreasurePickup();
+  if(map[ny][nx]===TILE_BUSH)addLog('茂みに潜んだ','info');
+  updateCamera();updateFog();render();
+}
+
+canvas.addEventListener('click',e=>{
+  if(gameOver||respawning||enemyTurnActive)return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=Math.floor((e.clientX-rect.left)/tileSize)+camX;
+  const my=Math.floor((e.clientY-rect.top)/tileSize)+camY;
+  if(mx<0||mx>=MAP_W||my<0||my>=MAP_H)return;
+  if(blindShotMode&&blindShotCard!==null){playCard(blindShotCard,mx,my);return;}
+  if(gamePhase==='action'){
+    const dx=mx-player.x,dy=my-player.y;
+    if(Math.abs(dx)+Math.abs(dy)===1&&!getMobAt(mx,my)){handleMove(dx,dy);return;}
+    if(selectedCardIndex>=0){
+      const c=player.hand[selectedCardIndex];
+      if(c&&c.warp){playCard(selectedCardIndex,mx,my);return;}
+      if(c&&c.swap){playCard(selectedCardIndex,mx,my);return;}
+      if(c&&c.type==='攻撃'){
+        if(c.blind&&!blindShotMode){blindShotMode=true;blindShotCard=selectedCardIndex;addLog('ブラインドショット: 目標クリック','info');canvas.classList.add('blind-cursor');render();return;}
+        playCard(selectedCardIndex,mx,my);return;
+      }
+    }
+  }
+});
+
+document.addEventListener('keydown',e=>{
+  if(gameOver||respawning||enemyTurnActive)return;
+  if(gamePhase==='action'){
+    switch(e.key){case'ArrowUp':case'w':case'W':handleMove(0,-1);break;case'ArrowDown':case's':case'S':handleMove(0,1);break;case'ArrowLeft':case'a':case'A':handleMove(-1,0);break;case'ArrowRight':case'd':case'D':handleMove(1,0);break;}
+  }
+  if(e.key==='Escape'){blindShotMode=false;blindShotCard=null;canvas.classList.remove('blind-cursor');selectedCardIndex=-1;closeShop();closeDeck();closeTrash();render();}
+});
+
+// ===== BOT AI (v5 - VP aware + HP management) =====
+function botTurn(){
+  if(gameOver)return;addLog('--- ボットのターン ---','bot-action');
+  const regen=getAPRegen();
+  bot.ap=Math.min(MAX_AP,bot.ap+regen);
+  bot.noise=0;bot.defense=0;bot.shieldActive=false;bot.reflectActive=false;
+  bot.cumulativeNoise=0;bot.tempVisionBonus=0;bot.flagSilenceActive=false;
+  if(bot.silenceTurns>0)bot.silenceTurns--;
+  if(bot.trackingTurns>0)bot.trackingTurns--;
+  if(bot.fullVisionTurns>0)bot.fullVisionTurns--;
+  if(bot.atkBoostTurns>0)bot.atkBoostTurns--;
+  if(bot.bindTurns>0)bot.bindTurns--;
+  if(bot.invulnTurns>0)bot.invulnTurns--;
+  while(bot.hand.length>0)bot.discard.push(bot.hand.pop());
+  drawCards(bot,HAND_LIMIT);
+
+  const canSeeP=canSee(bot,player.x,player.y),distP=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);
+
+  let nearestMob=null,nearestMobDist=999;
+  for(const m of mobs){
+    if(!m.alive)continue;
+    const d=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);
+    if(d<nearestMobDist){nearestMobDist=d;nearestMob=m;}
+  }
+
+  const botVP=calcVP(bot),playerVP=calcVP(player);
+
+  let mode='explore';
+  if(bot.hp<=Math.ceil(bot.maxHp*0.5)&&bot.maxHp>1)mode='survive';
+  else if(botVP>=25)mode='flag';
+  else if(playerVP-botVP>=10)mode='attack';
+  else if(nearestMob&&nearestMobDist<=5&&bot.xp<8)mode='hunt';
+  else if(canSeeP&&distP<=3)mode='attack';
+  else if(turnNumber>=15)mode='flag';
+  if(flagBlue.carrier===player)mode='defend';
+  bot.mode=mode;
+
+  const apCards=bot.hand.filter(c=>c.apRecover&&!c.power&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(apCards.length>0)botPlayCard(apCards[0]);
+  const healCards=bot.hand.filter(c=>c.healPower&&!c.power&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(bot.hp<bot.maxHp&&healCards.length>0)botPlayCard(healCards[0]);
+  const reconCards=bot.hand.filter(c=>c.type==='索敵'&&bot.ap>=getEffectiveAP(bot,c));
+  if(!canSeeP&&reconCards.length>0&&Math.random()>0.3)botPlayCard(reconCards[0]);
+  const extraBuyCards=bot.hand.filter(c=>c.extraBuy&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(extraBuyCards.length>0)botPlayCard(extraBuyCards[0]);
+  const extraDrawCards=bot.hand.filter(c=>c.extraDraw&&!c.apRecover&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(extraDrawCards.length>0)botPlayCard(extraDrawCards[0]);
+
+  if(bot.bindTurns<=0){
+    const moveCards=bot.hand.filter(c=>c.type==='移動'&&bot.ap>=getEffectiveAP(bot,c));
+    if(moveCards.length>0)botPlayCard(moveCards[0]);
+
+    let tx,ty;
+    if(mode==='hunt'&&nearestMob){tx=nearestMob.x;ty=nearestMob.y;}
+    else if(mode==='flag'){if(bot.hasFlag){tx=flagRed.homeX;ty=flagRed.homeY;}else{tx=flagBlue.x;ty=flagBlue.y;}}
+    else if(mode==='attack'||mode==='defend'){tx=player.x;ty=player.y;}
+    else if(mode==='survive'){
+      let bestD=999,bx=botStartX,by=botStartY;
+      for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+        if(map[y][x]===TILE_SPRING){const d=Math.abs(x-bot.x)+Math.abs(y-bot.y);if(d<bestD){bestD=d;bx=x;by=y;}}
+      }
+      tx=bx;ty=by;
+    }
+    else{
+      const r=rooms[randInt(0,rooms.length-1)];
+      tx=r.cx;ty=r.cy;
+    }
+
+    let steps=bot.hasFlag?1:2;
+    for(let i=0;i<steps;i++){
+      if(bot.ap<1)break;
+      const path=findPath(bot.x,bot.y,tx,ty);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,bot)&&!getMobAt(n.x,n.y)){
+          bot.x=n.x;bot.y=n.y;addNoise(bot,1);
+        }
+      }
+      bot.ap--;
+    }
+  }
+
+  checkFlagPickup(bot);if(checkFlagCapture(bot))return;
+
+  if(map[bot.y]&&map[bot.y][bot.x]===TILE_TREASURE){bot.xp+=5;map[bot.y][bot.x]=TILE_FLOOR;addLog('ボットが宝箱を回収! XP+5','bot-action');}
+
+  const atkCards=bot.hand.filter(c=>c.type==='攻撃'&&c.power>0&&bot.ap>=getEffectiveAP(bot,c));
+  if(mode==='hunt'&&nearestMob){
+    const distMob=Math.abs(nearestMob.x-bot.x)+Math.abs(nearestMob.y-bot.y);
+    for(const card of atkCards){
+      if(bot.ap<getEffectiveAP(bot,card))continue;
+      if((card.range>=distMob)||(card.range<=1&&distMob<=1)){
+        bot.ap-=getEffectiveAP(bot,card);addNoise(bot,getEffectiveNoise(bot,card));
+        const dmg=card.power+(bot.atkBoostTurns>0?bot.atkBoost:0);
+        damageMob(nearestMob,dmg,bot);
+        addLog(`ボットが${nearestMob.name}を攻撃`,'bot-action');
+        const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+        break;
+      }
+    }
+  }
+
+  const distP2=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);
+  const canSeeP2=canSee(bot,player.x,player.y);
+  const atkCards2=bot.hand.filter(c=>c.type==='攻撃'&&c.power>0&&bot.ap>=getEffectiveAP(bot,c));
+  if(canSeeP2&&atkCards2.length>0){
+    for(const card of atkCards2){
+      if(bot.ap<getEffectiveAP(bot,card))continue;
+      if(card.range>=distP2||(card.range<=1&&distP2<=1)){
+        bot.ap-=getEffectiveAP(bot,card);addNoise(bot,getEffectiveNoise(bot,card));
+        const isAmb=!canSee(player,bot.x,bot.y);
+        const dmg=dealDamage(player,card.power,bot,isAmb,false);
+        const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+        if(card.atkXpGain){bot.xp+=card.atkXpGain;}
+        if(card.apRecover)bot.ap=Math.min(MAX_AP,bot.ap+card.apRecover);
+        addLog(isAmb?`ボット奇襲!「${card.name}」${dmg}ダメージ!`:`ボット「${card.name}」${dmg}ダメージ!`,isAmb?'ambush':'dmg');
+        checkDeathAll();if(gameOver)return;break;
+      }
+    }
+  }
+
+  const defCards=bot.hand.filter(c=>c.type==='防御'&&bot.ap>=getEffectiveAP(bot,c));
+  if(defCards.length>0&&canSeeP2&&distP2<=3){
+    const card=defCards[0];bot.ap-=getEffectiveAP(bot,card);
+    if(card.reflect)bot.reflectActive=true;
+    if(card.phantom){for(let p=0;p<(card.phantom||1);p++)phantoms.push({x:bot.x+(Math.random()>0.5?1:-1),y:bot.y+(Math.random()>0.5?1:-1),owner:'bot',turnsLeft:2});}
+    const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+  }
+
+  if(map[bot.y]&&map[bot.y][bot.x]===TILE_PORTAL){bot.xp+=2;map[bot.y][bot.x]=TILE_FLOOR;}
+  if(map[bot.y]&&map[bot.y][bot.x]===TILE_SPRING){bot.hp=Math.min(bot.maxHp,bot.hp+1);}
+
+  botBuyPhase();
+  checkDeathAll();
+  checkVPWin();
+}
+
+// ===== ANIMATED BOT TURN =====
+async function botTurnAnimated(){
+  if(gameOver)return;
+  const regen=getAPRegen();
+  bot.ap=Math.min(MAX_AP,bot.ap+regen);
+  bot.noise=0;bot.defense=0;bot.shieldActive=false;bot.reflectActive=false;
+  bot.cumulativeNoise=0;bot.tempVisionBonus=0;bot.flagSilenceActive=false;
+  if(bot.silenceTurns>0)bot.silenceTurns--;
+  if(bot.trackingTurns>0)bot.trackingTurns--;
+  if(bot.fullVisionTurns>0)bot.fullVisionTurns--;
+  if(bot.atkBoostTurns>0)bot.atkBoostTurns--;
+  if(bot.bindTurns>0)bot.bindTurns--;
+  if(bot.invulnTurns>0)bot.invulnTurns--;
+  while(bot.hand.length>0)bot.discard.push(bot.hand.pop());
+  drawCards(bot,HAND_LIMIT);
+
+  const canSeeP=canSee(bot,player.x,player.y),distP=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);
+
+  let nearestMob=null,nearestMobDist=999;
+  for(const m of mobs){if(!m.alive)continue;const d=Math.abs(m.x-bot.x)+Math.abs(m.y-bot.y);if(d<nearestMobDist){nearestMobDist=d;nearestMob=m;}}
+
+  const botVP=calcVP(bot),playerVP=calcVP(player);
+  let mode='explore';
+  if(bot.hp<=Math.ceil(bot.maxHp*0.5)&&bot.maxHp>1)mode='survive';
+  else if(botVP>=25)mode='flag';
+  else if(playerVP-botVP>=10)mode='attack';
+  else if(nearestMob&&nearestMobDist<=5&&bot.xp<8)mode='hunt';
+  else if(canSeeP&&distP<=3)mode='attack';
+  else if(turnNumber>=15)mode='flag';
+  if(flagBlue.carrier===player)mode='defend';
+  bot.mode=mode;
+
+  // Utility cards
+  const apCards=bot.hand.filter(c=>c.apRecover&&!c.power&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(apCards.length>0){
+    botPlayCard(apCards[0]);
+    addLog(`ボットが「${apCards[0].name}」を使用した`,'bot-action');
+    addBotActionEffect(bot.x,bot.y);render();await delay(500);
+  }
+  if(gameOver)return;
+
+  const healCards=bot.hand.filter(c=>c.healPower&&!c.power&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(bot.hp<bot.maxHp&&healCards.length>0){
+    botPlayCard(healCards[0]);
+    addLog(`ボットが「${healCards[0].name}」を使用した`,'bot-action');
+    addBotActionEffect(bot.x,bot.y);render();await delay(500);
+  }
+  if(gameOver)return;
+
+  const reconCards=bot.hand.filter(c=>c.type==='索敵'&&bot.ap>=getEffectiveAP(bot,c));
+  if(!canSeeP&&reconCards.length>0&&Math.random()>0.3){
+    botPlayCard(reconCards[0]);
+    addLog(`ボットが「${reconCards[0].name}」を使用した`,'bot-action');
+    addBotActionEffect(bot.x,bot.y);render();await delay(500);
+  }
+  if(gameOver)return;
+
+  const extraBuyCards=bot.hand.filter(c=>c.extraBuy&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(extraBuyCards.length>0){
+    botPlayCard(extraBuyCards[0]);
+    addLog(`ボットが「${extraBuyCards[0].name}」を使用した`,'bot-action');
+    addBotActionEffect(bot.x,bot.y);render();await delay(500);
+  }
+  if(gameOver)return;
+
+  const extraDrawCards=bot.hand.filter(c=>c.extraDraw&&!c.apRecover&&!c.isVP&&bot.ap>=getEffectiveAP(bot,c));
+  if(extraDrawCards.length>0){
+    botPlayCard(extraDrawCards[0]);
+    addLog(`ボットが「${extraDrawCards[0].name}」を使用した`,'bot-action');
+    addBotActionEffect(bot.x,bot.y);render();await delay(500);
+  }
+  if(gameOver)return;
+
+  // Movement
+  if(bot.bindTurns<=0){
+    const moveCards=bot.hand.filter(c=>c.type==='移動'&&bot.ap>=getEffectiveAP(bot,c));
+    if(moveCards.length>0){
+      botPlayCard(moveCards[0]);
+      addLog(`ボットが「${moveCards[0].name}」を使用した`,'bot-action');
+      addBotActionEffect(bot.x,bot.y);render();await delay(500);
+    }
+
+    let tx,ty;
+    if(mode==='hunt'&&nearestMob){tx=nearestMob.x;ty=nearestMob.y;}
+    else if(mode==='flag'){if(bot.hasFlag){tx=flagRed.homeX;ty=flagRed.homeY;}else{tx=flagBlue.x;ty=flagBlue.y;}}
+    else if(mode==='attack'||mode==='defend'){tx=player.x;ty=player.y;}
+    else if(mode==='survive'){
+      let bestD=999,bx=botStartX,by=botStartY;
+      for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+        if(map[y][x]===TILE_SPRING){const d=Math.abs(x-bot.x)+Math.abs(y-bot.y);if(d<bestD){bestD=d;bx=x;by=y;}}
+      }
+      tx=bx;ty=by;
+    }else{
+      const r=rooms[randInt(0,rooms.length-1)];
+      tx=r.cx;ty=r.cy;
+    }
+
+    let steps=bot.hasFlag?1:2;
+    for(let i=0;i<steps;i++){
+      if(bot.ap<1||gameOver)break;
+      const path=findPath(bot.x,bot.y,tx,ty);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,bot)&&!getMobAt(n.x,n.y)){
+          const dirName=getDirName(bot.x,bot.y,n.x,n.y);
+          bot.x=n.x;bot.y=n.y;addNoise(bot,1);
+          const botVisible=fogState[bot.y]&&fogState[bot.y][bot.x]===2;
+          addLog(`ボットが${dirName}に移動した`,'bot-action');
+          addBotActionEffect(bot.x,bot.y);
+          updateFog();render();
+          await delay(600);
+        }
+      }
+      bot.ap--;
+    }
+  }
+  if(gameOver)return;
+
+  checkFlagPickup(bot);if(checkFlagCapture(bot))return;
+
+  if(map[bot.y]&&map[bot.y][bot.x]===TILE_TREASURE){
+    bot.xp+=5;map[bot.y][bot.x]=TILE_FLOOR;
+    addLog('ボットが宝箱を回収! XP+5','bot-action');
+    render();await delay(500);
+  }
+
+  // Attack mobs or player
+  const atkCards=bot.hand.filter(c=>c.type==='攻撃'&&c.power>0&&bot.ap>=getEffectiveAP(bot,c));
+  if(mode==='hunt'&&nearestMob){
+    const distMob=Math.abs(nearestMob.x-bot.x)+Math.abs(nearestMob.y-bot.y);
+    for(const card of atkCards){
+      if(bot.ap<getEffectiveAP(bot,card))continue;
+      if((card.range>=distMob)||(card.range<=1&&distMob<=1)){
+        bot.ap-=getEffectiveAP(bot,card);addNoise(bot,getEffectiveNoise(bot,card));
+        const dmg=card.power+(bot.atkBoostTurns>0?bot.atkBoost:0);
+        damageMob(nearestMob,dmg,bot);
+        addLog(`ボットが「${card.name}」で${nearestMob.name}を攻撃!`,'bot-action');
+        addBotActionEffect(bot.x,bot.y);
+        const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+        render();await delay(600);
+        break;
+      }
+    }
+  }
+  if(gameOver)return;
+
+  const distP2=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);
+  const canSeeP2=canSee(bot,player.x,player.y);
+  const atkCards2=bot.hand.filter(c=>c.type==='攻撃'&&c.power>0&&bot.ap>=getEffectiveAP(bot,c));
+  if(canSeeP2&&atkCards2.length>0){
+    for(const card of atkCards2){
+      if(bot.ap<getEffectiveAP(bot,card))continue;
+      if(card.range>=distP2||(card.range<=1&&distP2<=1)){
+        bot.ap-=getEffectiveAP(bot,card);addNoise(bot,getEffectiveNoise(bot,card));
+        const isAmb=!canSee(player,bot.x,bot.y);
+        const dmg=dealDamage(player,card.power,bot,isAmb,false);
+        const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+        if(card.atkXpGain){bot.xp+=card.atkXpGain;}
+        if(card.apRecover)bot.ap=Math.min(MAX_AP,bot.ap+card.apRecover);
+        addLog(isAmb?`ボット奇襲!「${card.name}」${dmg}ダメージ!`:`ボットが「${card.name}」使用! ${dmg}ダメージ!`,'bot-action');
+        addBotActionEffect(bot.x,bot.y);
+        render();await delay(800);
+        checkDeathAll();if(gameOver)return;break;
+      }
+    }
+  }
+
+  const defCards=bot.hand.filter(c=>c.type==='防御'&&bot.ap>=getEffectiveAP(bot,c));
+  if(defCards.length>0&&canSeeP2&&distP2<=3){
+    const card=defCards[0];bot.ap-=getEffectiveAP(bot,card);
+    if(card.reflect)bot.reflectActive=true;
+    if(card.phantom){for(let p=0;p<(card.phantom||1);p++)phantoms.push({x:bot.x+(Math.random()>0.5?1:-1),y:bot.y+(Math.random()>0.5?1:-1),owner:'bot',turnsLeft:2});}
+    const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+    addLog(`ボットが「${card.name}」を使用した`,'bot-action');
+    addBotActionEffect(bot.x,bot.y);render();await delay(500);
+  }
+  if(gameOver)return;
+
+  // Environment
+  if(map[bot.y]&&map[bot.y][bot.x]===TILE_PORTAL){bot.xp+=2;map[bot.y][bot.x]=TILE_FLOOR;addLog('ボットがポータル残滓を回収','bot-action');}
+  if(map[bot.y]&&map[bot.y][bot.x]===TILE_SPRING){bot.hp=Math.min(bot.maxHp,bot.hp+1);addLog('ボットが泉で回復','bot-action');}
+
+  // Buy phase
+  await botBuyPhaseAnimated();
+  checkDeathAll();
+  checkVPWin();
+  updateBossHPOverlay();
+  render();
+}
+
+function getDirName(fx,fy,tx,ty){
+  const dx=tx-fx,dy=ty-fy;
+  let d='';
+  if(dy<0)d+='北';if(dy>0)d+='南';if(dx<0)d+='西';if(dx>0)d+='東';
+  return d||'近く';
+}
+
+async function botBuyPhaseAnimated(){
+  let buyCount=0;
+  const maxBuys=5;
+  while(buyCount<maxBuys&&bot.xp>=1&&!gameOver){
+    let bought=false;
+    if(bot.maxHp<=2){
+      const seinomi=supplyHP.find(c=>c.id==='seinomi'&&c.remaining>0);
+      if(seinomi&&bot.xp>=seinomi.xpCost){
+        bot.xp-=seinomi.xpCost;seinomi.remaining--;buyCount++;
+        bot.maxHp+=seinomi.hpUp;bot.hp=Math.min(bot.maxHp,bot.hp+seinomi.hpUp);
+        addLog(`ボットが「${seinomi.name}」購入 (HP強化)`,'bot-action');render();await delay(500);bought=true;continue;
+      }
+    }
+    const botVP=calcVP(bot);
+    if(botVP>=20&&bot.xp>=7){
+      const zoushou=supplyVP.find(c=>c.id==='zoushou'&&c.remaining>0);
+      if(zoushou&&bot.xp>=zoushou.xpCost){bot.xp-=zoushou.xpCost;zoushou.remaining--;buyCount++;const nc={...zoushou,uid:Math.random()};delete nc.remaining;delete nc.stock;bot.discard.push(nc);addLog(`ボットが「属州」購入 (VP+6)`,'bot-action');render();await delay(500);bought=true;continue;}
+    }
+    if(botVP>=15&&bot.xp>=4&&turnNumber>10){
+      const kouryou=supplyVP.find(c=>c.id==='kouryou'&&c.remaining>0);
+      if(kouryou&&bot.xp>=kouryou.xpCost){bot.xp-=kouryou.xpCost;kouryou.remaining--;buyCount++;const nc={...kouryou,uid:Math.random()};delete nc.remaining;delete nc.stock;bot.discard.push(nc);addLog(`ボットが「公領」購入 (VP+3)`,'bot-action');render();await delay(500);bought=true;continue;}
+    }
+    if(bot.xp>=2&&turnNumber>15){
+      const yashiki=supplyVP.find(c=>c.id==='yashiki'&&c.remaining>0);
+      if(yashiki&&Math.random()>0.5&&bot.xp>=yashiki.xpCost){bot.xp-=yashiki.xpCost;yashiki.remaining--;buyCount++;const nc={...yashiki,uid:Math.random()};delete nc.remaining;delete nc.stock;bot.discard.push(nc);addLog(`ボットが「屋敷」購入 (VP+1)`,'bot-action');render();await delay(500);bought=true;continue;}
+    }
+    const bc=getAllDeckCards(bot),sc2=bc.filter(c=>c.starter).length;
+    const all=[];
+    supplyTier1.forEach((c,i)=>all.push({c,p:'t1',i}));
+    supplyTier2.forEach((c,i)=>all.push({c,p:'t2',i}));
+    supplyTier3.forEach((c,i)=>all.push({c,p:'t3',i}));
+    const aff=all.filter(s=>s.c.remaining>0&&s.c.xpCost<=bot.xp);
+    if(!aff.length)break;
+    let pick;
+    if(turnNumber<=10){
+      const trash=aff.find(s=>s.c.id==='haikiro');
+      if(sc2>=2&&trash)pick=trash;
+      else{const basics=aff.filter(s=>s.c.tier===1);pick=basics.length>0?basics[Math.floor(Math.random()*basics.length)]:aff[0];}
+    }else if(turnNumber<=20){
+      const t2=aff.filter(s=>s.c.tier===2);
+      if(t2.length>0)pick=t2[Math.floor(Math.random()*t2.length)];
+      else{const trash=aff.find(s=>s.c.id==='haikiro');if(sc2>=2&&trash)pick=trash;else pick=aff[Math.floor(Math.random()*aff.length)];}
+    }else{aff.sort((a,b)=>b.c.xpCost-a.c.xpCost);pick=aff[0];}
+    if(!pick)pick=aff[Math.floor(Math.random()*aff.length)];
+
+    bot.xp-=pick.c.xpCost;
+    if(pick.p==='t1')supplyTier1[pick.i].remaining--;
+    else if(pick.p==='t2')supplyTier2[pick.i].remaining--;
+    else if(pick.p==='t3')supplyTier3[pick.i].remaining--;
+    const nc={...pick.c,uid:Math.random()};delete nc.remaining;delete nc.stock;
+    bot.discard.push(nc);buyCount++;
+    addLog(`ボットが「${pick.c.name}」購入 (XP-${pick.c.xpCost})`,'bot-action');
+    render();await delay(500);
+    if(nc.id==='haikiro'){
+      const si=bot.discard.findIndex(c=>c.starter&&c.uid!==nc.uid);
+      if(si>=0){const rm=bot.discard.splice(si,1)[0];addLog(`ボットが「${rm.name}」廃棄`,'bot-action');}
+      else{const si2=bot.deck.findIndex(c=>c.starter);if(si2>=0){const rm=bot.deck.splice(si2,1)[0];addLog(`ボットが「${rm.name}」廃棄`,'bot-action');}}
+    }
+  }
+}
+
+function botPlayCard(card){
+  if(!card||card.isVP||bot.ap<getEffectiveAP(bot,card))return;
+  bot.ap-=getEffectiveAP(bot,card);addNoise(bot,getEffectiveNoise(bot,card));
+  if(card.apRecover)bot.ap=Math.min(MAX_AP,bot.ap+card.apRecover);
+  if(card.healPower)bot.hp=Math.min(bot.maxHp,bot.hp+card.healPower);
+  if(card.type==='索敵'){const d=Math.abs(player.x-bot.x)+Math.abs(player.y-bot.y);if(d<=(card.range||99)){bot.lastNoiseX=player.x;bot.lastNoiseY=player.y;bot.lastKnownPlayerNoise=3;}}
+  if(card.silence)bot.silenceTurns=card.silence;
+  if(card.flagSilence)bot.flagSilenceActive=true;
+  if(card.visionBonus)bot.tempVisionBonus+=card.visionBonus;
+  if(card.extraBuy)bot.buysLeft=(bot.buysLeft||1)+card.extraBuy;
+  if(card.extraDraw)drawCards(bot,card.extraDraw);
+  if(card.xpGain)bot.xp+=card.xpGain;
+  if(card.fullVision)bot.fullVisionTurns=card.fullVision;
+  const idx=bot.hand.indexOf(card);if(idx>=0){bot.hand.splice(idx,1);bot.discard.push(card);}
+}
+
+function botBuyPhase(){
+  // v6: No buy limit - bot buys as long as XP allows (capped at 5 purchases per turn to prevent loops)
+  let buyCount=0;
+  const maxBuys=5;
+  while(buyCount<maxBuys&&bot.xp>=1){
+    let bought=false;
+    // 1. HP upgrade if maxHP is low
+    if(bot.maxHp<=2){
+      const seinomi=supplyHP.find(c=>c.id==='seinomi'&&c.remaining>0);
+      if(seinomi&&bot.xp>=seinomi.xpCost){
+        bot.xp-=seinomi.xpCost;seinomi.remaining--;buyCount++;
+        bot.maxHp+=seinomi.hpUp;bot.hp=Math.min(bot.maxHp,bot.hp+seinomi.hpUp);
+        addLog(`ボットが「${seinomi.name}」購入 (HP強化)`,'shop');bought=true;continue;
+      }
+    }
+    // 2. VP cards if conditions are right
+    const botVP=calcVP(bot);
+    if(botVP>=20&&bot.xp>=7){
+      const zoushou=supplyVP.find(c=>c.id==='zoushou'&&c.remaining>0);
+      if(zoushou&&bot.xp>=zoushou.xpCost){bot.xp-=zoushou.xpCost;zoushou.remaining--;buyCount++;const nc={...zoushou,uid:Math.random()};delete nc.remaining;delete nc.stock;bot.discard.push(nc);addLog(`ボットが「属州」購入 (VP+6)`,'shop');bought=true;continue;}
+    }
+    if(botVP>=15&&bot.xp>=4&&turnNumber>10){
+      const kouryou=supplyVP.find(c=>c.id==='kouryou'&&c.remaining>0);
+      if(kouryou&&bot.xp>=kouryou.xpCost){bot.xp-=kouryou.xpCost;kouryou.remaining--;buyCount++;const nc={...kouryou,uid:Math.random()};delete nc.remaining;delete nc.stock;bot.discard.push(nc);addLog(`ボットが「公領」購入 (VP+3)`,'shop');bought=true;continue;}
+    }
+    if(bot.xp>=2&&turnNumber>15){
+      const yashiki=supplyVP.find(c=>c.id==='yashiki'&&c.remaining>0);
+      if(yashiki&&Math.random()>0.5&&bot.xp>=yashiki.xpCost){bot.xp-=yashiki.xpCost;yashiki.remaining--;buyCount++;const nc={...yashiki,uid:Math.random()};delete nc.remaining;delete nc.stock;bot.discard.push(nc);addLog(`ボットが「屋敷」購入 (VP+1)`,'shop');bought=true;continue;}
+    }
+
+    // 3. Regular cards
+    const bc=getAllDeckCards(bot),sc2=bc.filter(c=>c.starter).length;
+    const all=[];
+    supplyTier1.forEach((c,i)=>all.push({c,p:'t1',i}));
+    supplyTier2.forEach((c,i)=>all.push({c,p:'t2',i}));
+    supplyTier3.forEach((c,i)=>all.push({c,p:'t3',i}));
+    const aff=all.filter(s=>s.c.remaining>0&&s.c.xpCost<=bot.xp);
+    if(!aff.length)break;
+    let pick;
+    if(turnNumber<=10){
+      const trash=aff.find(s=>s.c.id==='haikiro');
+      if(sc2>=2&&trash)pick=trash;
+      else{const basics=aff.filter(s=>s.c.tier===1);pick=basics.length>0?basics[Math.floor(Math.random()*basics.length)]:aff[0];}
+    }else if(turnNumber<=20){
+      const t2=aff.filter(s=>s.c.tier===2);
+      if(t2.length>0)pick=t2[Math.floor(Math.random()*t2.length)];
+      else{const trash=aff.find(s=>s.c.id==='haikiro');if(sc2>=2&&trash)pick=trash;else pick=aff[Math.floor(Math.random()*aff.length)];}
+    }else{aff.sort((a,b)=>b.c.xpCost-a.c.xpCost);pick=aff[0];}
+    if(!pick)pick=aff[Math.floor(Math.random()*aff.length)];
+
+    bot.xp-=pick.c.xpCost;
+    if(pick.p==='t1')supplyTier1[pick.i].remaining--;
+    else if(pick.p==='t2')supplyTier2[pick.i].remaining--;
+    else if(pick.p==='t3')supplyTier3[pick.i].remaining--;
+    const nc={...pick.c,uid:Math.random()};delete nc.remaining;delete nc.stock;
+    bot.discard.push(nc);buyCount++;
+    addLog(`ボットが「${pick.c.name}」購入 (XP-${pick.c.xpCost})`,'shop');
+    if(nc.id==='haikiro'){
+      const si=bot.discard.findIndex(c=>c.starter&&c.uid!==nc.uid);
+      if(si>=0){const rm=bot.discard.splice(si,1)[0];addLog(`ボットが「${rm.name}」廃棄`,'shop');}
+      else{const si2=bot.deck.findIndex(c=>c.starter);if(si2>=0){const rm=bot.deck.splice(si2,1)[0];addLog(`ボットが「${rm.name}」廃棄`,'shop');}}
+    }
+  }
+}
+
+// ===== PATHFINDING =====
+function findPath(sx,sy,gx,gy){
+  if(sx===gx&&sy===gy)return[{x:sx,y:sy}];
+  const vis=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false)),par=Array.from({length:MAP_H},()=>Array(MAP_W).fill(null));
+  const q=[{x:sx,y:sy}];vis[sy][sx]=true;
+  while(q.length){
+    const{x,y}=q.shift();if(x===gx&&y===gy){const p=[];let cx=gx,cy=gy;while(cx!==sx||cy!==sy){p.unshift({x:cx,y:cy});const pp=par[cy][cx];cx=pp.x;cy=pp.y;}p.unshift({x:sx,y:sy});return p;}
+    for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){const nx=x+dx,ny=y+dy;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&!vis[ny][nx]&&isWalkable(nx,ny)){vis[ny][nx]=true;par[ny][nx]={x,y};q.push({x:nx,y:ny});}}
+  }
+  return null;
+}
+
+// ===== GAME END =====
+function endGame(w,d){
+  gameOver=true;gamePhase='gameOver';
+  const pvp=calcVP(player),bvp=calcVP(bot);
+  const s=document.getElementById('game-over-screen'),t=document.getElementById('game-over-text'),dt=document.getElementById('game-over-detail');
+  t.className=w?'win':'lose';t.textContent=w?'勝利!':'敗北...';dt.textContent=d;
+  document.getElementById('game-over-scores').textContent=`プレイヤー: ${pvp}VP | ボット: ${bvp}VP`;
+  s.style.display='flex';
+}
+function endGameTimeout(){
+  const pvp=calcVP(player),bvp=calcVP(bot);
+  endGame(pvp>=bvp,`時間切れ! (${pvp}VP vs ${bvp}VP)`);
+}
+
+// ===== CAMERA =====
+function updateCamera(){
+  camX=Math.max(0,Math.min(MAP_W-VIEWPORT,player.x-Math.floor(VIEWPORT/2)));
+  camY=Math.max(0,Math.min(MAP_H-VIEWPORT,player.y-Math.floor(VIEWPORT/2)));
+}
+
+// ===== RENDERING =====
+function resizeCanvas(){
+  const a=document.getElementById('map-area'),mw=a.clientWidth-20,mh=a.clientHeight-20;
+  tileSize=Math.max(24,Math.min(48,Math.floor(Math.min(mw,mh)/VIEWPORT)));
+  canvas.width=VIEWPORT*tileSize;canvas.height=VIEWPORT*tileSize;render();
+}
+
+function render(){
+  if(!ctx)return;const ts=tileSize;ctx.clearRect(0,0,canvas.width,canvas.height);
+  // Draw viewport
+  for(let vy=0;vy<VIEWPORT;vy++)for(let vx=0;vx<VIEWPORT;vx++){
+    const x=vx+camX,y=vy+camY;
+    if(x<0||x>=MAP_W||y<0||y>=MAP_H){ctx.fillStyle='#030308';ctx.fillRect(vx*ts,vy*ts,ts,ts);continue;}
+    const fog=fogState[y][x],tile=map[y][x];
+    if(fog===0){ctx.fillStyle='#05050a';ctx.fillRect(vx*ts,vy*ts,ts,ts);drawFlagIfPresent(x,y,vx,vy,ts,0.7);ctx.strokeStyle='#0a0a15';ctx.lineWidth=0.3;ctx.strokeRect(vx*ts,vy*ts,ts,ts);continue;}
+    let bg;switch(tile){case TILE_FLOOR:bg='#1a1a2e';break;case TILE_WALL:bg='#2a2244';break;case TILE_ALTAR:bg='#2a1a3e';break;case TILE_SPRING:bg='#0a2a3e';break;case TILE_PORTAL:bg='#1a2a1a';break;case TILE_BUSH:bg='#0a1a0a';break;case TILE_TREASURE:bg='#2a2a0a';break;case TILE_BOSS_FLOOR:bg='#2a0a0a';break;default:bg='#1a1a2e';}
+    if(fog===1){ctx.fillStyle='#0a0a15';ctx.fillRect(vx*ts,vy*ts,ts,ts);ctx.globalAlpha=0.35;ctx.fillStyle=bg;ctx.fillRect(vx*ts,vy*ts,ts,ts);ctx.globalAlpha=1;drawTileIcon(vx,vy,tile,0.25);}
+    else{ctx.fillStyle=bg;ctx.fillRect(vx*ts,vy*ts,ts,ts);drawTileIcon(vx,vy,tile,1);}
+    ctx.strokeStyle=fog===2?'#222244':'#111122';ctx.lineWidth=0.5;ctx.strokeRect(vx*ts,vy*ts,ts,ts);
+  }
+  // Poison clouds
+  for(const c of poisonClouds){const vx=c.x-camX,vy=c.y-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT){ctx.fillStyle='rgba(100,200,0,0.2)';ctx.fillRect(vx*ts,vy*ts,ts,ts);ctx.fillStyle='rgba(100,200,0,0.6)';ctx.font=`${ts*0.4}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('毒',vx*ts+ts/2,vy*ts+ts/2);}}
+  // Movement hints
+  if(gamePhase==='action'&&!gameOver)for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){
+    const nx=player.x+dx,ny=player.y+dy;
+    if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&isWalkable(nx,ny)&&!isOccupied(nx,ny,player)&&!getMobAt(nx,ny)){
+      const vx=nx-camX,vy=ny-camY;
+      if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT){
+        ctx.fillStyle='rgba(60,180,120,0.15)';ctx.fillRect(vx*ts,vy*ts,ts,ts);ctx.strokeStyle='rgba(60,180,120,0.4)';ctx.lineWidth=1.5;ctx.strokeRect(vx*ts+1,vy*ts+1,ts-2,ts-2);
+      }
+    }
+  }
+  // Attack range highlight
+  if(selectedCardIndex>=0&&gamePhase==='action'){
+    const card=player.hand[selectedCardIndex];
+    if(card&&card.type==='攻撃'&&card.range>1){
+      for(let y2=Math.max(0,player.y-card.range);y2<=Math.min(MAP_H-1,player.y+card.range);y2++){
+        for(let x2=Math.max(0,player.x-card.range);x2<=Math.min(MAP_W-1,player.x+card.range);x2++){
+          const d=Math.abs(x2-player.x)+Math.abs(y2-player.y);
+          if(d>0&&d<=card.range){const vx=x2-camX,vy=y2-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT){ctx.fillStyle='rgba(255,60,60,0.12)';ctx.fillRect(vx*ts,vy*ts,ts,ts);}}
+        }
+      }
+    }
+  }
+  if(blindShotMode){ctx.fillStyle='rgba(255,100,0,0.1)';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#ff8844';ctx.font='14px sans-serif';ctx.textAlign='center';ctx.fillText('ブラインドショット: 目標をクリック',canvas.width/2,20);}
+  // Flags
+  drawFlagOnMap(ts);
+  // Phantoms
+  for(const p of phantoms){const vx=p.x-camX,vy=p.y-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT&&fogState[p.y]&&fogState[p.y][p.x]>=1)drawEntity(vx,vy,'#333355','#5555aa','?',ts);}
+  // Mobs
+  for(const m of mobs){
+    if(!m.alive)continue;
+    if(fogState[m.y]&&fogState[m.y][m.x]===2){
+      const vx=m.x-camX,vy=m.y-camY;
+      if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT)drawMob(m,vx,vy,ts);
+    }
+  }
+  // v6: Boss
+  if(boss&&boss.alive&&fogState[boss.y]&&fogState[boss.y][boss.x]>=1){
+    const vx=boss.x-camX,vy=boss.y-camY;
+    if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT){
+      drawBoss(boss,vx,vy,ts);
+    }
+  }
+  // Bot
+  if(fogState[bot.y]&&fogState[bot.y][bot.x]===2&&!gameOver){
+    const vx=bot.x-camX,vy=bot.y-camY;
+    if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT){
+      drawEntity(vx,vy,'#cc3333','#ff4444','B',ts);
+      if(bot.hasFlag){ctx.fillStyle='#ffd700';ctx.font=`bold ${ts*0.25}px sans-serif`;ctx.textAlign='center';ctx.fillText('旗',vx*ts+ts/2,vy*ts+ts*0.15);}
+    }
+  }
+  // Player
+  {const vx=player.x-camX,vy=player.y-camY;
+    if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT){
+      drawEntity(vx,vy,player.invulnTurns>0?'#cccc33':'#2244cc',player.invulnTurns>0?'#ffff66':'#4488ff','P',ts);
+      if(player.hasFlag){ctx.fillStyle='#ffd700';ctx.font=`bold ${ts*0.25}px sans-serif`;ctx.textAlign='center';ctx.fillText('旗',vx*ts+ts/2,vy*ts+ts*0.15);}
+    }
+  }
+  // Noise ripples
+  for(const r of noiseRipples){const vx=r.x-camX,vy=r.y-camY;if(vx>=-2&&vx<VIEWPORT+2&&vy>=-2&&vy<VIEWPORT+2){ctx.beginPath();ctx.arc(vx*ts+ts/2,vy*ts+ts/2,r.radius*ts,0,Math.PI*2);ctx.strokeStyle=r.color;ctx.globalAlpha=r.alpha;ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;}}
+  updateUI();renderMinimap();updateBossHPOverlay();
+}
+
+function drawMob(m,vx,vy,ts){
+  const cx=vx*ts+ts/2,cy=vy*ts+ts/2;
+  ctx.beginPath();ctx.arc(cx,cy,ts/4,0,Math.PI*2);
+  ctx.fillStyle='#884422';ctx.fill();
+  ctx.strokeStyle=RANK_COLORS[m.rank]||'#ff8844';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle=RANK_COLORS[m.rank]||'#ffcc88';ctx.font=`bold ${ts*0.28}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(m.icon,cx,cy);
+  // HP bar
+  const bw=ts*0.6,bh=3,bx=vx*ts+(ts-bw)/2,by=vy*ts+2;
+  ctx.fillStyle='#333';ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle=m.hp>=m.maxHp*0.5?'#44cc44':'#cc4444';
+  ctx.fillRect(bx,by,bw*(m.hp/m.maxHp),bh);
+}
+
+// v6: Draw boss
+function drawBoss(b,vx,vy,ts){
+  const cx=vx*ts+ts/2,cy=vy*ts+ts/2;
+  // Boss glow
+  const grad=ctx.createRadialGradient(cx,cy,2,cx,cy,ts*0.6);
+  grad.addColorStop(0,'rgba(255,50,0,0.4)');grad.addColorStop(1,'transparent');
+  ctx.fillStyle=grad;ctx.fillRect(vx*ts,vy*ts,ts,ts);
+  // Boss body (larger)
+  ctx.beginPath();ctx.arc(cx,cy,ts*0.38,0,Math.PI*2);
+  ctx.fillStyle='#660000';ctx.fill();
+  ctx.strokeStyle='#ff2200';ctx.lineWidth=2.5;ctx.stroke();
+  ctx.fillStyle='#ff4400';ctx.font=`bold ${ts*0.35}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(b.icon,cx,cy);
+  // HP bar (wider)
+  const bw=ts*0.8,bh=4,bx2=vx*ts+(ts-bw)/2,by2=vy*ts+2;
+  ctx.fillStyle='#333';ctx.fillRect(bx2,by2,bw,bh);
+  ctx.fillStyle=b.hp>=b.maxHp*0.5?'#ff8800':'#ff0000';
+  ctx.fillRect(bx2,by2,bw*(Math.max(0,b.hp)/b.maxHp),bh);
+  // Boss name label
+  ctx.fillStyle='#ff6644';ctx.font=`bold ${ts*0.2}px sans-serif`;
+  ctx.fillText('BOSS',cx,vy*ts+ts-3);
+}
+
+function drawTileIcon(vx,vy,tile,alpha){
+  const ts=tileSize,cx=vx*ts+ts/2,cy=vy*ts+ts/2;ctx.save();ctx.globalAlpha=alpha;
+  if(tile===TILE_WALL){ctx.fillStyle='#3a3060';ctx.fillRect(vx*ts+3,vy*ts+3,ts-6,ts-6);ctx.fillStyle='#4a4080';ctx.fillRect(vx*ts+5,vy*ts+5,ts-10,ts-10);}
+  else if(tile===TILE_ALTAR){ctx.fillStyle='#aa66ff';ctx.font=`${ts*0.45}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('祭',cx,cy);}
+  else if(tile===TILE_SPRING){ctx.fillStyle='#44ccff';ctx.font=`${ts*0.45}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('泉',cx,cy);}
+  else if(tile===TILE_PORTAL){ctx.fillStyle='#44ff88';ctx.font=`${ts*0.4}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('残',cx,cy);}
+  else if(tile===TILE_BUSH){ctx.fillStyle='#228833';ctx.font=`${ts*0.4}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('草',cx,cy);}
+  else if(tile===TILE_TREASURE){ctx.fillStyle='#ffdd44';ctx.font=`${ts*0.45}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('宝',cx,cy);}
+  else if(tile===TILE_BOSS_FLOOR){ctx.fillStyle='rgba(150,0,0,0.15)';ctx.fillRect(vx*ts,vy*ts,ts,ts);}
+  ctx.restore();
+}
+function drawFlagOnMap(ts){
+  if(flagBlue.carrier===null){const vx=flagBlue.x-camX,vy=flagBlue.y-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT)drawFlag(vx,vy,'#4488ff','青',ts);}
+  if(flagRed.carrier===null){const vx=flagRed.x-camX,vy=flagRed.y-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT)drawFlag(vx,vy,'#ff4444','赤',ts);}
+  // Home indicators
+  ctx.save();ctx.globalAlpha=0.3;ctx.strokeStyle='#4488ff';ctx.lineWidth=2;ctx.setLineDash([3,3]);
+  {const vx=flagBlue.homeX-camX,vy=flagBlue.homeY-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT)ctx.strokeRect(vx*ts+2,vy*ts+2,ts-4,ts-4);}
+  ctx.strokeStyle='#ff4444';
+  {const vx=flagRed.homeX-camX,vy=flagRed.homeY-camY;if(vx>=0&&vx<VIEWPORT&&vy>=0&&vy<VIEWPORT)ctx.strokeRect(vx*ts+2,vy*ts+2,ts-4,ts-4);}
+  ctx.setLineDash([]);ctx.restore();
+}
+function drawFlag(vx,vy,color,label,ts){
+  const cx=vx*ts+ts/2,cy=vy*ts+ts/2;
+  ctx.strokeStyle='#aaa';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-ts*0.15,cy+ts*0.3);ctx.lineTo(cx-ts*0.15,cy-ts*0.35);ctx.stroke();
+  ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(cx-ts*0.15,cy-ts*0.35);ctx.lineTo(cx+ts*0.2,cy-ts*0.2);ctx.lineTo(cx-ts*0.15,cy-ts*0.05);ctx.fill();
+  ctx.fillStyle='#ffd700';ctx.font=`bold ${ts*0.22}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,cx+ts*0.05,cy+ts*0.15);
+}
+function drawFlagIfPresent(x,y,vx,vy,ts,a){ctx.save();ctx.globalAlpha=a;if(flagBlue.carrier===null&&flagBlue.x===x&&flagBlue.y===y)drawFlag(vx,vy,'#4488ff','青',ts);if(flagRed.carrier===null&&flagRed.x===x&&flagRed.y===y)drawFlag(vx,vy,'#ff4444','赤',ts);ctx.restore();}
+function drawEntity(vx,vy,dark,light,label,ts){
+  const cx=vx*ts+ts/2,cy=vy*ts+ts/2;
+  const grad=ctx.createRadialGradient(cx,cy,2,cx,cy,ts/2);grad.addColorStop(0,light);grad.addColorStop(1,'transparent');
+  ctx.fillStyle=grad;ctx.globalAlpha=0.3;ctx.fillRect(vx*ts,vy*ts,ts,ts);ctx.globalAlpha=1;
+  ctx.beginPath();ctx.arc(cx,cy,ts/3,0,Math.PI*2);ctx.fillStyle=dark;ctx.fill();ctx.strokeStyle=light;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font=`bold ${ts*0.35}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,cx,cy);
+}
+
+// ===== MINIMAP =====
+function renderMinimap(){
+  const mw=150,mh=150;
+  const cs=mw/MAP_W;
+  miniCtx.fillStyle='#050510';miniCtx.fillRect(0,0,mw,mh);
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+    if(fogState[y][x]===0)continue;
+    const tile=map[y][x];
+    if(tile===TILE_WALL){if(fogState[y][x]>=1)miniCtx.fillStyle='#222244';}
+    else if(tile===TILE_ALTAR)miniCtx.fillStyle='#6633aa';
+    else if(tile===TILE_SPRING)miniCtx.fillStyle='#226688';
+    else if(tile===TILE_BOSS_FLOOR)miniCtx.fillStyle=fogState[y][x]===2?'#4a1a1a':'#2a0a0a';
+    else miniCtx.fillStyle=fogState[y][x]===2?'#2a2a4a':'#15152a';
+    miniCtx.fillRect(x*cs,y*cs,cs,cs);
+  }
+  // v6: Boss on minimap
+  if(boss&&boss.alive){miniCtx.fillStyle='#ff2200';miniCtx.fillRect(boss.x*cs-1,boss.y*cs-1,cs*3,cs*3);}
+  // Flags (always visible)
+  miniCtx.fillStyle='#4488ff';miniCtx.fillRect(flagBlue.x*cs,flagBlue.y*cs,cs*2,cs*2);
+  miniCtx.fillStyle='#ff4444';miniCtx.fillRect(flagRed.x*cs,flagRed.y*cs,cs*2,cs*2);
+  // Player
+  miniCtx.fillStyle='#44aaff';miniCtx.fillRect(player.x*cs-1,player.y*cs-1,cs*2+2,cs*2+2);
+  // Bot (if visible)
+  if(fogState[bot.y]&&fogState[bot.y][bot.x]===2){miniCtx.fillStyle='#ff6644';miniCtx.fillRect(bot.x*cs-1,bot.y*cs-1,cs*2+2,cs*2+2);}
+  // Viewport frame
+  miniCtx.strokeStyle='rgba(255,255,255,0.4)';miniCtx.lineWidth=1;
+  miniCtx.strokeRect(camX*cs,camY*cs,VIEWPORT*cs,VIEWPORT*cs);
+}
+
+// ===== UI =====
+function updateUI(){
+  const pvp=calcVP(player),bvp=calcVP(bot);
+  document.getElementById('player-hp').textContent=`${player.hp}/${player.maxHp}`;
+  document.getElementById('player-ap').textContent=player.ap;
+  document.getElementById('player-xp').textContent=player.xp;
+  document.getElementById('player-noise').textContent=player.noise;
+  document.getElementById('player-def').textContent=player.defense;
+  document.getElementById('player-flag').textContent=player.hasFlag?`${player.flagColor==='red'?'赤':'青'}旗所持`:'なし';
+  document.getElementById('player-invuln').textContent=player.invulnTurns>0?`${player.invulnTurns}T`:'-';
+  document.getElementById('bot-hp').textContent=`${bot.hp}/${bot.maxHp}`;
+  document.getElementById('bot-noise').textContent=bot.noise;
+  document.getElementById('bot-flag').textContent=bot.hasFlag?`${bot.flagColor==='blue'?'青':'赤'}旗所持`:'なし';
+  document.getElementById('turn-num').textContent=turnNumber;
+  document.getElementById('deck-count').textContent=player.deck.length;
+  document.getElementById('discard-count').textContent=player.discard.length;
+  document.getElementById('buy-count').textContent='無制限';
+  const aliveM=mobs.filter(m=>m.alive).length;
+  document.getElementById('mob-count').textContent=`${aliveM}/${MAX_MOBS}`;
+  document.getElementById('mob-next').textContent=`${nextMobSpawnIn-mobSpawnCounter}T後`;
+  document.getElementById('event-next').textContent=`${Math.max(0,5-(turnNumber-eventState.lastEventTurn))}T+`;
+  document.getElementById('top-turn').textContent=turnNumber;
+  document.getElementById('top-ap').textContent=player.ap;
+  document.getElementById('top-buys').textContent='無制限';
+  document.getElementById('top-xp').textContent=player.xp;
+  document.getElementById('top-vp').textContent=pvp;
+  document.getElementById('top-draws').textContent=player.hand.length;
+  // Score panel
+  document.getElementById('score-player-vp').textContent=pvp;
+  document.getElementById('score-bot-vp').textContent=bvp;
+  document.getElementById('score-player-bar').style.width=Math.min(100,pvp/VP_WIN*100)+'%';
+  document.getElementById('score-bot-bar').style.width=Math.min(100,bvp/VP_WIN*100)+'%';
+  document.getElementById('score-player-detail').textContent=`旗:${(player.flagCaptures||0)*20} カード:${getAllDeckCards(player).reduce((s,c)=>s+(c.vpValue||0),0)} キル:${(player.killCount||0)*3} ボス:${(player.bossKill||0)*BOSS_VP_REWARD}`;
+  document.getElementById('score-bot-detail').textContent=`旗:${(bot.flagCaptures||0)*20} カード:${getAllDeckCards(bot).reduce((s,c)=>s+(c.vpValue||0),0)} キル:${(bot.killCount||0)*3} ボス:${(bot.bossKill||0)*BOSS_VP_REWARD}`;
+  // Phase
+  const gp=getGamePhaseName(),badge=document.getElementById('top-phase-badge');
+  badge.textContent=gp.name;badge.className='phase-badge '+gp.cls;
+  const pn={action:'自由行動',botTurn:'敵ターン中',gameOver:'ゲーム終了'};
+  document.getElementById('phase-name').textContent=enemyTurnActive?'敵ターン中':(pn[gamePhase]||gamePhase);
+  document.getElementById('phase-info').textContent=enemyTurnActive?'敵ターン中':(pn[gamePhase]||gamePhase);
+  document.getElementById('btn-shop').disabled=gamePhase!=='action';
+  document.getElementById('btn-end-turn').disabled=gamePhase!=='action';
+  const hint=document.getElementById('move-hint');
+  if(gamePhase==='action')hint.textContent='WASD/矢印で移動 | カードクリックで使用 | 移動・攻撃・購入を自由に実行';
+  else hint.textContent='';
+  renderHand();
+}
+
+function renderHand(){
+  const area=document.getElementById('hand-area');area.innerHTML='';
+  player.hand.forEach((card,i)=>{
+    const ha=player.ap>=getEffectiveAP(player,card);
+    const isAction=gamePhase==='action';
+    const isDead=!!card.isVP;
+    const div=document.createElement('div');
+    div.className='card'+(i===selectedCardIndex?' selected':'')+(!isAction?' disabled':'')+(isAction&&!ha&&!isDead?' no-ap':'')+(card.starter?' starter':'')+(isDead?' dead-card':'');
+    const tc=typeColor(card.type);
+    div.innerHTML=`<div class="card-cost">${isDead?'--':getEffectiveAP(player,card)}</div>
+      <div class="card-name">${card.name}</div>
+      <div class="card-type" style="color:${tc}">${card.type}${card.blind?' [B]':''}${card.starter?' [初期]':''}${isDead?' [デッド]':''}</div>
+      <div class="card-effect">${card.desc}</div>
+      <div class="card-stats"><span class="card-ap">${isDead?'VP:'+card.vpValue:'AP:'+getEffectiveAP(player,card)}</span><span class="card-noise">N:${card.noise}</span></div>`;
+    if(isAction&&ha&&!isDead)div.onclick=()=>selectCard(i);
+    area.appendChild(div);
+  });
+}
+
+function typeColor(type){return{'移動':'#44ddaa','攻撃':'#ff6666','防御':'#6688ff','索敵':'#ffcc44','隠密':'#aa66ff','回復':'#66ff88','合成':'#88cccc','伝説':'#ffd700','勝利点':'#ccaa00','HP強化':'#ff66aa','杖':'#ff88cc'}[type]||'#888';}
+function getDirection(x1,y1,x2,y2){let d='';if(y2<y1)d+='北';if(y2>y1)d+='南';if(x2<x1)d+='西';if(x2>x1)d+='東';return d||'近く';}
+
+function addLog(text,cls){const a=document.getElementById('log-area'),d=document.createElement('div');d.className='log-entry'+(cls?' log-'+cls:'');d.textContent=`[T${turnNumber}] ${text}`;a.insertBefore(d,a.firstChild);}
+function showBanner(text){const b=document.getElementById('turn-banner');b.textContent=text;b.style.opacity=1;setTimeout(()=>{b.style.opacity=0;},1200);}
+
+function animateNoise(){
+  let ch=false;
+  for(let i=noiseRipples.length-1;i>=0;i--){const r=noiseRipples[i];r.radius+=0.05;r.alpha-=0.015;if(r.alpha<=0||r.radius>=r.maxRadius){noiseRipples.splice(i,1);}ch=true;}
+  if(ch)render();requestAnimationFrame(animateNoise);
+}
+
+window.addEventListener('resize',resizeCanvas);
+init();animateNoise();
+</script>
+</body>
+</html>

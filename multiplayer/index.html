@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RAVEN REBORN - オンライン対戦</title>
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a16;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+#top-bar{background:#0e0e1a;border-bottom:1px solid #2a1a4a;padding:6px 15px;display:flex;align-items:center;gap:20px;font-size:13px;min-height:36px;flex-wrap:wrap}
+.top-item{display:flex;align-items:center;gap:6px}
+.top-label{color:#8888aa}
+.top-val{font-weight:bold;color:#ddccff}
+.ap-big{font-size:22px;color:#44ddff;font-weight:bold;text-shadow:0 0 10px rgba(60,180,255,.5)}
+.mp-big{font-size:22px;color:#44ffaa;font-weight:bold;text-shadow:0 0 10px rgba(60,255,150,.5)}
+.res-badge{background:#1a1a3a;border:1px solid #3a2a6a;border-radius:6px;padding:2px 8px;font-size:12px}
+.res-badge .rb-val{font-weight:bold;margin-left:3px}
+.vp-display{font-size:16px;font-weight:bold;color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,.4)}
+#game-container{display:flex;flex:1;min-height:0}
+#map-area{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;position:relative}
+#gameCanvas{border:2px solid #2a1a4a;border-radius:4px;cursor:pointer}
+#sidebar{width:300px;background:#0e0e1a;border-left:1px solid #2a1a4a;padding:10px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.panel{background:#12122a;border:1px solid #2a1a4a;border-radius:6px;padding:8px}
+.panel h3{font-size:12px;color:#9080c0;margin-bottom:4px;border-bottom:1px solid #2a1a4a;padding-bottom:3px}
+.stat-row{display:flex;justify-content:space-between;font-size:12px;margin:2px 0}
+.stat-label{color:#8888aa}
+.stat-val{font-weight:bold}
+.hp-player{color:#4488ff}
+.hp-bot{color:#ff4444}
+.xp-val{color:#aa88ff}
+.noise-val{color:#ffaa44}
+.ap-val{color:#44aaff}
+.mp-val{color:#44ffaa}
+.flag-status{color:#ffd700;font-weight:bold}
+#log-area{flex:1;min-height:60px;overflow-y:auto;font-size:10px;line-height:1.5}
+#log-area .log-entry{padding:1px 0;border-bottom:1px solid #1a1a2a}
+.log-dmg{color:#ff6666}.log-heal{color:#66ff88}.log-info{color:#88aaff}
+.log-card{color:#ffcc44}.log-flag{color:#ffd700;font-weight:bold}
+.log-shop{color:#aa66ff}.log-buy{color:#66ddaa;font-weight:bold}
+.log-mob{color:#ff8844}.log-vp{color:#ffd700;font-weight:bold}
+.log-player-action{color:#e0e0ff}.log-bot-action{color:#ff4444;font-weight:bold}
+.log-mob-action{color:#ff8844}.log-boss-action{color:#cc44ff;font-weight:bold}
+.log-system{color:#ffdd44}.log-kill{color:#ffd700;font-weight:bold}
+.score-panel .vp-bar{background:#1a1a0a;border:1px solid #4a4a1a;border-radius:4px;height:12px;margin:3px 0;position:relative;overflow:hidden}
+.score-panel .vp-fill{height:100%;border-radius:3px;transition:width .3s}
+.score-panel .vp-text{position:absolute;top:0;left:4px;font-size:9px;color:#fff;line-height:12px}
+#minimap-canvas{border:1px solid #2a1a4a;border-radius:4px;display:block;margin:0 auto;cursor:pointer}
+#noise-indicator{position:absolute;top:10px;left:10px;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:bold;background:rgba(0,0,0,0.7);border:1px solid #444;display:none;pointer-events:none}
+#enemy-turn-indicator{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;font-weight:bold;color:#ff6644;text-shadow:0 0 20px rgba(255,80,40,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:90;background:rgba(0,0,0,0.5);padding:10px 30px;border-radius:10px;border:2px solid #ff4422}
+@keyframes screen-shake{0%{transform:translate(0,0)}25%{transform:translate(-4px,3px)}50%{transform:translate(3px,-4px)}75%{transform:translate(-3px,2px)}100%{transform:translate(0,0)}}
+.shake{animation:screen-shake 0.3s ease-in-out}
+#particle-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:88}
+@keyframes score-float{0%{opacity:1;transform:translate(-50%,0) scale(1)}50%{opacity:1;transform:translate(-50%,-40px) scale(1.4)}100%{opacity:0;transform:translate(-50%,-80px) scale(0.8)}}
+.score-popup{position:fixed;font-weight:900;pointer-events:none;z-index:95;text-shadow:0 0 20px currentColor,0 2px 8px rgba(0,0,0,0.8);animation:score-float 1.2s ease-out forwards;white-space:nowrap}
+@keyframes boss-entrance{0%{opacity:0;transform:translate(-50%,-50%) scale(3);filter:blur(20px)}30%{opacity:1;transform:translate(-50%,-50%) scale(1.2);filter:blur(0)}50%{transform:translate(-50%,-50%) scale(1)}60%{transform:translate(-50%,-50%) scale(1.1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+#boss-entrance-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);display:none;align-items:center;justify-content:center;z-index:200;flex-direction:column}
+#boss-entrance-overlay.active{display:flex}
+#boss-entrance-overlay .boss-entrance-text{font-size:48px;font-weight:900;color:#ff2200;text-shadow:0 0 40px rgba(255,34,0,0.8),0 0 80px rgba(255,34,0,0.4);animation:boss-entrance 2.5s ease-out forwards;letter-spacing:8px}
+#boss-entrance-overlay .boss-entrance-sub{font-size:20px;color:#ff8866;margin-top:12px;animation:boss-entrance 2.5s ease-out 0.3s forwards;opacity:0;letter-spacing:4px}
+@keyframes critical-flash{0%{background:rgba(255,255,255,0.6)}100%{background:transparent}}
+.critical-flash{animation:critical-flash 0.15s ease-out 2}
+@keyframes levelup-burst{0%{box-shadow:0 0 0 0 rgba(170,136,255,0.8)}50%{box-shadow:0 0 60px 30px rgba(170,136,255,0.4)}100%{box-shadow:0 0 0 0 rgba(170,136,255,0)}}
+.levelup-burst{animation:levelup-burst 1s ease-out}
+@keyframes card-play-swoosh{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-100px) scale(0.3);opacity:0}}
+.card-play-swoosh{animation:card-play-swoosh 0.4s ease-in forwards}
+#boss-hp-overlay{position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);border:2px solid #ff2200;border-radius:8px;padding:6px 16px;z-index:80;display:none;text-align:center;min-width:200px}
+#boss-hp-overlay .boss-name{color:#ff4400;font-weight:bold;font-size:14px}
+#boss-hp-overlay .boss-bar{background:#333;height:10px;border-radius:5px;margin-top:4px;overflow:hidden}
+#boss-hp-overlay .boss-fill{background:linear-gradient(90deg,#ff0000,#ff6600);height:100%;transition:width 0.3s;border-radius:5px}
+#boss-hp-overlay .boss-hp-text{color:#ffaa88;font-size:11px;margin-top:2px}
+#bottom-bar{background:#0e0e1a;border-top:1px solid #2a1a4a;padding:8px 12px;display:flex;align-items:center;gap:8px;min-height:120px}
+#phase-info{writing-mode:vertical-rl;font-size:11px;color:#9080c0;padding-right:8px;border-right:1px solid #2a1a4a;text-align:center;min-width:28px}
+#hand-area{display:flex;gap:6px;flex:1;overflow-x:auto;padding:4px 0}
+.card{min-width:120px;max-width:140px;background:linear-gradient(135deg,#1a1a3a,#12122a);border:2px solid #3a2a6a;border-radius:8px;padding:8px;cursor:pointer;transition:all .2s;flex-shrink:0;position:relative}
+.card:hover{border-color:#7060c0;transform:translateY(-4px);box-shadow:0 4px 15px rgba(100,60,200,.3)}
+.card.selected{border-color:#aa88ff;box-shadow:0 0 20px rgba(150,100,255,.5);transform:translateY(-8px)}
+.card.disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.card.dead-card{border-color:#666633;opacity:.6}
+.card-name{font-size:12px;font-weight:bold;color:#ddccff;margin-bottom:3px}
+.card-type{font-size:10px;margin-bottom:4px}
+.card-effect{font-size:10px;color:#aaaacc;line-height:1.3}
+.card-stats{display:flex;justify-content:space-between;margin-top:6px;font-size:10px}
+.card-ap{color:#44aaff}
+.card-noise{color:#ffaa44}
+.card.fused-card{border-color:#ff8800;box-shadow:0 0 12px rgba(255,136,0,0.4)}
+#action-buttons{display:flex;flex-direction:column;gap:5px;min-width:110px}
+.btn{background:linear-gradient(135deg,#2a1a5a,#1a1a3a);border:1px solid #4a3a7a;color:#ccbbee;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:linear-gradient(135deg,#3a2a7a,#2a2a5a);border-color:#6a5a9a}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-end{border-color:#aa4444;color:#ff8888}
+.btn-end:hover{border-color:#ff6666}
+.btn-shop{border-color:#aa66ff;color:#cc88ff}
+.btn-deck{border-color:#44aa88;color:#66ddaa}
+#turn-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;color:#fff;text-shadow:0 0 30px rgba(100,60,255,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:100}
+#game-over-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:200}
+#game-over-screen h1{font-size:42px;margin-bottom:15px}
+#game-over-screen .win{color:#44aaff;text-shadow:0 0 30px rgba(60,120,255,.8)}
+#game-over-screen .lose{color:#ff4444;text-shadow:0 0 30px rgba(255,60,60,.8)}
+#game-over-screen p{font-size:16px;color:#aaa;margin-bottom:15px}
+#game-over-screen button{padding:10px 25px;font-size:16px;cursor:pointer;background:#2a1a5a;border:2px solid #6a5a9a;color:#ccbbee;border-radius:8px;margin:4px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:150}
+.modal-overlay.active{display:flex}
+.modal{background:#12122a;border:2px solid #4a3a7a;border-radius:12px;padding:20px;max-width:950px;width:95%;max-height:85vh;overflow-y:auto}
+.modal h2{color:#aa88ff;margin-bottom:12px;font-size:18px;border-bottom:1px solid #3a2a6a;padding-bottom:8px}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.shop-section-label{font-size:13px;font-weight:bold;padding:4px 10px;border-radius:4px;margin:8px 0 4px 0;display:inline-block}
+.shop-section-label.const-label{background:#1a2a3a;color:#44aadd;border:1px solid #2a4a6a}
+.shop-section-label.tier1-label{background:#1a3a1a;color:#44dd66;border:1px solid #2a6a2a}
+.shop-section-label.tier2-label{background:#3a3a1a;color:#dddd44;border:1px solid #6a6a2a}
+.shop-section-label.tier3-label{background:#3a1a1a;color:#ff6644;border:1px solid #6a2a2a}
+.shop-section-label.tier4-label{background:#2a1a3a;color:#cc66ff;border:1px solid #5a2a8a}
+.shop-section-label.tier5-label{background:#3a2a1a;color:#ffd700;border:1px solid #8a6a2a}
+.shop-card{background:linear-gradient(135deg,#1a1a3a,#0e0e1e);border:2px solid #3a2a6a;border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;position:relative}
+.shop-card:hover{border-color:#aa88ff;box-shadow:0 0 15px rgba(150,100,255,.3)}
+.shop-card.sold{opacity:.3;cursor:not-allowed;pointer-events:none}
+.shop-card .sc-name{font-size:12px;font-weight:bold;color:#ddccff;margin-bottom:3px}
+.shop-card .sc-type{font-size:10px;margin-bottom:4px}
+.shop-card .sc-effect{font-size:10px;color:#aaaacc;line-height:1.3;margin-bottom:6px}
+.shop-card .sc-bottom{display:flex;justify-content:space-between;font-size:10px}
+.shop-card .sc-cost{color:#aa88ff;font-weight:bold}
+.shop-card .sc-ap{color:#44aaff}
+.shop-card .sc-stock{position:absolute;top:4px;right:6px;background:#2a2a4a;color:#aaa;font-size:9px;padding:1px 5px;border-radius:8px}
+.shop-card.const-border{border-left:3px solid #44aadd}
+.shop-card.tier1-border{border-left:3px solid #44dd66}
+.shop-card.tier2-border{border-left:3px solid #dddd44}
+.shop-card.tier3-border{border-left:3px solid #ff6644}
+.shop-card.tier4-border{border-left:3px solid #cc66ff}
+.shop-card.tier5-border{border-left:3px solid #ffd700}
+.modal-close{background:#3a1a1a;border:1px solid #6a2a2a;color:#ff8888;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;float:right}
+.modal-close:hover{background:#5a2a2a}
+.deck-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.deck-card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:8px;font-size:11px;cursor:default}
+.deck-card .dc-name{font-weight:bold;color:#ddccff}
+.deck-card .dc-type{font-size:10px;color:#7766aa}
+[data-tooltip]{position:relative;cursor:help}
+[data-tooltip]:hover::after{content:attr(data-tooltip);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1a1a3a;border:1px solid #4a3a7a;color:#ccbbee;padding:4px 8px;border-radius:4px;font-size:11px;white-space:nowrap;z-index:200;pointer-events:none}
+.card.disabled[data-tooltip]{cursor:not-allowed}
+.card.disabled[data-tooltip]:hover::after,.card.dead-card[data-tooltip]:hover::after{background:#2a1a1a;border-color:#6a2a2a;color:#ff8888}
+#mobile-mini-bars{display:none;align-items:center;gap:6px}
+.mini-bar-wrap{display:flex;align-items:center;gap:3px;font-size:10px}
+.mini-bar{width:40px;height:6px;background:#1a1a3a;border-radius:3px;overflow:hidden;position:relative}
+.mini-bar-fill{height:100%;border-radius:3px;transition:width 0.3s}
+.mini-bar-fill.hp{background:#4488ff}
+.mini-bar-fill.vp{background:#ffd700}
+#mobile-mini-minimap{display:none;position:fixed;top:40px;right:6px;z-index:60;border:1px solid #2a1a4a;border-radius:4px;opacity:0.85;pointer-events:none}
+#floating-logs{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:85;display:flex;flex-direction:column;align-items:center;justify-content:center}
+@keyframes float-log-in{0%{transform:translateY(30px);opacity:0}15%{transform:translateY(0);opacity:1}75%{transform:translateY(0);opacity:0.8}100%{transform:translateY(-20px);opacity:0}}
+.floating-log{font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8),0 2px 4px rgba(0,0,0,0.9);pointer-events:none;animation:float-log-in 2.5s ease-out forwards;white-space:nowrap;padding:4px 12px;border-radius:4px;background:rgba(0,0,0,0.3)}
+#flash-overlay{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:80;opacity:0;transition:opacity 0.05s}
+#turn-timer-bar{height:4px;background:#1a1a3a;position:relative;overflow:hidden}
+#turn-timer-fill{height:100%;background:#44ddff;transition:width 0.5s linear}
+/* Lobby */
+#lobby{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:20px}
+#lobby h1{font-size:36px;color:#aa88ff;text-shadow:0 0 30px rgba(150,100,255,0.5);letter-spacing:4px}
+#lobby .subtitle{font-size:14px;color:#8888aa;margin-top:-10px}
+#lobby .lobby-box{background:#12122a;border:2px solid #4a3a7a;border-radius:12px;padding:30px;min-width:320px;text-align:center}
+#lobby input{background:#1a1a3a;border:2px solid #3a2a6a;color:#ddccff;padding:12px 20px;border-radius:8px;font-size:20px;text-align:center;width:140px;letter-spacing:8px;outline:none}
+#lobby input:focus{border-color:#7060c0}
+#lobby .lobby-btn{background:linear-gradient(135deg,#2a1a5a,#1a1a3a);border:2px solid #6a5a9a;color:#ccbbee;padding:12px 30px;border-radius:8px;font-size:16px;cursor:pointer;transition:all .2s;margin:6px}
+#lobby .lobby-btn:hover{background:linear-gradient(135deg,#3a2a7a,#2a2a5a);border-color:#8a7aba;transform:translateY(-2px)}
+#lobby .lobby-btn.primary{border-color:#44ff88;color:#44ff88}
+#lobby .lobby-btn.primary:hover{border-color:#66ffaa}
+#lobby .status{font-size:13px;color:#ffcc44;margin-top:10px;min-height:20px}
+#lobby .waiting{font-size:18px;color:#44ddff;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+#shrink-warning{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(255,60,0,0.85);color:#fff;padding:6px 16px;border-radius:8px;font-weight:bold;font-size:13px;z-index:89;display:none}
+@media(max-width:768px){
+  #sidebar{display:none!important}
+  #mobile-mini-bars{display:flex!important}
+  #mobile-mini-minimap{display:block!important}
+  #map-area{flex:1;width:100%}
+  #gameCanvas{width:100%!important;max-width:100vw}
+  #game-container{flex-direction:column}
+  #top-bar{font-size:11px;gap:8px;padding:4px 8px}
+  #bottom-bar{min-height:90px;padding:4px 6px}
+  #hand-area{gap:4px}
+  .card{min-width:90px;max-width:110px;padding:5px}
+  #action-buttons{flex-direction:row;min-width:auto;gap:3px}
+  .btn{padding:5px 8px;font-size:10px}
+  .modal{width:98%;max-width:98%;padding:10px}
+  .shop-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<!-- LOBBY -->
+<div id="lobby">
+  <h1>RAVEN REBORN</h1>
+  <div class="subtitle">オンライン対戦</div>
+  <div class="lobby-box">
+    <div style="margin-bottom:20px">
+      <button class="lobby-btn primary" onclick="createRoom()">部屋を作成</button>
+    </div>
+    <div style="border-top:1px solid #3a2a6a;padding-top:20px">
+      <div style="font-size:13px;color:#8888aa;margin-bottom:8px">部屋コードを入力</div>
+      <input type="text" id="room-code-input" maxlength="4" placeholder="1234" inputmode="numeric">
+      <div style="margin-top:12px">
+        <button class="lobby-btn" onclick="joinRoom()">参加</button>
+      </div>
+    </div>
+    <div class="status" id="lobby-status"></div>
+    <div id="waiting-area" style="display:none">
+      <div class="waiting">対戦相手を待っています...</div>
+      <div style="font-size:16px;color:#ffd700;margin-top:10px">部屋コード: <span id="display-room-code" style="font-size:24px;letter-spacing:6px;font-weight:bold"></span></div>
+      <div style="font-size:12px;color:#888;margin-top:6px">このコードを相手に伝えてください</div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME UI -->
+<div id="game-ui" style="display:none;flex-direction:column;height:100vh">
+
+<canvas id="particle-canvas"></canvas>
+<div id="boss-entrance-overlay"><div class="boss-entrance-text"></div><div class="boss-entrance-sub"></div></div>
+
+<div id="top-bar">
+  <div class="top-item"><span class="top-label">T</span><span class="top-val" id="top-turn">1</span></div>
+  <div class="top-item" data-tooltip="アクションポイント"><span class="top-label">AP</span><span class="ap-big" id="top-ap">1</span></div>
+  <div class="top-item" data-tooltip="移動ポイント"><span class="top-label">MP</span><span class="mp-big" id="top-mp">3</span></div>
+  <div class="top-item"><span class="res-badge"><span class="top-label">購入</span><span class="rb-val" id="top-buys" style="color:#66ddaa">1</span></span></div>
+  <div class="top-item" data-tooltip="経験値"><span class="top-label">XP</span><span class="top-val" id="top-xp" style="color:#aa88ff">0</span></div>
+  <div class="top-item" data-tooltip="勝利点"><span class="top-label">VP</span><span class="vp-display" id="top-vp">0</span><span class="top-val" style="color:#ffd700" id="top-vp-target">/30</span></div>
+  <div class="top-item" data-tooltip="ノイズ"><span class="top-label">N</span><span class="top-val" id="top-noise" style="color:#ffaa44">0</span></div>
+  <div id="mobile-mini-bars">
+    <div class="mini-bar-wrap"><span style="color:#4488ff">HP</span><div class="mini-bar"><div class="mini-bar-fill hp" id="mini-hp-bar" style="width:100%"></div></div></div>
+    <div class="mini-bar-wrap"><span style="color:#ffd700">VP</span><div class="mini-bar"><div class="mini-bar-fill vp" id="mini-vp-bar" style="width:0%"></div></div></div>
+  </div>
+  <div class="top-item" style="margin-left:auto"><span class="top-val" id="turn-status" style="color:#44ffaa;font-size:12px"></span></div>
+  <div class="top-item"><button class="btn" onclick="openSettings()" style="padding:3px 8px;font-size:14px;min-width:28px">&#9881;</button></div>
+</div>
+<div id="turn-timer-bar"><div id="turn-timer-fill" style="width:100%"></div></div>
+
+<canvas id="mobile-mini-minimap" width="50" height="50"></canvas>
+<div id="game-container">
+  <div id="map-area">
+    <canvas id="gameCanvas"></canvas>
+    <div id="noise-indicator"></div>
+  </div>
+  <div id="sidebar">
+    <div class="panel score-panel">
+      <h3 id="scoreboard-title">スコアボード (30VP)</h3>
+      <div style="margin-bottom:6px">
+        <div style="font-size:12px;color:#4488ff;font-weight:bold">あなた (P<span id="my-index">1</span>) <span id="score-player-vp" style="color:#ffd700">0</span> VP</div>
+        <div class="vp-bar"><div class="vp-fill" id="score-player-bar" style="width:0%;background:#4488ff"></div><div class="vp-text" id="score-player-detail"></div></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#ff4444;font-weight:bold">相手 (P<span id="op-index">2</span>) <span id="score-bot-vp" style="color:#ffd700">0</span> VP</div>
+        <div class="vp-bar"><div class="vp-fill" id="score-bot-bar" style="width:0%;background:#ff4444"></div><div class="vp-text" id="score-bot-detail"></div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>あなた</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-player" id="player-hp">1/1</span></div>
+      <div class="stat-row"><span class="stat-label">AP</span><span class="stat-val ap-val" id="player-ap">1</span></div>
+      <div class="stat-row"><span class="stat-label">MP</span><span class="stat-val mp-val" id="player-mp">3</span></div>
+      <div class="stat-row"><span class="stat-label">XP</span><span class="stat-val xp-val" id="player-xp">0</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="player-noise">0</span></div>
+      <div class="stat-row"><span class="stat-label">旗</span><span class="stat-val flag-status" id="player-flag">なし</span></div>
+      <div class="stat-row"><span class="stat-label">デッキ</span><span class="stat-val" id="deck-count">0</span></div>
+      <div class="stat-row"><span class="stat-label">捨て札</span><span class="stat-val" id="discard-count">0</span></div>
+    </div>
+    <div class="panel">
+      <h3>相手</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-bot" id="bot-hp">?</span></div>
+      <div class="stat-row"><span class="stat-label">旗</span><span class="stat-val flag-status" id="bot-flag">なし</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="bot-noise">-</span></div>
+    </div>
+    <div class="panel" style="padding:4px">
+      <h3>ミニマップ</h3>
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+    </div>
+    <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <h3>ログ</h3>
+      <div id="log-area"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bottom-bar">
+  <div id="phase-info">待機中</div>
+  <div id="hand-area"></div>
+  <div id="action-buttons">
+    <button class="btn btn-shop" id="btn-shop" onclick="openShop()">サプライ確認</button>
+    <button class="btn btn-deck" id="btn-deck" onclick="openDeckModal()">デッキ確認</button>
+    <button class="btn btn-end" id="btn-end-turn" onclick="requestEndTurn()">ターン終了</button>
+  </div>
+</div>
+
+<div id="turn-banner"></div>
+<div id="enemy-turn-indicator">相手のターン...</div>
+<div id="boss-hp-overlay"><div class="boss-name">深淵の守護者</div><div class="boss-bar"><div class="boss-fill" id="boss-hp-fill" style="width:100%"></div></div><div class="boss-hp-text" id="boss-hp-text">8/8</div></div>
+<div id="shrink-warning"></div>
+
+<div id="game-over-screen">
+  <h1 id="game-over-text"></h1>
+  <p id="game-over-detail"></p>
+  <p id="game-over-scores" style="font-size:14px;color:#ccc;margin-bottom:15px"></p>
+  <button onclick="leaveGame()">ロビーに戻る</button>
+  <button onclick="location.reload()">もう一度</button>
+</div>
+
+<div class="modal-overlay" id="shop-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShop()">閉じる</button>
+    <h2>サプライ</h2>
+    <p style="font-size:12px;color:#8888aa;margin-bottom:10px">所持XP: <span id="shop-xp" style="color:#aa88ff;font-weight:bold">0</span> | 残り購入: <span id="shop-buys" style="color:#66ddaa;font-weight:bold">1</span> | デッキ: <span id="shop-deck-count">0</span>枚</p>
+    <div id="shop-all-grid"></div>
+    <button class="btn" onclick="closeShop()" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deck-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeDeckModal()">閉じる</button>
+    <h2>手札</h2>
+    <div class="deck-list" id="deck-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeSettings()">閉じる</button>
+    <h2>設定</h2>
+    <div style="margin:12px 0">
+      <label style="font-size:13px;color:#ccbbee"><input type="checkbox" id="settings-bgm-on" checked onchange="toggleBGM(this.checked)"> BGM</label>
+      <input type="range" id="settings-bgm-vol" min="0" max="100" value="30" style="width:150px;margin-left:10px" oninput="setBGMVol(this.value)">
+    </div>
+    <div style="margin:12px 0">
+      <label style="font-size:13px;color:#ccbbee"><input type="checkbox" id="settings-se-on" checked onchange="toggleSE(this.checked)"> SE</label>
+      <input type="range" id="settings-se-vol" min="0" max="100" value="30" style="width:150px;margin-left:10px" oninput="setSEVol(this.value)">
+    </div>
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
+      <div style="font-size:13px;color:#aa88ff;font-weight:bold;margin-bottom:6px">キーボードショートカット</div>
+      <div style="font-size:11px;color:#aaa;line-height:1.8">
+        <div><span style="color:#44ddff;font-weight:bold">WASD / 矢印</span> : 移動</div>
+        <div><span style="color:#44ddff;font-weight:bold">1-5</span> : カード選択 / 再押しで使用</div>
+        <div><span style="color:#44ddff;font-weight:bold">E</span> : ターン終了</div>
+        <div><span style="color:#44ddff;font-weight:bold">Q</span> : サプライ</div>
+        <div><span style="color:#44ddff;font-weight:bold">R</span> : デッキ確認</div>
+        <div><span style="color:#44ddff;font-weight:bold">M</span> : ミニマップ</div>
+        <div><span style="color:#44ddff;font-weight:bold">Escape</span> : キャンセル</div>
+      </div>
+    </div>
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
+      <button class="btn btn-end" onclick="leaveGame()" style="width:100%;font-size:14px;padding:10px">退出 (ロビーに戻る)</button>
+    </div>
+    <button class="btn" onclick="closeSettings()" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="minimap-popup">
+  <div class="modal" style="max-width:500px;padding:10px;text-align:center">
+    <button class="modal-close" onclick="document.getElementById('minimap-popup').classList.remove('active')">閉じる</button>
+    <h2 style="font-size:14px;margin-bottom:8px">ミニマップ</h2>
+    <canvas id="minimap-large" width="400" height="400" style="border:1px solid #2a1a4a;border-radius:4px;max-width:100%"></canvas>
+  </div>
+</div>
+
+<div id="target-cancel" style="position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:95;display:none">
+  <button onclick="cancelTargetMode()" style="background:#ff4444;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(255,60,60,0.4)">キャンセル</button>
+</div>
+
+<div id="floating-logs"></div>
+<div id="flash-overlay"></div>
+
+<div id="card-popup" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:95;pointer-events:none;opacity:0;transition:opacity 0.3s;">
+  <div id="card-popup-inner" style="min-width:180px;max-width:220px;background:linear-gradient(135deg,#1a1a3a,#12122a);border:3px solid #7060c0;border-radius:12px;padding:16px;text-align:center;box-shadow:0 0 30px rgba(100,60,200,0.5);">
+    <div id="card-popup-name" style="font-size:18px;font-weight:bold;color:#ddccff;margin-bottom:6px;"></div>
+    <div id="card-popup-type" style="font-size:12px;margin-bottom:8px;"></div>
+    <div id="card-popup-effect" style="font-size:13px;color:#aaaacc;line-height:1.4;"></div>
+    <div style="margin-top:10px;display:flex;justify-content:center;gap:12px;font-size:12px;">
+      <span id="card-popup-ap" style="color:#44aaff;"></span>
+      <span id="card-popup-noise" style="color:#ffaa44;"></span>
+    </div>
+  </div>
+</div>
+
+</div><!-- end game-ui -->
+
+<script>
+// ================================================================
+// RAVEN REBORN MULTIPLAYER CLIENT
+// Rebuilt from v1.15 - identical look, server-driven state
+// ================================================================
+
+let serverUrl='',roomCode='',playerToken='',myIndex=-1;
+let pollInterval=null,lastStateVersion=-1;
+let gameState=null;
+let MAP_W=25,MAP_H=25,VIEWPORT=13,VP_WIN=30;
+const TILE_FLOOR=0,TILE_WALL=1,TILE_BOSS_FLOOR=8;
+let map=[];
+let gameOver=false,selectedCardIndex=-1;
+let targetMode=null,targetCard=null;
+let noiseRipples=[],damageNumbers=[],attackFades=[];
+let camX=0,camY=0,tileSize=40;
+let mouseMapX,mouseMapY;
+let pathPreviewCache={mx:-1,my:-1,path:null};
+let turnEndPending=false,prevLogCount=0;
+
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const miniCanvas=document.getElementById('minimap-canvas');
+const miniCtx=miniCanvas.getContext('2d');
+
+// === Utility ===
+function dist(x1,y1,x2,y2){return Math.abs(x1-x2)+Math.abs(y1-y2);}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// === SFX ===
+let soundEnabled=true;
+const SFX_PATH='../../BGM/Pixel Magic Sound Effects Pack/';
+const SFX_FILES={
+  attack:'PM_GENERIC_Slash01.wav',staffShoot:'PM_SPELL_Cast07_Bright.wav',
+  cardUse:'PM_SPELL_Cast07_Bright.wav',cardBuy:'PM_UI_ITEM_Use.wav',
+  takeDamage:'PM_GENERIC_Impact01v1.wav',kill:'PM_GENERIC_Death_Monster01.wav',
+  death:'PM_GENERIC_Death_Boss01.wav',heal:'PM_UI_ITEM_Heal01.wav',
+  vpGain:'PM_SPELL_Buff10_Sparkle.wav',fuse:'PM_SPELL_Buff09_Transform.wav',
+  turnStart:'PM_UI_Button_Select.wav',flagCapture:'PM_ELEM_Light08_Epic_Heal_FULL.wav',
+  move:'PM_GENERIC_Dash01.wav',meteor:'PM_GENERIC_Explosion_Single01.wav',
+  bossEntrance:'PM_ELEM_Dark11_Doom_01_FULL.wav',freeze:'PM_ELEM_Ice01_Freeze_FULL.wav',
+  lightning:'PM_ELEM_Electric02_Lightning_Storm.wav',teleport:'PM_SPELL_Cast27_Portal_Open.wav',
+  gameOver:'PM_ELEM_Dark12_Doom_02.wav',victory:'PM_ELEM_Light08_Epic_Heal_FULL.wav',
+  drawCard:'PM_SPELL_Cast30_Subtle_Light_Beam.wav',trap:'PM_GENERIC_Needles_FULL.wav',
+};
+const sfxPool={};let sfxPoolReady=false;
+function initSFXPool(){for(const[key,file]of Object.entries(SFX_FILES)){sfxPool[key]=[];for(let i=0;i<3;i++){const a=new Audio(SFX_PATH+file);a.preload='auto';a.volume=audioSettings.seVol/100;sfxPool[key].push(a);}}sfxPoolReady=true;}
+function playSFX(name){if(!audioSettings.seOn||!soundEnabled)return;if(!sfxPoolReady)initSFXPool();const pool=sfxPool[name];if(!pool)return;const a=pool.find(x=>x.paused||x.ended)||pool[0];a.volume=audioSettings.seVol/100;a.currentTime=0;a.play().catch(()=>{});}
+function updateSFXPoolVolume(){for(const pool of Object.values(sfxPool))for(const a of pool)a.volume=audioSettings.seVol/100;}
+
+// === Audio Settings & BGM ===
+let audioSettings={bgmOn:true,bgmVol:30,seOn:true,seVol:30};
+try{const s=localStorage.getItem('rp_audio_settings');if(s)audioSettings={...audioSettings,...JSON.parse(s)};}catch(e){}
+function saveAudioSettings(){try{localStorage.setItem('rp_audio_settings',JSON.stringify(audioSettings));}catch(e){}}
+let bgmPlaying=false,bgmAudio=null;
+const BGM_FILES=['../../BGM/Pixel Dungeon Loop1.wav','../../BGM/Pixel Dungeon Loop2.wav'];
+function startBGM(){stopBGM();if(!audioSettings.bgmOn)return;try{const p=BGM_FILES[Math.floor(Math.random()*BGM_FILES.length)];bgmAudio=new Audio(p);bgmAudio.loop=true;bgmAudio.volume=audioSettings.bgmVol/100;bgmAudio.play().catch(()=>{});bgmPlaying=true;bgmAudio.addEventListener('error',()=>{const o=BGM_FILES.find(f=>f!==p);if(o){bgmAudio.src=o;bgmAudio.play().catch(()=>{});}});}catch(e){bgmPlaying=false;}}
+function stopBGM(){if(bgmAudio){try{bgmAudio.pause();bgmAudio.currentTime=0;}catch(e){}}bgmAudio=null;bgmPlaying=false;}
+function toggleBGM(on){audioSettings.bgmOn=on;saveAudioSettings();if(on&&!bgmPlaying)startBGM();else if(!on)stopBGM();}
+function setBGMVol(v){audioSettings.bgmVol=parseInt(v);saveAudioSettings();if(bgmAudio)bgmAudio.volume=audioSettings.bgmVol/100;}
+function toggleSE(on){audioSettings.seOn=on;soundEnabled=on;saveAudioSettings();}
+function setSEVol(v){audioSettings.seVol=parseInt(v);saveAudioSettings();updateSFXPoolVolume();}
+
+// === Particle System ===
+const pCanvas=document.getElementById('particle-canvas');
+const pCtx=pCanvas.getContext('2d');
+let vfxParticles=[];
+function resizePC(){pCanvas.width=window.innerWidth;pCanvas.height=window.innerHeight;}
+resizePC();window.addEventListener('resize',resizePC);
+function spawnParticles(x,y,color,count=20,opts={}){for(let i=0;i<count;i++){const a=Math.random()*Math.PI*2,sp=(opts.speed||5)*(0.5+Math.random());vfxParticles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-(opts.rise||0),life:1,decay:0.01+Math.random()*0.03,size:(opts.size||4)*(0.5+Math.random()),color,gravity:opts.gravity||0.1,shape:opts.shape||'circle'});}}
+function spawnCardPlayParticles(x,y){spawnParticles(x,y,'#aa88ff',15,{speed:3,size:3,rise:1});}
+function spawnKillParticles(x,y){spawnParticles(x,y,'#ffd700',30,{speed:6,size:5,rise:0.5});spawnParticles(x,y,'#ff4444',20,{speed:4,size:3});}
+function spawnBossParticles(){const cx=window.innerWidth/2,cy=window.innerHeight/2;for(let i=0;i<60;i++){const a=(i/60)*Math.PI*2;vfxParticles.push({x:cx+Math.cos(a)*200,y:cy+Math.sin(a)*200,vx:Math.cos(a)*-3,vy:Math.sin(a)*-3,life:1,decay:0.008,size:4+Math.random()*4,color:Math.random()>0.5?'#ff2200':'#ff8800',gravity:0,shape:'circle'});}}
+(function particleLoop(){pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);vfxParticles=vfxParticles.filter(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=p.gravity;p.life-=p.decay;if(p.life<=0)return false;pCtx.globalAlpha=p.life;pCtx.fillStyle=p.color;if(p.shape==='star'){pCtx.save();pCtx.translate(p.x,p.y);pCtx.rotate(Date.now()*0.01);const s=p.size*p.life;pCtx.beginPath();for(let i=0;i<5;i++){const a2=(i*Math.PI*2/5)-Math.PI/2;pCtx.lineTo(Math.cos(a2)*s,Math.sin(a2)*s);const a3=a2+Math.PI/5;pCtx.lineTo(Math.cos(a3)*s*0.4,Math.sin(a3)*s*0.4);}pCtx.closePath();pCtx.fill();pCtx.restore();}else{pCtx.beginPath();pCtx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);pCtx.fill();}return true;});pCtx.globalAlpha=1;requestAnimationFrame(particleLoop);})();
+
+// === Visual Effects ===
+function showScorePopup(t,c,x,y){const d=document.createElement('div');d.className='score-popup';d.textContent=t;d.style.color=c;d.style.fontSize='28px';d.style.left=x+'px';d.style.top=y+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1200);}
+function showBossEntrance(n,s){const o=document.getElementById('boss-entrance-overlay');o.querySelector('.boss-entrance-text').textContent=n;o.querySelector('.boss-entrance-sub').textContent=s||'覚悟せよ';o.classList.add('active');spawnBossParticles();flashScreen('rgba(255,34,0,0.4)',0.3);setTimeout(()=>o.classList.remove('active'),2800);}
+function criticalHitFlash(){document.body.classList.add('critical-flash');spawnParticles(window.innerWidth/2,window.innerHeight/2,'#ffffff',25,{speed:10,size:3});setTimeout(()=>document.body.classList.remove('critical-flash'),300);}
+function screenShake(){canvas.classList.add('shake');setTimeout(()=>canvas.classList.remove('shake'),300);}
+function flashScreen(c,d){const o=document.getElementById('flash-overlay');o.style.background=c;o.style.transition='none';o.style.opacity='1';requestAnimationFrame(()=>{requestAnimationFrame(()=>{o.style.transition=`opacity ${d}s`;o.style.opacity='0';});});}
+function showToast(m){const d=document.createElement('div');d.style.cssText='position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#ffcc44;padding:8px 20px;border-radius:8px;font-size:13px;z-index:200;pointer-events:none';d.textContent=m;document.body.appendChild(d);setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity 0.5s';setTimeout(()=>d.remove(),500);},2000);}
+function showDamageNumber(mx,my,dmg,c){damageNumbers.push({x:(mx-camX+0.5)*tileSize,y:(my-camY+0.3)*tileSize,text:dmg>0?'-'+dmg:'+'+Math.abs(dmg),color:c||'#ff4444',life:40,maxLife:40});}
+
+// === UI Helpers ===
+function addLog(text,cls='info'){const a=document.getElementById('log-area');const d=document.createElement('div');d.className='log-entry log-'+cls;d.textContent=text;a.appendChild(d);a.scrollTop=a.scrollHeight;if(['dmg','heal','kill','buy','flag','vp','card'].includes(cls))showFloatingLog(text,cls);}
+function showFloatingLog(text,type){const c=document.getElementById('floating-logs');const d=document.createElement('div');d.className='floating-log';d.textContent=text;let color='#88aaff',fs='24px';if(type==='dmg'){color='#ff4444';fs='28px';}else if(type==='heal'){color='#44ff88';fs='26px';}else if(type==='kill'){color='#ffd700';fs='32px';}else if(type==='buy'){color='#cc66ff';fs='26px';}else if(type==='flag'){color='#ffd700';fs='30px';}else if(type==='vp'){color='#ffd700';fs='28px';}else if(type==='card'){color='#ffcc44';fs='22px';}d.style.color=color;d.style.fontSize=fs;c.appendChild(d);setTimeout(()=>{if(d.parentNode)d.parentNode.removeChild(d);},2500);}
+function getCardTypeColor(t){return{'武器':'#ff6644','杖':'#6688ff','道具':'#aaaacc','巻物':'#cc44ff','罠':'#ff8844','財宝':'#ffcc44','勝利点':'#ffd700','HP強化':'#44ff88','融合武器':'#ff8800','呪い':'#666600'}[t]||'#7766aa';}
+function showCardPopup(card){const p=document.getElementById('card-popup');document.getElementById('card-popup-name').textContent=card.name;document.getElementById('card-popup-type').textContent=card.type;document.getElementById('card-popup-type').style.color=getCardTypeColor(card.type);document.getElementById('card-popup-effect').textContent=card.desc;document.getElementById('card-popup-ap').textContent=card.ap===99?'':'AP'+card.ap;document.getElementById('card-popup-noise').textContent=card.noise>0?'N'+card.noise:'';p.style.opacity='1';p.style.transition='none';p.style.transform='translate(-50%,-50%) scale(0.8)';requestAnimationFrame(()=>{p.style.transition='opacity 0.3s, transform 0.3s';p.style.transform='translate(-50%,-50%) scale(1)';});clearTimeout(p._timer);p._timer=setTimeout(()=>{p.style.opacity='0';p.style.transform='translate(-50%,-50%) scale(0.9)';},2000);}
+function openSettings(){document.getElementById('settings-modal').classList.add('active');document.getElementById('settings-bgm-on').checked=audioSettings.bgmOn;document.getElementById('settings-bgm-vol').value=audioSettings.bgmVol;document.getElementById('settings-se-on').checked=audioSettings.seOn;document.getElementById('settings-se-vol').value=audioSettings.seVol;}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('active');}
+
+// === Lobby & Connection ===
+function getServerUrl(){return window.location.origin;}
+async function createRoom(){const st=document.getElementById('lobby-status');st.textContent='部屋を作成中...';serverUrl=getServerUrl();try{const r=await fetch(serverUrl+'/api/create',{method:'POST'});const d=await r.json();if(d.error){st.textContent='エラー: '+d.error;return;}roomCode=d.code;playerToken=d.token;myIndex=d.playerIndex;localStorage.setItem('raven_mp_room',roomCode);localStorage.setItem('raven_mp_token',playerToken);localStorage.setItem('raven_mp_index',myIndex);document.getElementById('display-room-code').textContent=roomCode;document.getElementById('waiting-area').style.display='block';st.textContent='';startPolling();}catch(e){st.textContent='サーバーに接続できません';}}
+async function joinRoom(){const code=document.getElementById('room-code-input').value.trim();if(code.length!==4){document.getElementById('lobby-status').textContent='4桁のコードを入力';return;}const st=document.getElementById('lobby-status');st.textContent='参加中...';serverUrl=getServerUrl();try{const r=await fetch(serverUrl+'/api/join/'+code,{method:'POST'});const d=await r.json();if(d.error){st.textContent='エラー: '+d.error;return;}roomCode=code;playerToken=d.token;myIndex=d.playerIndex;localStorage.setItem('raven_mp_room',roomCode);localStorage.setItem('raven_mp_token',playerToken);localStorage.setItem('raven_mp_index',myIndex);st.textContent='';startPolling();}catch(e){st.textContent='サーバーに接続できません';}}
+function leaveGame(){if(pollInterval)clearInterval(pollInterval);pollInterval=null;localStorage.removeItem('raven_mp_room');localStorage.removeItem('raven_mp_token');localStorage.removeItem('raven_mp_index');roomCode='';playerToken='';myIndex=-1;gameState=null;gameOver=false;lastStateVersion=-1;prevLogCount=0;selectedCardIndex=-1;targetMode=null;document.getElementById('game-ui').style.display='none';document.getElementById('lobby').style.display='flex';document.getElementById('waiting-area').style.display='none';document.getElementById('lobby-status').textContent='';document.getElementById('log-area').innerHTML='';document.getElementById('game-over-screen').style.display='none';}
+
+// === Server Communication ===
+async function sendAction(action){if(!roomCode||!playerToken)return null;try{const r=await fetch(serverUrl+'/api/action/'+roomCode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:playerToken,action})});const d=await r.json();if(d.ok)await fetchState();else if(d.error)showToast(d.error);return d;}catch(e){showToast('通信エラー');return null;}}
+async function fetchState(){if(!roomCode||!playerToken)return;try{const r=await fetch(serverUrl+'/api/state/'+roomCode+'?token='+playerToken);const d=await r.json();if(d.error)return;if(d.stateVersion===lastStateVersion)return;lastStateVersion=d.stateVersion;applyState(d);}catch(e){}}
+function startPolling(){if(pollInterval)clearInterval(pollInterval);fetchState();pollInterval=setInterval(fetchState,500);}
+
+// === State Application ===
+function applyState(state){
+  const prevPhase=gameState?gameState.phase:null;
+  const prevTurn=gameState?gameState.currentTurn:-1;
+  gameState=state;
+  if(state.phase==='waiting')return;
+  if(state.phase==='playing'||state.phase==='over'){
+    if(prevPhase==='waiting'||prevPhase===null)enterGame();
+    map=state.map;MAP_W=map[0].length;MAP_H=map.length;
+    // Detect turn change
+    if(prevTurn!==-1&&state.currentTurn!==prevTurn){
+      turnEndPending=false;
+      const cb=document.getElementById('turn-confirm-banner');if(cb)cb.remove();
+      const banner=document.getElementById('turn-banner');
+      if(state.isMyTurn){playSFX('turnStart');banner.textContent='あなたのターン!';banner.style.color='#44ffaa';}
+      else{banner.textContent='相手のターン';banner.style.color='#ff6644';}
+      banner.style.opacity='1';setTimeout(()=>{banner.style.opacity='0';},1500);
+      selectedCardIndex=-1;
+    }
+    // Process new logs
+    if(state.logs&&state.logs.length>prevLogCount){
+      const nl=state.logs.slice(prevLogCount);
+      for(const log of nl){
+        let cls='info';
+        if(log.includes('ダメージ'))cls='dmg';
+        else if(log.includes('回復'))cls='heal';
+        else if(log.includes('撃破'))cls='kill';
+        else if(log.includes('購入'))cls='buy';
+        else if(log.includes('旗'))cls='flag';
+        else if(log.includes('VP'))cls='vp';
+        else if(log.includes('使用'))cls='card';
+        else if(log.includes('ボス'))cls='boss-action';
+        else if(log.includes('縮小'))cls='system';
+        addLog(log,cls);
+      }
+      prevLogCount=state.logs.length;
+    }
+    // Pending target
+    if(state.pendingTarget){
+      if(state.pendingTarget==='staff'||state.pendingTarget==='earthquake'){targetMode=state.pendingTarget;document.getElementById('target-cancel').style.display='block';}
+    }else if(targetMode==='staff'||targetMode==='earthquake'){targetMode=null;document.getElementById('target-cancel').style.display='none';}
+    updateUI();render();
+    // Game over
+    if(state.phase==='over'&&!gameOver){
+      gameOver=true;
+      const scr=document.getElementById('game-over-screen'),txt=document.getElementById('game-over-text'),det=document.getElementById('game-over-detail'),sco=document.getElementById('game-over-scores');
+      if(state.winner===myIndex){txt.textContent='勝利!';txt.className='win';playSFX('victory');spawnParticles(window.innerWidth/2,window.innerHeight/2,'#ffd700',50,{speed:8,size:6,shape:'star'});}
+      else{txt.textContent='敗北...';txt.className='lose';playSFX('gameOver');}
+      det.textContent=`あなた: ${state.me.vp}VP | 相手: ${state.opponent.vp}VP`;
+      sco.textContent=`旗:${state.me.flagVP} キル:${state.me.kills}x3 ボス:${state.me.bossKill}x5 カード:${state.me.cardVP}`;
+      scr.style.display='flex';
+    }
+  }
+}
+function enterGame(){
+  document.getElementById('lobby').style.display='none';
+  document.getElementById('game-ui').style.display='flex';
+  document.getElementById('my-index').textContent=myIndex+1;
+  document.getElementById('op-index').textContent=(1-myIndex)+1;
+  tileSize=Math.floor(Math.min((window.innerHeight-200)/VIEWPORT,(window.innerWidth-340)/VIEWPORT));
+  tileSize=Math.max(28,Math.min(48,tileSize));
+  document.addEventListener('click',function bs(){if(!bgmPlaying&&audioSettings.bgmOn)startBGM();if(!sfxPoolReady)initSFXPool();soundEnabled=audioSettings.seOn;document.removeEventListener('click',bs);},{once:true});
+  addLog('オンライン対戦開始! あなたはP'+(myIndex+1),'system');
+}
+
+// === Pathfinding (client preview) ===
+function isWalkable(x,y){if(x<0||x>=MAP_W||y<0||y>=MAP_H||!map[y])return false;return map[y][x]!==TILE_WALL&&map[y][x]!==-1;}
+function findPath(sx,sy,tx,ty){
+  if(!isWalkable(tx,ty))return null;
+  const key=(x,y)=>y*MAP_W+x;const open=[];const closed=new Set();const best=new Map();const parent=new Map();
+  function push(n){open.push(n);let i=open.length-1;while(i>0){const p=Math.floor((i-1)/2);if(open[p].f<=open[i].f)break;[open[p],open[i]]=[open[i],open[p]];i=p;}}
+  function pop(){const t=open[0];const l=open.pop();if(open.length>0){open[0]=l;let i=0;while(true){let s=i;const le=2*i+1,r=2*i+2;if(le<open.length&&open[le].f<open[s].f)s=le;if(r<open.length&&open[r].f<open[s].f)s=r;if(s===i)break;[open[s],open[i]]=[open[i],open[s]];i=s;}}return t;}
+  push({x:sx,y:sy,g:0,h:dist(sx,sy,tx,ty),f:dist(sx,sy,tx,ty)});best.set(key(sx,sy),0);
+  while(open.length){const c=pop();if(c.x===tx&&c.y===ty){const p=[];let k=key(c.x,c.y);while(k!==undefined){p.unshift({x:k%MAP_W,y:Math.floor(k/MAP_W)});k=parent.get(k);}return p;}const ck=key(c.x,c.y);if(closed.has(ck))continue;closed.add(ck);for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){const nx=c.x+dx,ny=c.y+dy;if(!isWalkable(nx,ny))continue;const nk=key(nx,ny);if(closed.has(nk))continue;const ng=c.g+1;if(!best.has(nk)||ng<best.get(nk)){best.set(nk,ng);parent.set(nk,ck);push({x:nx,y:ny,g:ng,h:dist(nx,ny,tx,ty),f:ng+dist(nx,ny,tx,ty)});}}}return null;
+}
+
+// === Actions ===
+function tryMove(dx,dy){if(!gameState||!gameState.isMyTurn||gameOver)return;if(gameState.me.frozenTurns>0){showToast('凍結中!');return;}if(gameState.me.mp<=0){showToast('MP不足!');return;}if(targetMode||gameState.pendingTarget)return;sendAction({type:'move',dx,dy});playSFX('move');}
+async function autoMoveAlongPath(path){if(!gameState||!gameState.isMyTurn)return;for(let i=1;i<path.length;i++){const dx=path[i].x-path[i-1].x,dy=path[i].y-path[i-1].y;const r=await sendAction({type:'move',dx,dy});if(!r||!r.ok)break;playSFX('move');await delay(80);if(!gameState||!gameState.isMyTurn)break;}}
+function playCard(index){if(!gameState||!gameState.isMyTurn||gameOver||targetMode)return;const c=gameState.me.hand[index];if(!c||c.isVP||c.ap===99||c.id==='noroi')return;if(c.ap>0&&gameState.me.ap<c.ap){showToast('AP不足!');return;}showCardPopup(c);spawnCardPlayParticles(window.innerWidth/2,window.innerHeight/2);playSFX('cardUse');selectedCardIndex=-1;sendAction({type:'playCard',cardIndex:index});}
+function requestEndTurn(){if(!gameState||!gameState.isMyTurn||gameOver)return;if(turnEndPending){turnEndPending=false;const cb=document.getElementById('turn-confirm-banner');if(cb)cb.remove();sendAction({type:'endTurn'});return;}turnEndPending=true;let cb=document.getElementById('turn-confirm-banner');if(!cb){cb=document.createElement('div');cb.id='turn-confirm-banner';cb.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.85);border:2px solid #ffaa44;border-radius:12px;padding:16px 32px;z-index:100;text-align:center;pointer-events:none';document.body.appendChild(cb);}cb.innerHTML=`<div style="font-size:18px;font-weight:bold;color:#ffcc44;margin-bottom:6px">ターン終了?</div><div style="font-size:13px;color:#ccbbee">残AP:${gameState.me.ap} | 残MP:${gameState.me.mp}</div><div style="font-size:11px;color:#888;margin-top:6px">もう一度 E を押すと実行</div>`;cb.style.display='block';}
+function buyCard(sid){if(!gameState||!gameState.isMyTurn||gameOver)return;playSFX('cardBuy');sendAction({type:'buy',supplyId:sid});}
+function sendTarget(tx,ty){sendAction({type:'target',tx,ty});targetMode=null;document.getElementById('target-cancel').style.display='none';}
+function cancelTargetMode(){targetMode=null;targetCard=null;document.getElementById('target-cancel').style.display='none';render();}
+
+// === Mouse Events ===
+canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();mouseMapX=Math.floor((e.clientX-r.left)/tileSize)+camX;mouseMapY=Math.floor((e.clientY-r.top)/tileSize)+camY;if(!targetMode&&gameState&&gameState.isMyTurn&&gameState.me){if(pathPreviewCache.mx!==mouseMapX||pathPreviewCache.my!==mouseMapY){pathPreviewCache.mx=mouseMapX;pathPreviewCache.my=mouseMapY;pathPreviewCache.path=(mouseMapX>=0&&mouseMapX<MAP_W&&mouseMapY>=0&&mouseMapY<MAP_H&&isWalkable(mouseMapX,mouseMapY))?findPath(gameState.me.x,gameState.me.y,mouseMapX,mouseMapY):null;}}if(targetMode||selectedCardIndex>=0||pathPreviewCache.path)render();});
+canvas.addEventListener('touchmove',e=>{const r=canvas.getBoundingClientRect(),t=e.touches[0];mouseMapX=Math.floor((t.clientX-r.left)/tileSize)+camX;mouseMapY=Math.floor((t.clientY-r.top)/tileSize)+camY;if(targetMode||selectedCardIndex>=0)render();},{passive:true});
+
+canvas.addEventListener('click',e=>{
+  if(!gameState||gameOver)return;
+  const r=canvas.getBoundingClientRect(),tx=Math.floor((e.clientX-r.left)/tileSize)+camX,ty=Math.floor((e.clientY-r.top)/tileSize)+camY;
+  if(targetMode==='staff'||targetMode==='earthquake'){sendTarget(tx,ty);return;}
+  if(!gameState.isMyTurn||gameState.pendingTarget)return;
+  const me=gameState.me;if(!me.alive||me.frozenTurns>0)return;
+  const dx=tx-me.x,dy=ty-me.y;if(dx===0&&dy===0)return;
+  if(Math.abs(dx)+Math.abs(dy)===1){tryMove(dx,dy);}
+  else{const p=findPath(me.x,me.y,tx,ty);if(p&&p.length>1){if(p.length-1<=me.mp)autoMoveAlongPath(p);else showToast('MP不足! (必要:'+(p.length-1)+' 残り:'+me.mp+')');}}
+});
+
+// === Keyboard ===
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){if(targetMode){cancelTargetMode();return;}if(turnEndPending){turnEndPending=false;const cb=document.getElementById('turn-confirm-banner');if(cb)cb.remove();return;}document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));return;}
+  if(document.querySelector('.modal-overlay.active')||!gameState||gameOver)return;
+  const k=e.key.toLowerCase();
+  if(k>='1'&&k<='5'&&gameState.isMyTurn){e.preventDefault();const i=parseInt(k)-1;if(gameState.me.hand&&i<gameState.me.hand.length){if(selectedCardIndex===i)playCard(i);else{selectedCardIndex=i;updateUI();}}return;}
+  if(k==='e'){e.preventDefault();requestEndTurn();return;}
+  if(k==='q'){e.preventDefault();openShop();return;}
+  if(k==='r'){e.preventDefault();openDeckModal();return;}
+  if(k==='m'){e.preventDefault();document.getElementById('minimap-popup').classList.add('active');renderLargeMinimap();return;}
+  if(k==='tab'){e.preventDefault();if(!gameState.me.hand)return;const pl=gameState.me.hand.map((c,i)=>({c,i})).filter(x=>canPlayCard(x.c));if(!pl.length)return;const ci=pl.findIndex(x=>x.i===selectedCardIndex);selectedCardIndex=pl[(ci+1)%pl.length].i;updateUI();return;}
+  if(!gameState.isMyTurn)return;
+  if(k==='w'||k==='arrowup'){e.preventDefault();tryMove(0,-1);}
+  else if(k==='s'||k==='arrowdown'){e.preventDefault();tryMove(0,1);}
+  else if(k==='a'||k==='arrowleft'){e.preventDefault();tryMove(-1,0);}
+  else if(k==='d'||k==='arrowright'){e.preventDefault();tryMove(1,0);}
+});
+
+// === Touch (swipe) ===
+(function(){let sx=0,sy=0,st=0;canvas.addEventListener('touchstart',e=>{const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();},{passive:true});canvas.addEventListener('touchend',e=>{const t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy,el=Date.now()-st,d=Math.sqrt(dx*dx+dy*dy);if(d<20||el>500||!gameState||gameOver||!gameState.isMyTurn)return;if(document.querySelector('.modal-overlay.active'))return;e.preventDefault();let mx=0,my=0;if(Math.abs(dx)>Math.abs(dy))mx=dx>0?1:-1;else my=dy>0?1:-1;tryMove(mx,my);},{passive:false});})();
+
+// === Render ===
+function render(){
+  if(!gameState||!gameState.me)return;
+  const vpW=VIEWPORT,vpH=VIEWPORT,me=gameState.me;
+  camX=Math.max(0,Math.min(MAP_W-vpW,me.x-Math.floor(vpW/2)));
+  camY=Math.max(0,Math.min(MAP_H-vpH,me.y-Math.floor(vpH/2)));
+  canvas.width=vpW*tileSize;canvas.height=vpH*tileSize;
+
+  // Tiles
+  for(let y=0;y<vpH;y++)for(let x=0;x<vpW;x++){
+    const mx=camX+x,my=camY+y,px=x*tileSize,py=y*tileSize;
+    if(mx<0||mx>=MAP_W||my<0||my>=MAP_H){ctx.fillStyle='#000';ctx.fillRect(px,py,tileSize,tileSize);continue;}
+    const tile=map[my][mx];
+    if(tile===-1){ctx.fillStyle='#050508';ctx.fillRect(px,py,tileSize,tileSize);continue;}
+    if(tile===TILE_WALL){ctx.fillStyle='#1a1a28';ctx.fillRect(px,py,tileSize,tileSize);ctx.strokeStyle='#6a2a2a';ctx.lineWidth=0.5;ctx.strokeRect(px+2,py+2,tileSize/2-2,tileSize/2-2);ctx.strokeRect(px+tileSize/2+1,py+tileSize/2+1,tileSize/2-3,tileSize/2-3);ctx.lineWidth=1;}
+    else if(tile===TILE_BOSS_FLOOR){ctx.fillStyle='#1a0a2a';ctx.fillRect(px,py,tileSize,tileSize);ctx.strokeStyle='#3a1a5a';ctx.strokeRect(px+1,py+1,tileSize-2,tileSize-2);ctx.strokeStyle='#2a1040';ctx.beginPath();ctx.moveTo(px+tileSize/2,py+2);ctx.lineTo(px+tileSize-2,py+tileSize/2);ctx.lineTo(px+tileSize/2,py+tileSize-2);ctx.lineTo(px+2,py+tileSize/2);ctx.closePath();ctx.stroke();}
+    else{ctx.fillStyle='#2a2a48';ctx.fillRect(px,py,tileSize,tileSize);ctx.fillStyle='#333360';ctx.fillRect(px+tileSize/2-1,py+tileSize/2-1,2,2);}
+    ctx.strokeStyle='#14142a';ctx.strokeRect(px,py,tileSize,tileSize);
+  }
+
+  // Traps
+  if(gameState.traps)for(const t of gameState.traps){const sx=t.x-camX,sy=t.y-camY;if(sx<0||sx>=vpW||sy<0||sy>=vpH)continue;if(map[t.y]&&map[t.y][t.x]===-1)continue;ctx.fillStyle='rgba(255,100,50,0.3)';ctx.fillRect(sx*tileSize+4,sy*tileSize+4,tileSize-8,tileSize-8);ctx.fillStyle='#ff6644';ctx.font='bold 10px sans-serif';ctx.fillText('罠',sx*tileSize+12,sy*tileSize+24);}
+
+  // Flag
+  if(gameState.flag){const fx=gameState.flag.x-camX,fy=gameState.flag.y-camY;if(fx>=0&&fx<vpW&&fy>=0&&fy<vpH){ctx.fillStyle='#ffd700';ctx.font='bold 20px sans-serif';ctx.fillText('旗',fx*tileSize+10,fy*tileSize+28);}}
+
+  // Start positions
+  const psx=me.startX-camX,psy=me.startY-camY;
+  if(psx>=0&&psx<vpW&&psy>=0&&psy<vpH){ctx.fillStyle='rgba(68,136,255,0.15)';ctx.fillRect(psx*tileSize,psy*tileSize,tileSize,tileSize);ctx.fillStyle='#4488ff44';ctx.font='9px sans-serif';ctx.fillText('自陣',psx*tileSize+8,psy*tileSize+12);}
+  if(gameState.opponentStartX!==undefined){const bsx=gameState.opponentStartX-camX,bsy=gameState.opponentStartY-camY;if(bsx>=0&&bsx<vpW&&bsy>=0&&bsy<vpH){ctx.fillStyle='rgba(255,68,68,0.15)';ctx.fillRect(bsx*tileSize,bsy*tileSize,tileSize,tileSize);}}
+
+  // Mobs
+  if(gameState.mobs)for(const m of gameState.mobs){const sx=m.x-camX,sy=m.y-camY;if(sx<0||sx>=vpW||sy<0||sy>=vpH)continue;ctx.fillStyle='#ff4444';ctx.font='bold 18px sans-serif';ctx.fillText(m.icon,sx*tileSize+10,sy*tileSize+28);const hp=m.hp/m.maxHp;ctx.fillStyle='#333';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,tileSize-4,4);ctx.fillStyle=hp>0.5?'#44dd66':hp>0.25?'#ffaa44':'#ff4444';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,(tileSize-4)*hp,4);}
+
+  // Boss
+  if(gameState.boss&&gameState.boss.visible){const sx=gameState.boss.x-camX,sy=gameState.boss.y-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='#cc44ff';ctx.font='bold 22px sans-serif';ctx.fillText('鬼',sx*tileSize+8,sy*tileSize+30);const hp=gameState.boss.hp/gameState.boss.maxHp;ctx.fillStyle='#333';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,tileSize-4,4);ctx.fillStyle='#ff2200';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,(tileSize-4)*hp,4);}}
+
+  // Opponent
+  if(gameState.opponent&&gameState.opponent.visible&&gameState.opponent.x!==undefined){const op=gameState.opponent,sx=op.x-camX,sy=op.y-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='#ff4444';ctx.font='bold 20px sans-serif';ctx.fillText('敵',sx*tileSize+10,sy*tileSize+28);if(op.hasFlag){ctx.fillStyle='#ffd700';ctx.font='10px sans-serif';ctx.fillText('旗',sx*tileSize+2,sy*tileSize+12);}}}
+
+  // Player
+  if(me.alive){const sx=me.x-camX,sy=me.y-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='#4488ff';ctx.font='bold 20px sans-serif';ctx.fillText('自',sx*tileSize+10,sy*tileSize+28);if(me.hasFlag){ctx.fillStyle='#ffd700';ctx.font='10px sans-serif';ctx.fillText('旗',sx*tileSize+2,sy*tileSize+12);}const hp=me.hp/me.maxHp,bH=6;ctx.fillStyle='#333';ctx.fillRect(sx*tileSize+2,sy*tileSize+tileSize-bH-2,tileSize-4,bH);ctx.fillStyle=hp>0.5?'#4488ff':hp>0.25?'#ffaa44':'#ff4444';ctx.fillRect(sx*tileSize+2,sy*tileSize+tileSize-bH-2,(tileSize-4)*hp,bH);ctx.fillStyle='#fff';ctx.font='bold 8px sans-serif';ctx.fillText(me.hp+'/'+me.maxHp,sx*tileSize+4,sy*tileSize+tileSize-bH-4);if(hp<=0.25){const pulse=0.4+0.6*Math.abs(Math.sin(Date.now()/300));ctx.strokeStyle=`rgba(255,50,50,${pulse})`;ctx.lineWidth=2;ctx.strokeRect(sx*tileSize,sy*tileSize,tileSize,tileSize);ctx.lineWidth=1;}}}
+
+  // Noise ripples
+  for(let i=noiseRipples.length-1;i>=0;i--){const r=noiseRipples[i];r.radius+=0.15;r.alpha-=0.02;if(r.alpha<=0){noiseRipples.splice(i,1);continue;}const sx2=r.x-camX,sy2=r.y-camY;ctx.beginPath();ctx.arc((sx2+0.5)*tileSize,(sy2+0.5)*tileSize,r.radius*tileSize,0,Math.PI*2);ctx.strokeStyle=r.color||`rgba(100,100,255,${r.alpha})`;ctx.lineWidth=2;ctx.stroke();}
+
+  // Walkable highlights
+  if(me.alive&&me.mp>0&&!targetMode&&gameState.isMyTurn&&me.frozenTurns<=0){for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){const tx=me.x+dx,ty=me.y+dy;if(!isWalkable(tx,ty))continue;const sx=tx-camX,sy=ty-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='rgba(68,255,170,0.2)';ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);}}}
+
+  // Card hover preview
+  if(!targetMode&&selectedCardIndex>=0&&me.hand&&me.hand[selectedCardIndex]){
+    const pc=me.hand[selectedCardIndex],px2=me.x,py2=me.y;
+    if(pc.power&&pc.range&&!pc.isStaff){const rng=pc.range||1;for(let dy=-rng;dy<=rng;dy++)for(let dx=-rng;dx<=rng;dx++){if(!dx&&!dy||Math.abs(dx)+Math.abs(dy)>rng)continue;const sx=(px2+dx)-camX,sy=(py2+dy)-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH&&isWalkable(px2+dx,py2+dy)){ctx.fillStyle='rgba(255,60,60,0.15)';ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);}}}
+    if(pc.isStaff&&mouseMapX!==undefined){const rng=pc.range||4;const ddx=mouseMapX-px2,ddy=mouseMapY-py2;let dX=0,dY=0;if(Math.abs(ddx)>=Math.abs(ddy))dX=ddx>0?1:-1;else dY=ddy>0?1:-1;for(let s=1;s<=rng;s++){const tx=px2+dX*s,ty=py2+dY*s;if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H)break;if(map[ty]&&map[ty][tx]===TILE_WALL)break;const sx=tx-camX,sy=ty-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='rgba(100,130,255,0.18)';ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);}}}
+    if(pc.deathBreath){const rng=pc.deathBreathRange||2;for(let dy=-rng;dy<=rng;dy++)for(let dx=-rng;dx<=rng;dx++){if(!dx&&!dy||Math.abs(dx)+Math.abs(dy)>rng)continue;const sx=(px2+dx)-camX,sy=(py2+dy)-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='rgba(255,60,60,0.15)';ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);}}}
+  }
+
+  // Path preview
+  if(!targetMode&&gameState.isMyTurn&&pathPreviewCache.path&&pathPreviewCache.path.length>1){
+    const pp=pathPreviewCache.path;
+    for(let i=1;i<pp.length;i++){const sx=pp[i].x-camX,sy=pp[i].y-camY;if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){ctx.fillStyle='rgba(68,136,255,0.35)';ctx.beginPath();ctx.arc(sx*tileSize+tileSize/2,sy*tileSize+tileSize/2,4,0,Math.PI*2);ctx.fill();}}
+    const en=pp[pp.length-1],esx=en.x-camX,esy=en.y-camY;
+    if(esx>=0&&esx<vpW&&esy>=0&&esy<vpH){const mc=pp.length-1,ca=mc<=me.mp;ctx.fillStyle=ca?'rgba(20,60,40,0.85)':'rgba(60,20,20,0.85)';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(esx*tileSize+1,esy*tileSize+1,tileSize-2,16,4);else ctx.rect(esx*tileSize+1,esy*tileSize+1,tileSize-2,16);ctx.fill();ctx.fillStyle=ca?'#44ffaa':'#ff4444';ctx.font='bold 12px sans-serif';ctx.fillText(mc+'MP',esx*tileSize+4,esy*tileSize+13);for(let pi=1;pi<pp.length;pi++){const ps2=pp[pi].x-camX,py3=pp[pi].y-camY;if(ps2>=0&&ps2<vpW&&py3>=0&&py3<vpH&&pi<=me.mp){ctx.fillStyle='rgba(68,136,255,0.6)';ctx.font='bold 9px sans-serif';ctx.fillText(''+pi,ps2*tileSize+tileSize-12,py3*tileSize+tileSize-4);}}}
+  }
+
+  // Damage numbers
+  for(let i=damageNumbers.length-1;i>=0;i--){const dn=damageNumbers[i];dn.life--;dn.y-=0.8;if(dn.life<=0){damageNumbers.splice(i,1);continue;}ctx.globalAlpha=dn.life/dn.maxLife;ctx.fillStyle=dn.color;ctx.font='bold 14px sans-serif';ctx.fillText(dn.text,dn.x,dn.y);ctx.globalAlpha=1;}
+
+  // Flag drama borders
+  if(me.hasFlag){ctx.strokeStyle='rgba(255,215,0,0.4)';ctx.lineWidth=4;ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);ctx.lineWidth=1;}
+  if(gameState.opponent&&gameState.opponent.hasFlag){const p2=0.2+0.15*Math.sin(Date.now()/500);ctx.strokeStyle=`rgba(255,50,50,${p2})`;ctx.lineWidth=3;ctx.strokeRect(2,2,canvas.width-4,canvas.height-4);ctx.lineWidth=1;}
+
+  // Coords
+  ctx.fillStyle='rgba(100,100,150,0.5)';ctx.font='bold 9px sans-serif';
+  for(let x=0;x<vpW;x++){const mx2=camX+x;if(mx2%5===0)ctx.fillText(String.fromCharCode(65+Math.floor(mx2/5)),x*tileSize+2,10);}
+  for(let y=0;y<vpH;y++){const my2=camY+y;if(my2%5===0)ctx.fillText(''+(my2+1),2,y*tileSize+10);}
+
+  renderMinimap();
+}
+
+function renderMinimap(){
+  if(!gameState||!map)return;const s=180/MAP_W;
+  miniCtx.fillStyle='#0a0a14';miniCtx.fillRect(0,0,180,180);
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){if(!map[y]||map[y][x]===TILE_WALL||map[y][x]===-1)continue;miniCtx.fillStyle=map[y][x]===TILE_BOSS_FLOOR?'#2a1a3a':'#222240';miniCtx.fillRect(x*s,y*s,s+0.5,s+0.5);}
+  if(gameState.me){miniCtx.fillStyle='rgba(68,136,255,0.4)';miniCtx.fillRect(gameState.me.startX*s-2,gameState.me.startY*s-2,5,5);miniCtx.fillStyle='#4488ff';miniCtx.fillRect(gameState.me.x*s-1,gameState.me.y*s-1,4,4);}
+  if(gameState.opponent&&gameState.opponent.visible&&gameState.opponent.x!==undefined){miniCtx.fillStyle='#ff4444';miniCtx.fillRect(gameState.opponent.x*s-1,gameState.opponent.y*s-1,4,4);}
+  if(gameState.mobs)for(const m of gameState.mobs){miniCtx.fillStyle='#ff4444';miniCtx.fillRect(m.x*s-1,m.y*s-1,3,3);}
+  if(gameState.boss&&gameState.boss.visible){miniCtx.fillStyle='#cc44ff';miniCtx.fillRect(gameState.boss.x*s-1,gameState.boss.y*s-1,4,4);}
+  if(gameState.flag){miniCtx.fillStyle='#ffd700';miniCtx.fillRect(gameState.flag.x*s-1,gameState.flag.y*s-1,4,4);}
+  miniCtx.strokeStyle='#6666aa';miniCtx.strokeRect(camX*s,camY*s,VIEWPORT*s,VIEWPORT*s);
+}
+
+function renderLargeMinimap(){
+  if(!gameState||!map)return;const c=document.getElementById('minimap-large'),c2=c.getContext('2d'),s=400/MAP_W;
+  c2.fillStyle='#0a0a14';c2.fillRect(0,0,400,400);
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){if(!map[y]||map[y][x]===TILE_WALL||map[y][x]===-1)continue;c2.fillStyle=map[y][x]===TILE_BOSS_FLOOR?'#2a1a3a':'#222240';c2.fillRect(x*s,y*s,s+0.5,s+0.5);}
+  if(gameState.me){c2.fillStyle='rgba(68,136,255,0.3)';c2.fillRect(gameState.me.startX*s,gameState.me.startY*s,s*2,s*2);c2.fillStyle='#4488ff';c2.fillRect(gameState.me.x*s-2,gameState.me.y*s-2,6,6);}
+  if(gameState.opponent&&gameState.opponent.visible&&gameState.opponent.x!==undefined){c2.fillStyle='#ff4444';c2.fillRect(gameState.opponent.x*s-2,gameState.opponent.y*s-2,6,6);}
+  if(gameState.mobs)for(const m of gameState.mobs){c2.fillStyle='#ff4444';c2.fillRect(m.x*s-1,m.y*s-1,4,4);}
+  if(gameState.boss&&gameState.boss.visible){c2.fillStyle='#cc44ff';c2.fillRect(gameState.boss.x*s-2,gameState.boss.y*s-2,6,6);}
+  if(gameState.flag){c2.fillStyle='#ffd700';c2.fillRect(gameState.flag.x*s-2,gameState.flag.y*s-2,6,6);}
+  c2.strokeStyle='#6666aa';c2.lineWidth=2;c2.strokeRect(camX*s,camY*s,VIEWPORT*s,VIEWPORT*s);
+  c2.fillStyle='#666688';c2.font='9px sans-serif';for(let x=0;x<MAP_W;x+=5)c2.fillText(String.fromCharCode(65+Math.floor(x/5)),x*s+1,9);for(let y=0;y<MAP_H;y+=5)c2.fillText(''+(y+1),1,y*s+9);
+}
+
+// === Update UI ===
+function canPlayCard(c){if(!c||c.isVP||c.ap===99||c.id==='noroi')return false;if(!gameState||!gameState.isMyTurn)return false;if(c.ap>0&&gameState.me.ap<c.ap)return false;return true;}
+
+function updateUI(){
+  if(!gameState||!gameState.me)return;
+  const me=gameState.me,op=gameState.opponent;
+  document.getElementById('top-turn').textContent=gameState.turnNumber;
+  document.getElementById('top-ap').textContent=me.ap;
+  document.getElementById('top-mp').textContent=me.mp;
+  document.getElementById('top-buys').textContent=me.buys;
+  document.getElementById('top-xp').textContent=me.xp;
+  document.getElementById('top-noise').textContent=me.turnNoise;
+  document.getElementById('top-vp').textContent=me.vp;
+  document.getElementById('top-vp-target').textContent='/'+VP_WIN;
+
+  const ts=document.getElementById('turn-status');
+  ts.textContent=gameState.isMyTurn?'あなたのターン | WASD移動 | 1-5カード | E終了':'相手のターン...';
+  ts.style.color=gameState.isMyTurn?'#44ffaa':'#ff6644';
+
+  if(gameState.turnTimeLeft!==undefined){const p=Math.max(0,gameState.turnTimeLeft/60000*100);document.getElementById('turn-timer-fill').style.width=p+'%';document.getElementById('turn-timer-fill').style.background=p>30?'#44ddff':p>10?'#ffaa44':'#ff4444';}
+
+  document.getElementById('enemy-turn-indicator').style.opacity=gameState.isMyTurn?'0':'0.8';
+  document.getElementById('phase-info').textContent=gameState.isMyTurn?'自由行動':'待機中';
+
+  document.getElementById('scoreboard-title').textContent='スコアボード ('+VP_WIN+'VP)';
+  document.getElementById('score-player-vp').textContent=me.vp;
+  document.getElementById('score-bot-vp').textContent=op?op.vp:0;
+  document.getElementById('score-player-bar').style.width=Math.min(100,me.vp/VP_WIN*100)+'%';
+  document.getElementById('score-bot-bar').style.width=Math.min(100,(op?op.vp:0)/VP_WIN*100)+'%';
+  document.getElementById('score-player-detail').textContent=`旗:${me.flagVP} カード:${me.cardVP} キル:${me.kills*3} ボス:${me.bossKill*5}`;
+  if(op)document.getElementById('score-bot-detail').textContent=`旗:${op.flagVP} カード:${op.cardVP} キル:${op.kills*3} ボス:${op.bossKill*5}`;
+
+  document.getElementById('player-hp').textContent=`${me.hp}/${me.maxHp}`;
+  document.getElementById('player-ap').textContent=me.ap;
+  document.getElementById('player-mp').textContent=me.mp;
+  document.getElementById('player-xp').textContent=me.xp;
+  document.getElementById('player-noise').textContent=me.turnNoise;
+  document.getElementById('player-flag').textContent=me.hasFlag?'所持中':'なし';
+  document.getElementById('deck-count').textContent=me.deckCount;
+  document.getElementById('discard-count').textContent=me.discardCount;
+
+  if(op){document.getElementById('bot-hp').textContent=`${op.hp}/${op.maxHp}`;document.getElementById('bot-flag').textContent=op.hasFlag?'所持中':'なし';document.getElementById('bot-noise').textContent=op.noiseLevel||'-';}
+
+  if(gameState.boss&&gameState.boss.alive){document.getElementById('boss-hp-overlay').style.display='block';document.getElementById('boss-hp-fill').style.width=(gameState.boss.hp/gameState.boss.maxHp*100)+'%';document.getElementById('boss-hp-text').textContent=gameState.boss.hp+'/'+gameState.boss.maxHp;}else document.getElementById('boss-hp-overlay').style.display='none';
+
+  if(gameState.shrinkWarning){const sw=document.getElementById('shrink-warning');sw.style.display='block';sw.textContent=`マップ縮小まで${gameState.shrinkWarning.turnsLeft}ターン`;}else document.getElementById('shrink-warning').style.display='none';
+
+  const mhb=document.getElementById('mini-hp-bar'),mvb=document.getElementById('mini-vp-bar');
+  if(mhb)mhb.style.width=Math.round(me.hp/me.maxHp*100)+'%';
+  if(mvb)mvb.style.width=Math.min(100,Math.round(me.vp/VP_WIN*100))+'%';
+
+  // Mobile mini-minimap
+  if(window.innerWidth<=768){const mm=document.getElementById('mobile-mini-minimap'),mc=mm.getContext('2d'),ms=50/MAP_W;mc.fillStyle='#0a0a14';mc.fillRect(0,0,50,50);for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){if(!map[y]||map[y][x]===TILE_WALL||map[y][x]===-1)continue;mc.fillStyle='#222240';mc.fillRect(x*ms,y*ms,ms+0.5,ms+0.5);}mc.fillStyle='#4488ff';mc.fillRect(me.x*ms-1,me.y*ms-1,3,3);if(op&&op.visible&&op.x!==undefined){mc.fillStyle='#ff4444';mc.fillRect(op.x*ms-1,op.y*ms-1,3,3);}}
+
+  // Hand
+  const ha=document.getElementById('hand-area');ha.innerHTML='';
+  if(me.hand)me.hand.forEach((card,i)=>{
+    const d=document.createElement('div'),pl=canPlayCard(card),dead=card.isVP||card.ap===99||card.id==='noroi';
+    d.className='card'+(selectedCardIndex===i?' selected':'')+(dead?' dead-card':(!pl?' disabled':''));
+    if(!pl&&!dead){let r='';if(card.ap>0&&me.ap<card.ap)r='AP不足';else if(!gameState.isMyTurn)r='自分のターンではない';else r='使用不可';d.setAttribute('data-tooltip',r);}
+    else if(dead)d.setAttribute('data-tooltip',card.id==='noroi'?'呪い: VP-1':'勝利点カード');
+    const tc=getCardTypeColor(card.type);
+    let bn='',bc='#ddccff';if(card.power){bn=card.power+'dmg';bc='#ff6644';}else if(card.xpGain){bn='+'+card.xpGain+'XP';bc='#aa88ff';}else if(card.mpGain){bn='+'+card.mpGain+'MP';bc='#44ffaa';}else if(card.healPower){bn='+'+card.healPower+'HP';bc='#44ff88';}else if(card.vpValue){bn=card.vpValue+'VP';bc='#ffd700';}else if(card.draw){bn='+'+card.draw+'枚';bc='#88aaff';}
+    d.innerHTML=`<div class="card-name">${card.name}</div><div class="card-type" style="color:${tc}">${card.type}</div>${bn?`<div style="font-size:20px;font-weight:bold;color:${bc};text-align:center;margin:2px 0;text-shadow:0 0 8px ${bc}40">${bn}</div>`:''}<div class="card-effect">${card.desc}</div><div class="card-stats"><span class="card-ap">${card.ap===99?'-':card.ap===0?'AP0':'AP'+card.ap}</span><span class="card-noise">${card.noise>0?'N'+card.noise:''}</span></div>`;
+    const bc2={'武器':'#ff6644','杖':'#6688ff','罠':'#ff8844','巻物':'#cc44ff','道具':'#aaaacc','財宝':'#ffcc44','勝利点':'#ffd700','融合武器':'#ff8800','呪い':'#666600'};
+    d.style.borderLeft='4px solid '+(bc2[card.type]||'#3a2a6a');
+    if(!dead&&pl&&!targetMode)d.onclick=()=>{if(selectedCardIndex===i)playCard(i);else{selectedCardIndex=i;updateUI();}};
+    if(card.fused)d.classList.add('fused-card');
+    ha.appendChild(d);
+  });
+
+  // Shop button badge
+  if(gameState.supply){const as=[...(gameState.supply.const||[]),...(gameState.supply.random||[])],ac=as.filter(s=>s.remaining>0&&s.xpCost<=me.xp).length,sb=document.getElementById('btn-shop');if(ac>0&&me.buys>0){sb.textContent=`サプライ確認 (${ac})`;sb.style.borderColor='#44ff88';}else{sb.textContent='サプライ確認';sb.style.borderColor='#aa66ff';}}
+  document.getElementById('btn-end-turn').disabled=!gameState.isMyTurn;
+}
+
+// === Shop ===
+function openShop(){if(!gameState||!gameState.supply)return;document.getElementById('shop-modal').classList.add('active');renderShop();}
+function closeShop(){document.getElementById('shop-modal').classList.remove('active');}
+function renderShop(){
+  if(!gameState)return;const me=gameState.me,sup=gameState.supply;
+  document.getElementById('shop-xp').textContent=me.xp;document.getElementById('shop-buys').textContent=me.buys;document.getElementById('shop-deck-count').textContent=me.totalCards;
+  const g=document.getElementById('shop-all-grid');g.innerHTML='';
+  if(!sup)return;
+  const cl=document.createElement('div');cl.style.gridColumn='1/-1';cl.innerHTML='<span class="shop-section-label const-label">常設サプライ</span>';g.appendChild(cl);
+  const cg=document.createElement('div');cg.className='shop-grid';cg.style.gridColumn='1/-1';for(const s of sup.const)cg.appendChild(mkShopCard(s,'const-border'));g.appendChild(cg);
+  for(const{t,label,cls}of[{t:1,label:'Tier1',cls:'tier1'},{t:2,label:'Tier2',cls:'tier2'},{t:3,label:'Tier3',cls:'tier3'},{t:4,label:'Tier4',cls:'tier4'},{t:5,label:'Tier5 伝説',cls:'tier5'}]){
+    const cards=sup.random.filter(c=>c.tier===t);if(!cards.length)continue;
+    const lb=document.createElement('div');lb.style.gridColumn='1/-1';lb.innerHTML=`<span class="shop-section-label ${cls}-label">${label}</span>`;g.appendChild(lb);
+    const sg=document.createElement('div');sg.className='shop-grid';sg.style.gridColumn='1/-1';for(const s of cards)sg.appendChild(mkShopCard(s,cls+'-border'));g.appendChild(sg);
+  }
+}
+function mkShopCard(s,bc){
+  const d=document.createElement('div'),me=gameState.me,cb=gameState.isMyTurn&&me.buys>0&&me.xp>=s.xpCost&&s.remaining>0;
+  d.className='shop-card '+(bc||'')+(s.remaining<=0?' sold':'');
+  d.innerHTML=`<span class="sc-stock">残${s.remaining}</span><div class="sc-name">${s.name}</div><div class="sc-type" style="color:#7766aa">${s.type}</div><div class="sc-effect">${s.desc}</div><div class="sc-bottom"><span class="sc-cost">XP${s.xpCost}</span><span class="sc-ap">${s.ap===99?'-':s.ap===0?'AP0':'AP'+s.ap}</span></div>`;
+  if(cb){d.style.cursor='pointer';d.onclick=()=>{buyCard(s.id);closeShop();};}else d.style.opacity=s.remaining<=0?'0.3':'0.6';
+  return d;
+}
+
+// === Deck Modal ===
+function openDeckModal(){if(!gameState)return;document.getElementById('deck-modal').classList.add('active');const l=document.getElementById('deck-list');l.innerHTML='';if(gameState.me.hand)for(const c of gameState.me.hand){const d=document.createElement('div');d.className='deck-card';const tc=getCardTypeColor(c.type);d.innerHTML=`<div class="dc-name">${c.name}</div><div class="dc-type" style="color:${tc}">${c.type}</div><div style="font-size:10px;color:#aaa;margin-top:2px">${c.desc}</div>`;d.style.borderLeft='3px solid '+tc;l.appendChild(d);}}
+function closeDeckModal(){document.getElementById('deck-modal').classList.remove('active');}
+
+// === Events ===
+document.getElementById('minimap-canvas').addEventListener('click',()=>{document.getElementById('minimap-popup').classList.add('active');renderLargeMinimap();});
+window.addEventListener('resize',()=>{tileSize=Math.floor(Math.min((window.innerHeight-200)/VIEWPORT,(window.innerWidth-340)/VIEWPORT));tileSize=Math.max(28,Math.min(48,tileSize));if(gameState)render();});
+(function animLoop(){if(noiseRipples.length>0||damageNumbers.length>0)render();requestAnimationFrame(animLoop);})();
+
+// === Auto-reconnect ===
+(function(){const sr=localStorage.getItem('raven_mp_room'),st=localStorage.getItem('raven_mp_token'),si=localStorage.getItem('raven_mp_index');if(sr&&st){roomCode=sr;playerToken=st;myIndex=parseInt(si)||0;serverUrl=getServerUrl();startPolling();}})();
+</script>
+</body>
+</html>

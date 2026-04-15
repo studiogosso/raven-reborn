@@ -1,0 +1,4039 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レイヴン・ポータル v26 - チェックポイント&成長の書無料&カメラ修正</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a12;color:#c8c8e0;font-family:'Segoe UI','Meiryo',sans-serif;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+#top-bar{background:#0e0e1a;border-bottom:1px solid #2a1a4a;padding:6px 15px;display:flex;align-items:center;gap:20px;font-size:13px;min-height:36px;flex-wrap:wrap}
+.top-item{display:flex;align-items:center;gap:6px}
+.top-label{color:#8888aa}
+.top-val{font-weight:bold;color:#ddccff}
+.ap-big{font-size:22px;color:#44ddff;font-weight:bold;text-shadow:0 0 10px rgba(60,180,255,.5)}
+.mp-big{font-size:22px;color:#44ffaa;font-weight:bold;text-shadow:0 0 10px rgba(60,255,150,.5)}
+.res-badge{background:#1a1a3a;border:1px solid #3a2a6a;border-radius:6px;padding:2px 8px;font-size:12px}
+.res-badge .rb-val{font-weight:bold;margin-left:3px}
+.vp-display{font-size:16px;font-weight:bold;color:#ffd700;text-shadow:0 0 8px rgba(255,215,0,.4)}
+#game-container{display:flex;flex:1;min-height:0}
+#map-area{flex:1;display:flex;align-items:center;justify-content:center;padding:10px;position:relative}
+#gameCanvas{border:2px solid #2a1a4a;border-radius:4px;cursor:pointer}
+#sidebar{width:300px;background:#0e0e1a;border-left:1px solid #2a1a4a;padding:10px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
+.panel{background:#12122a;border:1px solid #2a1a4a;border-radius:6px;padding:8px}
+.panel h3{font-size:12px;color:#9080c0;margin-bottom:4px;border-bottom:1px solid #2a1a4a;padding-bottom:3px}
+.stat-row{display:flex;justify-content:space-between;font-size:12px;margin:2px 0}
+.stat-label{color:#8888aa}
+.stat-val{font-weight:bold}
+.hp-player{color:#4488ff}
+.hp-bot{color:#ff4444}
+.xp-val{color:#aa88ff}
+.noise-val{color:#ffaa44}
+.ap-val{color:#44aaff}
+.mp-val{color:#44ffaa}
+.flag-status{color:#ffd700;font-weight:bold}
+#log-area{flex:1;min-height:60px;overflow-y:auto;font-size:10px;line-height:1.5}
+#log-area .log-entry{padding:1px 0;border-bottom:1px solid #1a1a2a}
+.log-dmg{color:#ff6666}.log-heal{color:#66ff88}.log-info{color:#88aaff}
+.log-card{color:#ffcc44}.log-flag{color:#ffd700;font-weight:bold}
+.log-shop{color:#aa66ff}.log-buy{color:#66ddaa;font-weight:bold}
+.log-mob{color:#ff8844}.log-vp{color:#ffd700;font-weight:bold}
+.log-player-action{color:#e0e0ff}.log-bot-action{color:#ff4444;font-weight:bold}
+.log-mob-action{color:#ff8844}.log-boss-action{color:#cc44ff;font-weight:bold}
+.log-system{color:#ffdd44}
+.score-panel .vp-bar{background:#1a1a0a;border:1px solid #4a4a1a;border-radius:4px;height:12px;margin:3px 0;position:relative;overflow:hidden}
+.score-panel .vp-fill{height:100%;border-radius:3px;transition:width .3s}
+.score-panel .vp-text{position:absolute;top:0;left:4px;font-size:9px;color:#fff;line-height:12px}
+#minimap-canvas{border:1px solid #2a1a4a;border-radius:4px;display:block;margin:0 auto;cursor:pointer}
+#noise-indicator{position:absolute;top:10px;left:10px;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:bold;background:rgba(0,0,0,0.7);border:1px solid #444;display:none;pointer-events:none}
+#enemy-turn-indicator{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;font-weight:bold;color:#ff6644;text-shadow:0 0 20px rgba(255,80,40,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:90;background:rgba(0,0,0,0.5);padding:10px 30px;border-radius:10px;border:2px solid #ff4422}
+@keyframes screen-shake{0%{transform:translate(0,0)}25%{transform:translate(-4px,3px)}50%{transform:translate(3px,-4px)}75%{transform:translate(-3px,2px)}100%{transform:translate(0,0)}}
+.shake{animation:screen-shake 0.3s ease-in-out}
+@keyframes noise-pulse{0%{box-shadow:0 0 10px rgba(255,170,0,0.3)}50%{box-shadow:0 0 30px rgba(255,170,0,0.7)}100%{box-shadow:0 0 10px rgba(255,170,0,0.3)}}
+#boss-hp-overlay{position:fixed;top:40px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);border:2px solid #ff2200;border-radius:8px;padding:6px 16px;z-index:80;display:none;text-align:center;min-width:200px}
+#boss-hp-overlay .boss-name{color:#ff4400;font-weight:bold;font-size:14px}
+#boss-hp-overlay .boss-bar{background:#333;height:10px;border-radius:5px;margin-top:4px;overflow:hidden}
+#boss-hp-overlay .boss-fill{background:linear-gradient(90deg,#ff0000,#ff6600);height:100%;transition:width 0.3s;border-radius:5px}
+#boss-hp-overlay .boss-hp-text{color:#ffaa88;font-size:11px;margin-top:2px}
+#bottom-bar{background:#0e0e1a;border-top:1px solid #2a1a4a;padding:8px 12px;display:flex;align-items:center;gap:8px;min-height:120px}
+#phase-info{writing-mode:vertical-rl;font-size:11px;color:#9080c0;padding-right:8px;border-right:1px solid #2a1a4a;text-align:center;min-width:28px}
+#hand-area{display:flex;gap:6px;flex:1;overflow-x:auto;padding:4px 0}
+.card{min-width:120px;max-width:140px;background:linear-gradient(135deg,#1a1a3a,#12122a);border:2px solid #3a2a6a;border-radius:8px;padding:8px;cursor:pointer;transition:all .2s;flex-shrink:0;position:relative}
+.card:hover{border-color:#7060c0;transform:translateY(-4px);box-shadow:0 4px 15px rgba(100,60,200,.3)}
+.card.selected{border-color:#aa88ff;box-shadow:0 0 20px rgba(150,100,255,.5);transform:translateY(-8px)}
+.card.disabled{opacity:.35;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.card.no-ap{border-color:#662222}
+.card.dead-card{border-color:#666633;opacity:.6}
+.card-name{font-size:12px;font-weight:bold;color:#ddccff;margin-bottom:3px}
+.card-type{font-size:10px;margin-bottom:4px}
+.card-effect{font-size:10px;color:#aaaacc;line-height:1.3}
+.card-stats{display:flex;justify-content:space-between;margin-top:6px;font-size:10px}
+.card-ap{color:#44aaff}
+.card-noise{color:#ffaa44}
+.card-cost{position:absolute;top:4px;right:6px;background:#2244aa;color:#fff;font-size:10px;font-weight:bold;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center}
+#action-buttons{display:flex;flex-direction:column;gap:5px;min-width:110px}
+.btn{background:linear-gradient(135deg,#2a1a5a,#1a1a3a);border:1px solid #4a3a7a;color:#ccbbee;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:linear-gradient(135deg,#3a2a7a,#2a2a5a);border-color:#6a5a9a}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-end{border-color:#aa4444;color:#ff8888}
+.btn-end:hover{border-color:#ff6666}
+.btn-shop{border-color:#aa66ff;color:#cc88ff}
+.btn-deck{border-color:#44aa88;color:#66ddaa}
+#turn-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:32px;font-weight:bold;color:#fff;text-shadow:0 0 30px rgba(100,60,255,.8);pointer-events:none;opacity:0;transition:opacity .3s;z-index:100}
+#game-over-screen{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.88);display:none;align-items:center;justify-content:center;flex-direction:column;z-index:200}
+#game-over-screen h1{font-size:42px;margin-bottom:15px}
+#game-over-screen .win{color:#44aaff;text-shadow:0 0 30px rgba(60,120,255,.8)}
+#game-over-screen .lose{color:#ff4444;text-shadow:0 0 30px rgba(255,60,60,.8)}
+#game-over-screen p{font-size:16px;color:#aaa;margin-bottom:15px}
+#game-over-screen button{padding:10px 25px;font-size:16px;cursor:pointer;background:#2a1a5a;border:2px solid #6a5a9a;color:#ccbbee;border-radius:8px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);display:none;align-items:center;justify-content:center;z-index:150}
+.modal-overlay.active{display:flex}
+.modal{background:#12122a;border:2px solid #4a3a7a;border-radius:12px;padding:20px;max-width:950px;width:95%;max-height:85vh;overflow-y:auto}
+.modal h2{color:#aa88ff;margin-bottom:12px;font-size:18px;border-bottom:1px solid #3a2a6a;padding-bottom:8px}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:10px}
+.shop-section-label{font-size:13px;font-weight:bold;padding:4px 10px;border-radius:4px;margin:8px 0 4px 0;display:inline-block}
+.shop-section-label.const-label{background:#1a2a3a;color:#44aadd;border:1px solid #2a4a6a}
+.shop-section-label.tier1-label{background:#1a3a1a;color:#44dd66;border:1px solid #2a6a2a}
+.shop-section-label.tier2-label{background:#3a3a1a;color:#dddd44;border:1px solid #6a6a2a}
+.shop-section-label.tier3-label{background:#3a1a1a;color:#ff6644;border:1px solid #6a2a2a}
+.shop-card{background:linear-gradient(135deg,#1a1a3a,#0e0e1e);border:2px solid #3a2a6a;border-radius:8px;padding:10px;cursor:pointer;transition:all .2s;position:relative}
+.shop-card:hover{border-color:#aa88ff;box-shadow:0 0 15px rgba(150,100,255,.3)}
+.shop-card.sold{opacity:.3;cursor:not-allowed;pointer-events:none}
+.shop-card .sc-name{font-size:12px;font-weight:bold;color:#ddccff;margin-bottom:3px}
+.shop-card .sc-type{font-size:10px;margin-bottom:4px}
+.shop-card .sc-effect{font-size:10px;color:#aaaacc;line-height:1.3;margin-bottom:6px}
+.shop-card .sc-bottom{display:flex;justify-content:space-between;font-size:10px}
+.shop-card .sc-cost{color:#aa88ff;font-weight:bold}
+.shop-card .sc-ap{color:#44aaff}
+.shop-card .sc-stock{position:absolute;top:4px;right:6px;background:#2a2a4a;color:#aaa;font-size:9px;padding:1px 5px;border-radius:8px}
+.shop-card.const-border{border-left:3px solid #44aadd}
+.shop-card.tier1-border{border-left:3px solid #44dd66}
+.shop-card.tier2-border{border-left:3px solid #dddd44}
+.shop-card.tier3-border{border-left:3px solid #ff6644}
+.shop-section-label.tier4-label{background:#2a1a3a;color:#cc66ff;border:1px solid #5a2a8a}
+.shop-section-label.tier5-label{background:#3a2a1a;color:#ffd700;border:1px solid #8a6a2a}
+.shop-card.tier4-border{border-left:3px solid #cc66ff}
+.shop-card.tier5-border{border-left:3px solid #ffd700}
+.modal-close{background:#3a1a1a;border:1px solid #6a2a2a;color:#ff8888;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;float:right}
+.modal-close:hover{background:#5a2a2a}
+.deck-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.deck-card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:6px;padding:8px;font-size:11px;cursor:default}
+.deck-card .dc-name{font-weight:bold;color:#ddccff}
+.deck-card .dc-type{font-size:10px;color:#7766aa}
+.deck-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0;text-align:center;font-size:11px}
+.deck-stats .ds-item{background:#1a1a3a;border-radius:4px;padding:4px}
+.deck-stats .ds-val{font-size:16px;font-weight:bold;color:#aa88ff}
+.trash-select{cursor:pointer;border:2px solid transparent;border-radius:6px;padding:8px;transition:all .2s}
+.trash-select:hover{border-color:#ff6644;background:rgba(255,100,60,0.1)}
+.trash-select.selected-trash{border-color:#ff4422;background:rgba(255,60,30,0.2)}
+#floating-logs{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:85;display:flex;flex-direction:column;align-items:center;justify-content:center}
+@keyframes float-log-in{0%{transform:translateY(30px);opacity:0}15%{transform:translateY(0);opacity:1}75%{transform:translateY(0);opacity:0.8}100%{transform:translateY(-20px);opacity:0}}
+.floating-log{font-weight:bold;text-shadow:0 0 10px rgba(0,0,0,0.8),0 2px 4px rgba(0,0,0,0.9);pointer-events:none;animation:float-log-in 2.5s ease-out forwards;white-space:nowrap;padding:4px 12px;border-radius:4px;background:rgba(0,0,0,0.3)}
+#flash-overlay{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:80;opacity:0;transition:opacity 0.05s}
+.btn-fuse{border-color:#ff8800;color:#ffaa44}
+.btn-fuse:hover{border-color:#ffcc44}
+.card.fused-card{border-color:#ff8800;box-shadow:0 0 12px rgba(255,136,0,0.4)}
+@keyframes screen-shake{0%{transform:translate(0,0)}25%{transform:translate(-4px,3px)}50%{transform:translate(3px,-4px)}75%{transform:translate(-3px,2px)}100%{transform:translate(0,0)}}
+.shake{animation:screen-shake 0.3s ease-in-out}
+</style>
+</head>
+<body>
+
+<div id="top-bar">
+  <div class="top-item"><span class="top-label">ターン</span><span class="top-val" id="top-turn">1</span></div>
+  <div class="top-item"><span class="top-label">AP</span><span class="ap-big" id="top-ap">1</span></div>
+  <div class="top-item"><span class="top-label">MP</span><span class="mp-big" id="top-mp">3</span></div>
+  <div class="top-item">
+    <span class="res-badge"><span class="top-label">購入</span><span class="rb-val" id="top-buys" style="color:#66ddaa">1</span></span>
+  </div>
+  <div class="top-item"><span class="top-label">XP</span><span class="top-val" id="top-xp" style="color:#aa88ff">0</span></div>
+  <div class="top-item"><span class="top-label">VP</span><span class="vp-display" id="top-vp">0</span><span class="top-val" style="color:#ffd700">/30</span></div>
+  <div class="top-item"><span class="top-label">ノイズ</span><span class="top-val" id="top-noise" style="color:#ffaa44">0</span></div>
+  <div class="top-item" style="margin-left:auto"><span class="top-val" style="color:#44ffaa;font-size:11px">WASD/矢印で移動 (MP消費)</span></div>
+  <div class="top-item"><button class="btn" onclick="openSettings()" style="padding:3px 8px;font-size:14px;min-width:28px">&#9881;</button></div>
+</div>
+
+<div id="game-container">
+  <div id="map-area">
+    <canvas id="gameCanvas"></canvas>
+    <div id="noise-indicator"></div>
+  </div>
+  <div id="sidebar">
+    <div class="panel score-panel">
+      <h3>スコアボード (30VP)</h3>
+      <div style="margin-bottom:6px">
+        <div style="font-size:12px;color:#4488ff;font-weight:bold">あなた (青) <span id="score-player-vp" style="color:#ffd700">0</span> VP</div>
+        <div class="vp-bar"><div class="vp-fill" id="score-player-bar" style="width:0%;background:#4488ff"></div><div class="vp-text" id="score-player-detail">旗:0 カード:0 キル:0</div></div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:#ff4444;font-weight:bold">ボットAI (赤) <span id="score-bot-vp" style="color:#ffd700">0</span> VP</div>
+        <div class="vp-bar"><div class="vp-fill" id="score-bot-bar" style="width:0%;background:#ff4444"></div><div class="vp-text" id="score-bot-detail">旗:0 カード:0 キル:0</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>あなた (青)</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-player" id="player-hp">1/1</span></div>
+      <div class="stat-row"><span class="stat-label">AP</span><span class="stat-val ap-val" id="player-ap">1</span></div>
+      <div class="stat-row"><span class="stat-label">MP (移動力)</span><span class="stat-val mp-val" id="player-mp">3</span></div>
+      <div class="stat-row"><span class="stat-label">XP</span><span class="stat-val xp-val" id="player-xp">0</span></div>
+      <div class="stat-row"><span class="stat-label">ノイズ</span><span class="stat-val noise-val" id="player-noise">0</span></div>
+      <div class="stat-row"><span class="stat-label">旗</span><span class="stat-val flag-status" id="player-flag">なし</span></div>
+      <div class="stat-row" style="cursor:pointer" onclick="openDeckFiltered('deck')"><span class="stat-label">デッキ</span><span class="stat-val" id="deck-count">3</span></div>
+      <div class="stat-row" style="cursor:pointer" onclick="openDeckFiltered('discard')"><span class="stat-label">捨て札</span><span class="stat-val" id="discard-count">0</span></div>
+    </div>
+    <div class="panel">
+      <h3>ボットAI (赤)</h3>
+      <div class="stat-row"><span class="stat-label">HP</span><span class="stat-val hp-bot" id="bot-hp">1/1</span></div>
+      <div class="stat-row"><span class="stat-label">旗</span><span class="stat-val flag-status" id="bot-flag">なし</span></div>
+    </div>
+    <div class="panel" style="padding:4px">
+      <h3 style="display:flex;align-items:center;justify-content:space-between">ミニマップ <button id="noiseToggleBtn" onclick="toggleNoiseDisplay()" style="font-size:9px;padding:2px 6px;border-radius:4px;background:#2a1a3a;border:1px solid #4a3a6a;color:#ffaa44;cursor:pointer">🔊</button></h3>
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+    </div>
+    <div class="panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <h3>ログ</h3>
+      <div id="log-area"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bottom-bar">
+  <div id="phase-info">自由行動</div>
+  <div id="hand-area"></div>
+  <div id="action-buttons">
+    <button class="btn btn-end" id="btn-fuse-cancel" onclick="cancelFuseMode()" style="display:none">合成取消</button>
+    <button class="btn btn-shop" id="btn-shop" onclick="openShop()">サプライ確認</button>
+    <button class="btn btn-deck" id="btn-deck" onclick="openDeck()">デッキ確認</button>
+    <button class="btn" id="btn-levelup" onclick="openLevelUp()" style="border-color:#44ff88;color:#44ff88">レベルアップ</button>
+    <button class="btn btn-end" id="btn-end-turn" onclick="endTurnFull()">ターン終了</button>
+  </div>
+</div>
+
+<div id="turn-banner"></div>
+<div id="enemy-turn-indicator">敵ターン中...</div>
+<div id="defense-banner" style="position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(255,215,0,0.9);color:#000;padding:8px 20px;border-radius:8px;font-weight:bold;font-size:14px;z-index:90;display:none"></div>
+<div id="event-banner" style="position:fixed;top:100px;left:50%;transform:translateX(-50%);background:rgba(150,60,255,0.85);color:#fff;padding:6px 16px;border-radius:8px;font-weight:bold;font-size:13px;z-index:89;display:none"></div>
+<div id="event-popup" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.9);border:3px solid #aa66ff;border-radius:16px;padding:30px 50px;text-align:center;z-index:160;display:none">
+  <div id="event-popup-name" style="font-size:28px;font-weight:bold;color:#cc88ff;margin-bottom:8px"></div>
+  <div id="event-popup-desc" style="font-size:14px;color:#ccbbee"></div>
+</div>
+<div id="boss-hp-overlay"><div class="boss-name">深淵の守護者</div><div class="boss-bar"><div class="boss-fill" id="boss-hp-fill" style="width:100%"></div></div><div class="boss-hp-text" id="boss-hp-text">12/12</div></div>
+
+<div id="game-over-screen">
+  <h1 id="game-over-text"></h1>
+  <p id="game-over-detail"></p>
+  <p id="game-over-scores" style="font-size:14px;color:#ccc;margin-bottom:15px"></p>
+  <button onclick="location.reload()">もう一度プレイ</button>
+</div>
+
+<div class="modal-overlay" id="shop-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShop()">閉じる</button>
+    <h2>サプライ</h2>
+    <p style="font-size:12px;color:#8888aa;margin-bottom:10px">所持XP: <span id="shop-xp" style="color:#aa88ff;font-weight:bold">0</span> | 残り購入: <span id="shop-buys" style="color:#66ddaa;font-weight:bold">1</span> | デッキ: <span id="shop-deck-count">3</span>枚</p>
+    <div id="shop-all-grid"></div>
+    <button class="btn" onclick="closeShop()" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="trash-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeTrash()">キャンセル</button>
+    <h2 id="trash-title">除外するカードを選択</h2>
+    <p style="font-size:12px;color:#ff8866;margin-bottom:10px" id="trash-desc">手札から最大2枚を永久除外します</p>
+    <div class="deck-list" id="trash-list"></div>
+    <button class="btn" id="trash-confirm-btn" onclick="confirmTrash()" style="margin-top:12px;border-color:#ff6644;color:#ff8866">除外実行</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="remodel-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRemodel()">キャンセル</button>
+    <h2>改築：除外するカードを選択</h2>
+    <p style="font-size:12px;color:#aa88ff;margin-bottom:10px">手札から1枚を除外し、XP+2以下のカードを獲得</p>
+    <div class="deck-list" id="remodel-hand-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="remodel-gain-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeRemodelGain()">キャンセル</button>
+    <h2>改築：獲得するカードを選択 (XP <span id="remodel-max-xp">0</span> 以下)</h2>
+    <div class="shop-grid" id="remodel-gain-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deck-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeDeck()">閉じる</button>
+    <h2>デッキ一覧 (<span id="deck-total">3</span>枚)</h2>
+    <div class="deck-stats" id="deck-stats-area"></div>
+    <div id="deck-tabs" style="margin:8px 0;display:flex;gap:6px">
+      <button class="btn" onclick="openDeckFiltered('all')" id="deck-tab-all" style="font-size:11px;padding:4px 10px">全て</button>
+      <button class="btn" onclick="openDeckFiltered('deck')" id="deck-tab-deck" style="font-size:11px;padding:4px 10px">デッキ</button>
+      <button class="btn" onclick="openDeckFiltered('hand')" id="deck-tab-hand" style="font-size:11px;padding:4px 10px">手札</button>
+      <button class="btn" onclick="openDeckFiltered('discard')" id="deck-tab-discard" style="font-size:11px;padding:4px 10px">捨て札</button>
+    </div>
+    <div class="deck-list" id="deck-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="levelup-modal">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeLevelUp()">閉じる</button>
+    <h2 style="color:#44ff88">レベルアップ</h2>
+    <p style="font-size:12px;color:#8888aa;margin-bottom:10px">所持XP: <span id="levelup-xp" style="color:#aa88ff;font-weight:bold">0</span></p>
+    <div id="levelup-grid" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="btn" onclick="closeLevelUp()" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="respawn-modal">
+  <div class="modal" style="max-width:350px;text-align:center">
+    <h2 style="color:#ff4444;margin-bottom:12px">死亡!</h2>
+    <p style="font-size:12px;color:#aaa;margin-bottom:16px">リスポーン地点を選択</p>
+    <div id="respawn-options"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal" style="max-width:400px">
+    <button class="modal-close" onclick="closeSettings()">閉じる</button>
+    <h2>設定</h2>
+    <div style="margin:12px 0">
+      <label style="font-size:13px;color:#ccbbee"><input type="checkbox" id="settings-bgm-on" checked onchange="toggleBGM(this.checked)"> BGM</label>
+      <input type="range" id="settings-bgm-vol" min="0" max="100" value="30" style="width:150px;margin-left:10px" oninput="setBGMVol(this.value)">
+    </div>
+    <div style="margin:12px 0">
+      <label style="font-size:13px;color:#ccbbee"><input type="checkbox" id="settings-se-on" checked onchange="toggleSE(this.checked)"> SE</label>
+      <input type="range" id="settings-se-vol" min="0" max="100" value="30" style="width:150px;margin-left:10px" oninput="setSEVol(this.value)">
+    </div>
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
+      <a href="review_app.html" target="_blank" style="color:#44ddff;font-size:13px;text-decoration:none">📋 レビューアプリを開く ↗</a>
+    </div>
+    <div style="margin:16px 0;padding-top:12px;border-top:1px solid #2a1a4a">
+      <label style="font-size:13px;color:#ff8844"><input type="checkbox" id="settings-debug" onchange="toggleDebugMode(this.checked)"> デバッグモード</label>
+    </div>
+    <div id="debug-controls" style="display:none;margin-top:8px;padding:10px;background:#1a1a0a;border:1px solid #4a4a1a;border-radius:6px">
+      <div style="font-size:11px;color:#ffaa44;margin-bottom:8px;font-weight:bold">⚠ デバッグ</div>
+      <div style="margin:6px 0">
+        <label style="font-size:11px;color:#ccbbee">プレイヤー数: </label>
+        <select id="debug-players" style="background:#2a2a4a;color:#fff;border:1px solid #4a3a7a;border-radius:4px;font-size:11px;padding:2px" onchange="debugChangePlayerCount(this.value)">
+          <option value="1">1人</option>
+          <option value="2">2人</option>
+          <option value="3">3人</option>
+          <option value="4">4人</option>
+        </select>
+      </div>
+      <div style="margin:6px 0">
+        <label style="font-size:11px;color:#ccbbee">ボット数: </label>
+        <select id="debug-bots" style="background:#2a2a4a;color:#fff;border:1px solid #4a3a7a;border-radius:4px;font-size:11px;padding:2px" onchange="debugChangeBotCount(this.value)">
+          <option value="1" selected>1体</option>
+          <option value="0">0体</option>
+          <option value="2">2体</option>
+          <option value="3">3体</option>
+        </select>
+      </div>
+      <button class="btn" style="font-size:10px;padding:4px 10px;margin:4px 0;border-color:#ffaa44;color:#ffaa44" onclick="debugTriggerEvent()">イベント発生</button>
+      <button class="btn" style="font-size:10px;padding:4px 10px;margin:4px 0;border-color:#44aaff;color:#44aaff" onclick="debugOpenSupply()">サプライ編集</button>
+      <button class="btn" style="font-size:10px;padding:4px 10px;margin:4px 0;border-color:#ff4444;color:#ff4444" onclick="debugRestart()">ゲーム再起動</button>
+    </div>
+    <button class="btn" onclick="closeSettings()" style="margin-top:12px">閉じる</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="minimap-popup">
+  <div class="modal" style="max-width:500px;padding:10px;text-align:center">
+    <button class="modal-close" onclick="document.getElementById('minimap-popup').classList.remove('active')">閉じる</button>
+    <h2 style="font-size:14px;margin-bottom:8px">ミニマップ</h2>
+    <canvas id="minimap-large" width="400" height="400" style="border:1px solid #2a1a4a;border-radius:4px;max-width:100%"></canvas>
+  </div>
+</div>
+
+<div class="modal-overlay" id="log-popup">
+  <div class="modal" style="max-width:600px;max-height:80vh">
+    <button class="modal-close" onclick="document.getElementById('log-popup').classList.remove('active')">閉じる</button>
+    <h2 style="font-size:14px;margin-bottom:8px">ログ</h2>
+    <div id="log-popup-content" style="max-height:60vh;overflow-y:auto;font-size:11px;line-height:1.6"></div>
+  </div>
+</div>
+
+<div id="target-cancel" style="position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:95;display:none">
+  <button onclick="cancelTargetMode()" style="background:#ff4444;color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(255,60,60,0.4)">✕ キャンセル</button>
+</div>
+
+<div id="floating-logs"></div>
+<div id="flash-overlay"></div>
+
+<div id="card-popup" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:95;pointer-events:none;opacity:0;transition:opacity 0.3s;">
+  <div id="card-popup-inner" style="min-width:180px;max-width:220px;background:linear-gradient(135deg,#1a1a3a,#12122a);border:3px solid #7060c0;border-radius:12px;padding:16px;text-align:center;box-shadow:0 0 30px rgba(100,60,200,0.5);">
+    <div id="card-popup-name" style="font-size:18px;font-weight:bold;color:#ddccff;margin-bottom:6px;"></div>
+    <div id="card-popup-type" style="font-size:12px;margin-bottom:8px;"></div>
+    <div id="card-popup-effect" style="font-size:13px;color:#aaaacc;line-height:1.4;"></div>
+    <div id="card-popup-stats" style="margin-top:10px;display:flex;justify-content:center;gap:12px;font-size:12px;">
+      <span id="card-popup-ap" style="color:#44aaff;"></span>
+      <span id="card-popup-noise" style="color:#ffaa44;"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========================================================
+// レイヴン・ポータル v25 プロトタイプ
+// v25: マルチプレイヤー視界分離、見張り台所有者追跡、他プレイヤー視界外非表示、拠点分離、ノイズイベント共有
+// v24: サプライ拡張エディタ(カード追加/削除)、攻撃射程チェック、ターゲットモードキャンセルボタン
+// v23: デバッグモード、マルチプレイヤー(デバッグ用)、サプライ編集、イベントトリガー
+// v22: 旗隠蔽、プレイヤーノイズ青ヒートマップ、モブノイズ、Bot移動ログ非表示、攻撃方向選択UI、Bot見張り台隠蔽、攻撃エフェクト、モブ赤色統一
+// ========================================================
+
+const MAP_W=40,MAP_H=40,VIEWPORT=13,VP_WIN=30;
+const TILE_FLOOR=0,TILE_WALL=1,TILE_BOSS_FLOOR=8;
+const HAND_SIZE=5;
+const BASE_MP=3; // v7B: 毎ターンの基本移動ポイント
+
+// ===== カード定義 =====
+// 常設サプライ
+const CONST_SUPPLY=[
+  {id:'yashiki',name:'屋敷',type:'勝利点',ap:99,noise:0,xpCost:2,desc:'1VP',vpValue:1,stock:8,tier:0,isVP:true,constant:true},
+  {id:'kouryou',name:'公領',type:'勝利点',ap:99,noise:0,xpCost:4,desc:'3VP',vpValue:3,stock:8,tier:0,isVP:true,constant:true},
+  {id:'zoushou',name:'属州',type:'勝利点',ap:99,noise:0,xpCost:7,desc:'6VP',vpValue:6,stock:8,tier:0,isVP:true,constant:true},
+  {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,xpCost:1,desc:'XP+1',xpGain:1,stock:10,tier:0,constant:true},
+  {id:'ginka',name:'銀貨',type:'財宝',ap:0,noise:0,xpCost:3,desc:'XP+2',xpGain:2,stock:8,tier:0,constant:true},
+  {id:'kinka',name:'金貨',type:'財宝',ap:0,noise:0,xpCost:6,desc:'XP+3',xpGain:3,stock:6,tier:0,constant:true},
+  {id:'checkpoint',name:'チェックポイント',type:'道具',ap:0,noise:0,xpCost:1,desc:'リスポーン地点を設置(最大2)',checkpoint:true,stock:10,tier:0,constant:true},
+];
+
+// v7B: 移動カード（ippo,kakeashi,kagehashiri,shunpo）を削除
+// 代わりに「俊足の薬」を追加
+const ALL_RANDOM_CARDS=[
+  // Tier1 (XP1-2) - 移動カード削除、俊足の薬追加 stock:12
+  {id:'mura',name:'村',type:'道具',ap:1,noise:1,xpCost:3,desc:'AP+2、ドロー+1',apGain:2,draw:1,stock:12,tier:1},
+  {id:'shunsoku',name:'俊足の薬',type:'道具',ap:0,noise:0,xpCost:2,desc:'今ターンのMP+3',mpGain:3,stock:12,tier:1},
+  {id:'kogatana',name:'小刀',type:'武器',ap:1,noise:1,xpCost:1,desc:'攻撃1、射程1',power:1,range:1,stock:12,tier:1},
+  {id:'kinotsue',name:'木の杖',type:'杖',ap:1,noise:1,xpCost:2,desc:'直線1ダメ、射程4、壁で停止',power:1,range:4,isStaff:true,stock:12,tier:1},
+  {id:'miharashi',name:'見張り台',type:'道具',ap:1,noise:0,xpCost:1,desc:'ソナーピン（1回方向ヒント）',sonar:true,stock:12,tier:1},
+  {id:'gabyou',name:'画鋲',type:'罠',ap:1,noise:0,xpCost:1,desc:'罠設置:1ダメ+ノイズ爆発',trapDmg:1,trapNoise:3,stock:12,tier:1},
+  {id:'yakusou',name:'薬草',type:'道具',ap:1,noise:0,xpCost:1,desc:'HP+2回復',healPower:2,stock:12,tier:1},
+  {id:'shuuchuu',name:'集中',type:'道具',ap:1,noise:0,xpCost:2,desc:'AP+2',apGain:2,stock:12,tier:1},
+  {id:'teisatsu',name:'偵察',type:'巻物',ap:1,noise:0,xpCost:2,desc:'周囲3マス可視化(2T)',recon:3,reconTurns:2,stock:12,tier:1},
+  {id:'gyoushounin',name:'行商人',type:'道具',ap:0,noise:0,xpCost:2,desc:'購入+1',buyPlus:1,stock:12,tier:1},
+  {id:'onmitsu',name:'隠密',type:'道具',ap:0,noise:0,xpCost:1,desc:'30%で次の行動ノイズ無効',stealth30:true,stock:12,tier:1},
+  {id:'shinobiashi',name:'忍び足',type:'道具',ap:0,noise:0,xpCost:2,desc:'次の3歩のノイズを無効化',stealthSteps:3,stock:12,tier:1},
+  {id:'hayaashi',name:'早足の靴',type:'道具',ap:1,noise:0,xpCost:2,desc:'MP+4',mpGain:4,stock:12,tier:1},
+  {id:'shoumen',name:'火炎弾',type:'巻物',ap:1,noise:2,xpCost:2,desc:'指定2x2範囲に1ダメージ',aoeSize:2,aoeDmg:1,stock:5,tier:1},
+  {id:'warp',name:'転移の巻物',type:'巻物',ap:1,noise:1,xpCost:12,desc:'ランダム位置にワープ',randomWarp:true,stock:1,tier:5},
+  {id:'tegami',name:'手紙',type:'道具',ap:1,noise:0,xpCost:1,desc:'ドロー+2',draw:2,stock:5,tier:1},
+  // Tier2 (XP3-5) - 移動カード(瞬歩,影走り)削除
+  {id:'kajiya',name:'鍛冶屋',type:'道具',ap:1,noise:0,xpCost:4,desc:'ドロー+3',draw:3,stock:7,tier:2},
+  {id:'reihaido',name:'礼拝堂',type:'道具',ap:1,noise:0,xpCost:2,desc:'手札から最大2枚除外',trash:2,stock:7,tier:2},
+  {id:'majo',name:'魔女',type:'巻物',ap:1,noise:2,xpCost:5,desc:'全敵に呪い追加',curse:true,stock:7,tier:2},
+  {id:'minpei',name:'民兵',type:'巻物',ap:1,noise:2,xpCost:4,desc:'全敵次ターン手札上限3枚',militia:true,stock:7,tier:2},
+  {id:'dorobou',name:'泥棒',type:'巻物',ap:1,noise:2,xpCost:4,desc:'直線射程3、敵デッキ2枚公開→1枚奪取',thief:true,range:3,stock:7,tier:2},
+  {id:'kaichiku',name:'改築',type:'道具',ap:1,noise:0,xpCost:4,desc:'手札1枚除外→XP+2以下獲得',remodel:true,stock:7,tier:2},
+  {id:'tetsuyari',name:'鉄の槍',type:'武器',ap:1,noise:2,xpCost:3,desc:'攻撃3、射程1',power:3,range:1,stock:7,tier:2},
+  {id:'togenowana',name:'とげの罠',type:'罠',ap:1,noise:0,xpCost:3,desc:'罠設置:2ダメ+1T移動不可',trapDmg:2,trapFreeze:1,stock:7,tier:2},
+  {id:'shounin',name:'商人',type:'道具',ap:0,noise:0,xpCost:4,desc:'購入+1、ドロー+1',buyPlus:1,draw:1,stock:7,tier:2},
+  {id:'koorinotsue',name:'氷の杖',type:'杖',ap:1,noise:2,xpCost:5,desc:'直線射撃、2Tフリーズ',power:1,range:5,isStaff:true,freeze:2,stock:7,tier:2},
+  {id:'seichou',name:'成長の書',type:'巻物',ap:1,noise:0,xpCost:3,desc:'レベルアップ画面を開く',levelUp:true,stock:7,tier:2},
+  {id:'kouekishi',name:'交易師',type:'道具',ap:1,noise:0,xpCost:4,desc:'購入+2, ドロー+1',buyPlus:2,draw:1,stock:7,tier:2},
+  {id:'kazenomantle',name:'風のマント',type:'道具',ap:0,noise:0,xpCost:3,desc:'MP+5, 次の移動ノイズ0',mpGain:5,stealthMove:true,stock:7,tier:2},
+  {id:'irekae',name:'入れ替えの巻物',type:'巻物',ap:1,noise:2,xpCost:4,desc:'観測範囲内の敵と位置を交換',swapTarget:true,stock:4,tier:2},
+  {id:'kagenokoromo',name:'影の衣',type:'道具',ap:1,noise:0,xpCost:4,desc:'2ターンの間全行動ノイズ無効',stealthTurns:2,stock:4,tier:2},
+  {id:'gousei',name:'合成の巻物',type:'巻物',ap:1,noise:0,xpCost:9,desc:'武器同士または武器と杖を合成',fusionScroll:true,stock:2,tier:4},
+  {id:'hirotrap',name:'広域の罠',type:'罠',ap:1,noise:0,xpCost:3,desc:'2x2範囲に罠設置:1ダメ',trapSize:2,trapDmg:1,stock:4,tier:2},
+  {id:'toshokan',name:'図書館',type:'道具',ap:1,noise:0,xpCost:3,desc:'ドロー+2, 手札1枚をデッキトップに戻す',draw:2,stock:4,tier:2},
+  // Tier3 (XP6-7) stock:4 (+1 XP each)
+  {id:'kaminari',name:'雷の巻物',type:'巻物',ap:1,noise:3,xpCost:6,desc:'ランダムな敵3体に各2ダメ',lightning:true,lightningDmg:2,lightningTargets:3,stock:4,tier:3},
+  {id:'yaminoogama',name:'闇の大鎌',type:'武器',ap:1,noise:4,xpCost:7,desc:'周囲8マス全てに3ダメ',power:3,scytheAoe:true,stock:4,tier:3},
+  {id:'jirai',name:'地雷',type:'罠',ap:1,noise:0,xpCost:7,desc:'罠設置:4ダメ+周囲1マス2ダメ',trapDmg:4,trapAoe:2,stock:4,tier:3},
+  {id:'daichinomakimono',name:'大地の巻物',type:'巻物',ap:1,noise:4,xpCost:6,desc:'指定3x3範囲に2ダメ',earthquake:true,eqDmg:2,stock:4,tier:3},
+  {id:'teien',name:'庭園',type:'道具',ap:99,noise:0,xpCost:7,desc:'デッキ5枚ごとに1VP',garden:true,stock:4,tier:3,isVP:true},
+  {id:'ooakinai',name:'大商い',type:'道具',ap:1,noise:1,xpCost:5,desc:'購入+3, XP+2',buyPlus:3,xpGain:2,stock:4,tier:3},
+  {id:'shunpo',name:'瞬歩',type:'道具',ap:1,noise:2,xpCost:5,desc:'指定位置にテレポート(射程5)',teleport:5,stock:4,tier:3},
+  {id:'gouka',name:'業火の巻物',type:'巻物',ap:1,noise:3,xpCost:7,desc:'指定4x4範囲に2ダメージ',aoeSize:4,aoeDmg:2,stock:3,tier:3},
+  {id:'souirekae',name:'総入れ替えの巻物',type:'巻物',ap:1,noise:3,xpCost:6,desc:'全キャラの位置をシャッフル',shuffleAll:true,stock:3,tier:3},
+  {id:'daitrap',name:'大罠',type:'罠',ap:1,noise:0,xpCost:5,desc:'3x3範囲に罠設置:2ダメ',trapSize:3,trapDmg:2,stock:3,tier:3},
+  {id:'chishiki',name:'知識の泉',type:'道具',ap:1,noise:0,xpCost:5,desc:'ドロー+4',draw:4,stock:3,tier:3},
+  // Tier4 (XP9-10) stock:2 (+2 XP each)
+  {id:'honoonotsue',name:'炎の杖',type:'杖',ap:1,noise:3,xpCost:9,desc:'直線射程5+着弾点周囲1ダメ',power:2,range:5,isStaff:true,staffAoe:1,stock:2,tier:4},
+  {id:'zenchinome',name:'全知の目',type:'巻物',ap:1,noise:0,xpCost:9,desc:'マップ全体3T可視化',fullVision:3,stock:2,tier:4},
+  {id:'kikan',name:'帰還の巻物',type:'巻物',ap:1,noise:5,xpCost:9,desc:'自陣にテレポート(旗持ち中不可)',returnHome:true,stock:2,tier:4},
+  {id:'shinotoiki',name:'死の吐息',type:'巻物',ap:1,noise:4,xpCost:9,desc:'周囲2マス全てに2ダメ',deathBreath:true,deathBreathDmg:2,deathBreathRange:2,stock:2,tier:4},
+  {id:'ougonnohai',name:'黄金の杯',type:'道具',ap:1,noise:0,xpCost:10,desc:'AP+2、ドロー+2、XP+2',apGain:2,draw:2,xpGain:2,stock:2,tier:4},
+  {id:'shinigaminokama',name:'死神の鎌',type:'武器',ap:1,noise:4,xpCost:10,desc:'攻撃5+射程2+周囲1ダメ',power:5,range:2,aoeDmg:1,stock:2,tier:4},
+  {id:'inseki',name:'隕石の巻物',type:'巻物',ap:1,noise:5,xpCost:10,desc:'ランダム3箇所に3x3で3ダメ',meteor:true,meteorDmg:3,meteorCount:3,stock:2,tier:4},
+  {id:'juusou',name:'重奏の巻物',type:'巻物',ap:1,noise:2,xpCost:8,desc:'次に使用するカードを2回発動',doubleCast:true,stock:2,tier:4},
+  {id:'daigouka',name:'大業火の巻物',type:'巻物',ap:1,noise:5,xpCost:9,desc:'指定8x8範囲に3ダメージ',aoeSize:8,aoeDmg:3,stock:2,tier:4},
+  {id:'kyodaitrap',name:'巨大罠',type:'罠',ap:1,noise:0,xpCost:8,desc:'4x4範囲に罠設置:3ダメ',trapSize:4,trapDmg:3,stock:2,tier:4},
+  // Tier5 伝説 (XP12-13) stock:1
+  {id:'tenbatsu',name:'天罰の雷',type:'巻物',ap:2,noise:5,xpCost:12,desc:'全マップの全敵に3ダメージ',divineStrike:true,divineStrikeDmg:3,stock:1,tier:5},
+  {id:'tokinosuna',name:'時の砂時計',type:'道具',ap:0,noise:0,xpCost:13,desc:'追加ターン獲得',extraTurn:true,stock:1,tier:5},
+  {id:'ryuumyaku',name:'龍脈の杖',type:'杖',ap:1,noise:4,xpCost:13,desc:'指定直線の全マスに4ダメ（貫通）',power:4,range:99,isStaff:true,dragonVein:true,stock:1,tier:5},
+  {id:'kyomunomon',name:'虚無の門',type:'巻物',ap:1,noise:5,xpCost:12,desc:'全モブ即死（ボス/敵プレイヤー無効）',voidGate:true,stock:1,tier:5},
+  {id:'eiyuunoshou',name:'英雄の証',type:'道具',ap:0,noise:0,xpCost:13,desc:'即座に5VP獲得（使用後除外）',instantVP:5,stock:1,tier:5},
+];
+
+// カテゴリ判定ヘルパー
+// v7B: isMoveCard不要に。代わりにmpGainカードも認識
+function isAPCard(c){return c.id==='shuuchuu'||c.id==='mura'||c.id==='ougonnohai';}
+function isMoveCard(c){return !!c.mpGain||!!c.teleport;} // v7B: 俊足の薬、早足の靴、風のマント、瞬歩
+function isAttackCard(c){return !!c.power||!!c.trapDmg||!!c.earthquake||!!c.curse||!!c.lightning||!!c.scytheAoe||!!c.deathBreath||!!c.meteor||!!c.divineStrike||!!c.voidGate||!!c.aoeSize;}
+
+// ===== MOB DEFINITIONS =====
+const MOB_DEFS=[
+  {name:'影蟲',icon:'蟲',rank:'E',hp:1,atk:1,xp:1},
+  {name:'闇鼠',icon:'鼠',rank:'E',hp:1,atk:1,xp:1},
+  {name:'骸蝙蝠',icon:'蝙',rank:'D',hp:2,atk:1,xp:2},
+  {name:'毒蛙',icon:'蛙',rank:'D',hp:2,atk:1,xp:2},
+  {name:'幽霊蜘蛛',icon:'蛛',rank:'C',hp:3,atk:1,xp:3},
+  {name:'腐食蛇',icon:'蛇',rank:'C',hp:3,atk:2,xp:3},
+  {name:'呪いの目',icon:'目',rank:'B',hp:4,atk:2,xp:4},
+  {name:'灰狼',icon:'狼',rank:'B',hp:5,atk:2,xp:5},
+];
+const RANK_COLORS={E:'#cccccc',D:'#44dd66',C:'#ff8844',B:'#ff4444'};
+
+// ===== GAME STATE =====
+let map=[],rooms=[],player,bot;
+let exploredMap=[];
+let perPlayerExplored={}; // v24: per-player explored maps {playerName: 2D array}
+let perPlayerNoise={}; // v24: per-player noise heatmaps
+let turnNumber=1,gameOver=false;
+
+// v23: Debug mode state
+let debugMode = false;
+let numHumanPlayers = 1;
+let humanPlayers = [];
+let botPlayers = [];
+let activePlayerIdx = 0;
+let selectedCardIndex=-1;
+let noiseRipples=[];
+let constSupply=[],randomSupply=[];
+let flagPos=null;
+let globalNoiseEvents=[]; // v25: shared noise event log for cross-player noise
+let mobs=[];
+let boss=null;
+let traps=[];
+let enemyTurnActive=false;
+let playerStartX=0,playerStartY=0,botStartX=0,botStartY=0;
+let checkpoints=[]; // v26: checkpoint respawn system
+let camX=0,camY=0;
+let cameraTarget='player'; // 'player' or 'bot' - controls camera follow target
+let watchtowers = [];
+let revealedTraps = []; // v20: triggered traps become visible
+let noiseHeatmap = [];
+let showNoiseOnMinimap = true;
+function toggleNoiseDisplay(){
+  showNoiseOnMinimap = !showNoiseOnMinimap;
+  document.getElementById('noiseToggleBtn').textContent = showNoiseOnMinimap ? '🔊' : '🔇';
+  document.getElementById('noiseToggleBtn').style.color = showNoiseOnMinimap ? '#ffaa44' : '#666';
+  render();
+}
+function initNoiseHeatmap(){ noiseHeatmap = Array.from({length:MAP_H},()=>Array(MAP_W).fill(0)); }
+// v22: player noise heatmap (blue)
+let playerNoiseHeatmap = [];
+function initPlayerNoiseHeatmap(){ playerNoiseHeatmap = Array.from({length:MAP_H},()=>Array(MAP_W).fill(0)); }
+// v22: flag hidden until stolen
+let flagRevealed = false;
+// v22: attack fade effects
+let attackFades = []; // {tiles:[{x,y}], alpha:1, color:'rgba(255,80,50,'}
+let targetMode=null; // null,'staff','earthquake','thief','teleport','aoe','swap','watchtower','melee'
+let targetCard=null;
+let moveRemaining=0; // v7B: 未使用（互換のため残す）
+let trashSelections=[];
+let trashMax=2;
+let remodelXpMax=0;
+
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const miniCanvas=document.getElementById('minimap-canvas');
+const miniCtx=miniCanvas.getContext('2d');
+let tileSize=40;
+
+// v18: mouse position tracking for AOE preview
+let mouseMapX, mouseMapY;
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseMapX = Math.floor((e.clientX - rect.left) / tileSize) + camX;
+  mouseMapY = Math.floor((e.clientY - rect.top) / tileSize) + camY;
+  if(targetMode === 'aoe' || targetMode === 'melee') render();
+});
+canvas.addEventListener('touchmove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  mouseMapX = Math.floor((touch.clientX - rect.left) / tileSize) + camX;
+  mouseMapY = Math.floor((touch.clientY - rect.top) / tileSize) + camY;
+  if(targetMode === 'aoe' || targetMode === 'melee') render();
+}, {passive:true});
+
+// ===== UTILITY =====
+function randInt(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+function delay(ms){return new Promise(r=>setTimeout(r,ms));}
+function dist(x1,y1,x2,y2){return Math.abs(x1-x2)+Math.abs(y1-y2);}
+
+function addLog(text,cls='info'){
+  const area=document.getElementById('log-area');
+  const d=document.createElement('div');
+  d.className='log-entry log-'+cls;
+  d.textContent=`[T${turnNumber}] ${text}`;
+  area.appendChild(d);
+  area.scrollTop=area.scrollHeight;
+  if(['dmg','heal','kill','buy','flag','vp','card','wave','boss-action'].includes(cls))showFloatingLog(text,cls);
+}
+function showFloatingLog(text,type){
+  const c=document.getElementById('floating-logs');const d=document.createElement('div');d.className='floating-log';d.textContent=text;
+  let color='#88aaff',fs='24px';
+  if(type==='dmg'){color='#ff4444';fs='28px';}else if(type==='heal'){color='#44ff88';fs='26px';}else if(type==='kill'){color='#ffd700';fs='32px';}else if(type==='buy'){color='#cc66ff';fs='26px';}else if(type==='flag'){color='#ffd700';fs='30px';}else if(type==='vp'){color='#ffd700';fs='28px';}else if(type==='card'){color='#ffcc44';fs='22px';}
+  d.style.color=color;d.style.fontSize=fs;
+  const ex=c.querySelectorAll('.floating-log');d.style.marginTop=(-Math.min(ex.length,5)*40)+'px';
+  c.appendChild(d);setTimeout(()=>{if(d.parentNode)d.parentNode.removeChild(d);},2500);
+}
+function flashScreen(color,dur){const o=document.getElementById('flash-overlay');o.style.background=color;o.style.transition='none';o.style.opacity='1';requestAnimationFrame(()=>{requestAnimationFrame(()=>{o.style.transition=`opacity ${dur}s`;o.style.opacity='0';});});}
+function showToast(msg){const d=document.createElement('div');d.style.cssText='position:fixed;bottom:140px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);color:#ffcc44;padding:8px 20px;border-radius:8px;font-size:13px;z-index:200;pointer-events:none';d.textContent=msg;document.body.appendChild(d);setTimeout(()=>{d.style.opacity='0';d.style.transition='opacity 0.5s';setTimeout(()=>d.remove(),500);},2000);}
+
+// ===== CARD POPUP =====
+function getCardTypeColor(type) {
+  return {'武器':'#ff6644','杖':'#6688ff','道具':'#aaaacc','巻物':'#cc44ff',
+    '罠':'#ff8844','財宝':'#ffcc44','勝利点':'#ffd700','HP強化':'#44ff88',
+    '融合武器':'#ff8800','呪い':'#666600'}[type] || '#7766aa';
+}
+function showCardPopup(card, isBot) {
+  const popup = document.getElementById('card-popup');
+  const inner = document.getElementById('card-popup-inner');
+  document.getElementById('card-popup-name').textContent = card.name;
+  document.getElementById('card-popup-type').textContent = card.type;
+  document.getElementById('card-popup-type').style.color = getCardTypeColor(card.type);
+  document.getElementById('card-popup-effect').textContent = card.desc;
+  document.getElementById('card-popup-ap').textContent = card.ap === 99 ? '' : 'AP' + card.ap;
+  document.getElementById('card-popup-noise').textContent = card.noise > 0 ? 'N' + card.noise : '';
+  inner.style.borderColor = isBot ? '#ff4444' : '#7060c0';
+  popup.style.opacity = '1';
+  popup.style.transition = 'none';
+  popup.style.transform = 'translate(-50%,-50%) scale(0.8)';
+  requestAnimationFrame(() => {
+    popup.style.transition = 'opacity 0.3s, transform 0.3s';
+    popup.style.transform = 'translate(-50%,-50%) scale(1)';
+  });
+  clearTimeout(popup._timer);
+  popup._timer = setTimeout(() => {
+    popup.style.opacity = '0';
+    popup.style.transform = 'translate(-50%,-50%) scale(0.9)';
+  }, 1500);
+}
+
+// ===== WEB AUDIO SFX =====
+let audioCtx=null,soundEnabled=true,masterGain=null;
+function initAudio(){try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();masterGain=audioCtx.createGain();masterGain.gain.value=0.3;masterGain.connect(audioCtx.destination);}catch(e){soundEnabled=false;}}
+function ensureAudio(){if(!audioCtx)initAudio();if(!audioCtx)return false;if(audioCtx.state==='suspended')audioCtx.resume();return soundEnabled;}
+function playOsc(freq,type,dur,vol=0.3,freqEnd=null,del=0){if(!ensureAudio())return;const t=audioCtx.currentTime+del;const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(freqEnd!==null)o.frequency.linearRampToValueAtTime(freqEnd,t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(masterGain);o.start(t);o.stop(t+dur);}
+function playNoiseSFX(dur,vol=0.2,fFreq=4000,del=0){if(!ensureAudio())return;const t=audioCtx.currentTime+del;const bs=Math.ceil(audioCtx.sampleRate*dur);const buf=audioCtx.createBuffer(1,bs,audioCtx.sampleRate);const d=buf.getChannelData(0);for(let i=0;i<bs;i++)d[i]=Math.random()*2-1;const src=audioCtx.createBufferSource();src.buffer=buf;const f=audioCtx.createBiquadFilter();f.type='lowpass';f.frequency.value=fFreq;const g=audioCtx.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);src.connect(f);f.connect(g);g.connect(masterGain);src.start(t);src.stop(t+dur);}
+const SFX={
+  move(){playNoiseSFX(0.06,0.1,2000);},
+  attack(){playOsc(1200,'sawtooth',0.08,0.2,2400);playNoiseSFX(0.05,0.1,6000);},
+  staffShoot(){playOsc(400,'sine',0.15,0.2,1200);},
+  takeDamage(){playNoiseSFX(0.08,0.2,3000);playOsc(150,'square',0.1,0.15,80);},
+  heal(){for(let i=0;i<4;i++)playOsc(800+i*200,'sine',0.12,0.12,1200+i*200,i*0.08);},
+  cardUse(){playOsc(600,'sine',0.08,0.15,1200);},
+  cardBuy(){playOsc(2000,'sine',0.06,0.15);playOsc(2500,'sine',0.06,0.15,null,0.08);},
+  kill(){playOsc(523,'sine',0.15,0.2);playOsc(659,'sine',0.15,0.2,null,0.15);playOsc(784,'sine',0.25,0.25,null,0.3);},
+  death(){playOsc(300,'sawtooth',0.4,0.2,80);},
+  turnStart(){playOsc(800,'sine',0.04,0.15);},
+  flagCapture(){playOsc(523,'sine',0.12,0.2);playOsc(659,'sine',0.12,0.2,null,0.12);playOsc(784,'sine',0.12,0.2,null,0.24);playOsc(1047,'sine',0.3,0.25,null,0.36);},
+  vpGain(){playOsc(1500,'sine',0.1,0.15,2500);playOsc(2000,'sine',0.15,0.12,3000,0.1);},
+  fuse(){playOsc(440,'sine',0.1,0.2,880);playOsc(660,'sine',0.1,0.2,1320,0.1);playOsc(880,'sine',0.2,0.25,1760,0.2);},
+  meteor(){playOsc(60,'sawtooth',0.6,0.2,40);playNoiseSFX(0.4,0.15,1000);},
+};
+
+function getAllEnemyTargets(){
+  const targets=[];
+  // v23: Include all bots as enemy targets
+  for(const b of botPlayers){
+    if(b.alive) targets.push(b);
+  }
+  if(boss&&boss.alive)targets.push(boss);
+  for(const m of mobs){if(m.alive)targets.push(m);}
+  return targets;
+}
+// v14: 統合ダメージ関数 - 全ダメージ処理をここに集約
+// 戻り値: true=ターゲットが死亡, false=生存
+function dealDamageToEntity(target,dmg,attacker){
+  target.hp-=dmg;
+  // v23: Check if target is any human player or any bot
+  const isHumanPlayer = humanPlayers.includes(target);
+  const isBotPlayer = botPlayers.includes(target);
+  const nm=isHumanPlayer?(target.name||'あなた'):isBotPlayer?(target.name||'ボット'):target===boss?'ボス':(target.name||'敵');
+  addLog(`${nm}に${dmg}ダメージ!`,'dmg');
+  if(isHumanPlayer){flashScreen('rgba(255,0,0,0.3)',0.15);SFX.takeDamage();screenShake();}
+  if(target.hp<=0){
+    if(isHumanPlayer){
+      if(isBotPlayer) attacker.kills++;
+      else if(botPlayers.includes(attacker)) attacker.kills++;
+      handleDeath(target,attacker);
+      return true;
+    }else if(isBotPlayer){
+      if(humanPlayers.includes(attacker)){attacker.kills++;attacker.xp+=10;addLog('敵プレイヤー撃破! XP+10','vp');}
+      handleDeath(target,attacker);
+      return true;
+    }else if(target===boss){
+      target.alive=false;
+      if(humanPlayers.includes(attacker)){attacker.xp+=15;attacker.bossKill=(attacker.bossKill||0)+1;}
+      else if(botPlayers.includes(attacker)){attacker.xp+=15;attacker.bossKill=(attacker.bossKill||0)+1;}
+      flagPos={x:boss.x,y:boss.y};flagRevealed=false;addLog('ボスが旗をドロップ!','flag');
+      addLog('ボス撃破! XP+15, VP+5!','vp');
+      return true;
+    }else{
+      // Generic mob death
+      target.alive=false;
+      if(humanPlayers.includes(attacker))attacker.xp+=(target.xpReward||1);
+      else if(botPlayers.includes(attacker))attacker.xp+=(target.xpReward||1);
+      addLog(`${target.name||'敵'}撃破! XP+${target.xpReward||1}`,'info');
+      // v21: Mimic drops Tier3+ card
+      if(target.isMimic && attacker === player){
+        const highTierCards = randomSupply.filter(s => s.tier >= 3 && s.remaining > 0);
+        if(highTierCards.length > 0){
+          const pick = highTierCards[randInt(0, highTierCards.length-1)];
+          pick.remaining--;
+          const card = {...pick, uid:Math.random()};
+          delete card.stock; delete card.remaining;
+          player.discard.push(card);
+          addLog('ミミック撃破! ' + pick.name + 'を獲得!', 'buy');
+        }
+      }
+      // v15: Mob item drops
+      if(humanPlayers.includes(attacker)||botPlayers.includes(attacker)){
+        const dropChance={E:0.2,D:0.3,C:0.4,B:0.5}[target.rank]||0;
+        if(Math.random()<dropChance)handleMobDrop(target,attacker);
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
+// v15: Mob drop system
+function handleMobDrop(mob,attacker){
+  const nm=humanPlayers.includes(attacker)?(attacker.name||'あなた'):(attacker.name||'ボット');
+  const rank=mob.rank;
+  if(rank==='E'){
+    attacker.xp+=1;addLog(`${nm}がドロップ: XP+1`,'info');
+  }else if(rank==='D'){
+    if(Math.random()<0.5){attacker.xp+=2;addLog(`${nm}がドロップ: XP+2`,'info');}
+    else{attacker.hp=Math.min(attacker.maxHp,attacker.hp+1);addLog(`${nm}がドロップ: HP+1`,'heal');}
+  }else if(rank==='C'){
+    if(Math.random()<0.5){attacker.xp+=3;addLog(`${nm}がドロップ: XP+3`,'info');}
+    else{
+      const t1cards=ALL_RANDOM_CARDS.filter(c=>c.tier===1);
+      if(t1cards.length>0){const pick=t1cards[randInt(0,t1cards.length-1)];const card={...pick,uid:Math.random()};delete card.stock;attacker.discard.push(card);addLog(`${nm}がドロップ: ${pick.name}(Tier1カード)!`,'buy');}
+      else{attacker.xp+=3;addLog(`${nm}がドロップ: XP+3`,'info');}
+    }
+  }else if(rank==='B'){
+    if(Math.random()<0.5){attacker.xp+=5;addLog(`${nm}がドロップ: XP+5`,'info');}
+    else{
+      const t2cards=ALL_RANDOM_CARDS.filter(c=>c.tier===2);
+      if(t2cards.length>0){const pick=t2cards[randInt(0,t2cards.length-1)];const card={...pick,uid:Math.random()};delete card.stock;attacker.discard.push(card);addLog(`${nm}がドロップ: ${pick.name}(Tier2カード)!`,'buy');}
+      else{attacker.xp+=5;addLog(`${nm}がドロップ: XP+5`,'info');}
+    }
+  }
+}
+
+function screenShake(){
+  canvas.classList.add('shake');
+  setTimeout(()=>canvas.classList.remove('shake'),300);
+}
+
+// ===== FUSION SYSTEM (杖×武器合成) =====
+let fuseMode=false,fuseSelections=[];
+function canFuse(){
+  const hand=player.hand;
+  const hasWeapon=hand.some(c=>c.type==='武器'&&!c.fused);
+  const hasStaff=hand.some(c=>c.type==='杖'&&!c.fused);
+  const weaponCount=hand.filter(c=>c.type==='武器'&&!c.fused).length;
+  // v15: weapon+staff OR weapon+weapon
+  return ((hasWeapon&&hasStaff)||(weaponCount>=2))&&player.ap>=1;
+}
+function updateFuseButton(){
+  document.getElementById('btn-fuse-cancel').style.display=fuseMode?'block':'none';
+}
+function openFuseMode(){
+  if(!canFuse())return;
+  fuseMode=true;fuseSelections=[];
+  addLog('合成: 武器+杖 または 武器+武器 を選択してください','system');
+  updateUI();
+}
+function cancelFuseMode(){
+  fuseMode=false;fuseSelections=[];
+  addLog('合成キャンセル','system');
+  updateUI();render();
+}
+function handleFuseSelect(index){
+  const card=player.hand[index];
+  if(!card)return;
+  if(card.type!=='武器'&&card.type!=='杖'){addLog('武器か杖を選んでください','info');return;}
+  if(fuseSelections.includes(index)){fuseSelections=fuseSelections.filter(i=>i!==index);updateUI();return;}
+  if(fuseSelections.length>=2){return;}
+  // v15: allow weapon+staff OR weapon+weapon
+  if(fuseSelections.length===1){
+    const first=player.hand[fuseSelections[0]];
+    // Both staffs not allowed
+    if(first.type==='杖'&&card.type==='杖'){addLog('杖+杖は合成できません','info');return;}
+  }
+  fuseSelections.push(index);
+  if(fuseSelections.length===2)executeFuse();
+  else updateUI();
+}
+function executeFuse(){
+  const idxs=[...fuseSelections].sort((a,b)=>b-a);
+  const cards=idxs.map(i=>player.hand[i]);
+  const weapon1=cards.find(c=>c.type==='武器');
+  const staff=cards.find(c=>c.type==='杖');
+  const weapon2=cards.filter(c=>c.type==='武器');
+
+  // v15: weapon+weapon OR weapon+staff
+  if(weapon2.length===2){
+    // Weapon + Weapon fusion
+    const w1=weapon2[0],w2=weapon2[1];
+    for(const i of idxs)player.hand.splice(i,1);
+    player.ap-=1;
+    const fused={
+      id:'fused_'+w1.id+'_'+w2.id,
+      name:w1.name+'×'+w2.name,
+      type:'融合武器',
+      ap:(w1.ap||0)+(w2.ap||0),
+      noise:(w1.noise||0)+(w2.noise||0),
+      desc:`攻撃${(w1.power||0)+(w2.power||0)} 射程${Math.max(w1.range||1,w2.range||1)}`,
+      power:(w1.power||0)+(w2.power||0),
+      range:Math.max(w1.range||1,w2.range||1),
+      fused:true,
+      uid:Math.random(),
+      aoeDmg:Math.max(w1.aoeDmg||0,w2.aoeDmg||0)||undefined,
+      scytheAoe:w1.scytheAoe||w2.scytheAoe||false,
+    };
+    if(!fused.aoeDmg)delete fused.aoeDmg;
+    player.hand.push(fused);
+    SFX.fuse();
+    flashScreen('rgba(255,150,0,0.3)',0.3);
+    addLog(`武器合成成功! ${fused.name} (攻撃${fused.power} 射程${fused.range})`,'buy');
+  }else if(weapon1&&staff){
+    // Weapon + Staff fusion (original)
+    for(const i of idxs)player.hand.splice(i,1);
+    player.ap-=1;
+    const fused={
+      id:'fused_'+weapon1.id+'_'+staff.id,
+      name:weapon1.name+'×'+staff.name,
+      type:'融合武器',
+      ap:(weapon1.ap||0)+(staff.ap||0),
+      noise:(weapon1.noise||0)+(staff.noise||0),
+      desc:`攻撃${(weapon1.power||0)+(staff.power||0)} 射程${staff.range||4} 貫通`,
+      power:(weapon1.power||0)+(staff.power||0),
+      range:staff.range||4,
+      isStaff:true,
+      fused:true,
+      uid:Math.random(),
+      staffAoe:staff.staffAoe||weapon1.aoeDmg?Math.max(staff.staffAoe||0,weapon1.aoeDmg||0):0,
+      freeze:staff.freeze||0,
+      staffSideFreeze:staff.staffSideFreeze||false,
+      dragonVein:staff.dragonVein||false,
+      scytheAoe:weapon1.scytheAoe||false,
+    };
+    if(fused.staffAoe===0)delete fused.staffAoe;
+    player.hand.push(fused);
+    SFX.fuse();
+    flashScreen('rgba(255,150,0,0.3)',0.3);
+    addLog(`合成成功! ${fused.name} (攻撃${fused.power} 射程${fused.range})`,'buy');
+  }else{
+    fuseMode=false;fuseSelections=[];return;
+  }
+  fuseMode=false;fuseSelections=[];
+  selectedCardIndex=-1;
+  updateUI();render();
+}
+
+// ===== MAP GENERATION (25x25 ring) =====
+function generateMap(){
+  map=[];rooms=[];
+  for(let y=0;y<MAP_H;y++){map[y]=[];for(let x=0;x<MAP_W;x++)map[y][x]=TILE_WALL;}
+  const cx=Math.floor(MAP_W/2),cy=Math.floor(MAP_H/2);
+  const bossW=6,bossH=6;
+  const bx=cx-3,by=cy-3;
+  const bossRoom={x:bx,y:by,w:bossW,h:bossH,cx:cx,cy:cy,isBoss:true};
+  rooms.push(bossRoom);
+  for(let dy=0;dy<bossH;dy++)for(let dx=0;dx<bossW;dx++){
+    if(by+dy>=0&&by+dy<MAP_H&&bx+dx>=0&&bx+dx<MAP_W)map[by+dy][bx+dx]=TILE_BOSS_FLOOR;
+  }
+  // Inner ring (6-7 rooms, radius 10)
+  const numInner=randInt(5,7);
+  const r1=10;
+  const angleOff=Math.random()*Math.PI*2;
+  for(let i=0;i<numInner;i++){
+    const angle=angleOff+(Math.PI*2*i/numInner);
+    const rcx=Math.round(cx+r1*Math.cos(angle));
+    const rcy=Math.round(cy+r1*Math.sin(angle));
+    const rw=randInt(4,7),rh=randInt(4,7);
+    const rx=Math.max(1,Math.min(MAP_W-rw-1,rcx-Math.floor(rw/2)));
+    const ry=Math.max(1,Math.min(MAP_H-rh-1,rcy-Math.floor(rh/2)));
+    const room={x:rx,y:ry,w:rw,h:rh,cx:Math.floor(rx+rw/2),cy:Math.floor(ry+rh/2)};
+    rooms.push(room);
+    for(let dy=0;dy<rh;dy++)for(let dx=0;dx<rw;dx++){
+      if(ry+dy>=0&&ry+dy<MAP_H&&rx+dx>=0&&rx+dx<MAP_W)map[ry+dy][rx+dx]=TILE_FLOOR;
+    }
+  }
+  // Outer ring (5-6 rooms, radius 16)
+  const numOuter=randInt(5,6);
+  const r2=16;
+  const angleOff2=Math.random()*Math.PI*2;
+  for(let i=0;i<numOuter;i++){
+    const angle=angleOff2+(Math.PI*2*i/numOuter);
+    const rcx=Math.round(cx+r2*Math.cos(angle));
+    const rcy=Math.round(cy+r2*Math.sin(angle));
+    const rw=randInt(5,8),rh=randInt(5,8);
+    const rx=Math.max(1,Math.min(MAP_W-rw-1,rcx-Math.floor(rw/2)));
+    const ry=Math.max(1,Math.min(MAP_H-rh-1,rcy-Math.floor(rh/2)));
+    const room={x:rx,y:ry,w:rw,h:rh,cx:Math.floor(rx+rw/2),cy:Math.floor(ry+rh/2)};
+    rooms.push(room);
+    for(let dy=0;dy<rh;dy++)for(let dx=0;dx<rw;dx++){
+      if(ry+dy>=0&&ry+dy<MAP_H&&rx+dx>=0&&rx+dx<MAP_W)map[ry+dy][rx+dx]=TILE_FLOOR;
+    }
+  }
+  // Connect inner ring to each other and to boss room
+  for(let i=1;i<=numInner;i++){
+    const next=(i<numInner)?i+1:1;
+    connectWide(rooms[i],rooms[next]);
+    connectWide(rooms[i],rooms[0]);
+  }
+  // Connect outer ring to each other and to nearest inner room
+  for(let i=numInner+1;i<rooms.length;i++){
+    const next=(i+1<rooms.length)?i+1:numInner+1;
+    connectWide(rooms[i],rooms[next]);
+    // connect to nearest inner room
+    let bestD=999,bestJ=1;
+    for(let j=1;j<=numInner;j++){
+      const d=dist(rooms[i].cx,rooms[i].cy,rooms[j].cx,rooms[j].cy);
+      if(d<bestD){bestD=d;bestJ=j;}
+    }
+    connectWide(rooms[i],rooms[bestJ]);
+  }
+  ensureConnectivity();
+  // Spawn at outer ring (far apart)
+  const outerRooms=rooms.slice(numInner+1);
+  const outerHalf=Math.floor(outerRooms.length/2);
+  playerStartX=outerRooms[0].cx;playerStartY=outerRooms[0].cy;
+  botStartX=outerRooms[outerHalf].cx;botStartY=outerRooms[outerHalf].cy;
+  map[playerStartY][playerStartX]=TILE_FLOOR;
+  map[botStartY][botStartX]=TILE_FLOOR;
+  flagPos={x:botStartX,y:botStartY};
+}
+
+function connectWide(a,b){
+  let ax=a.cx,ay=a.cy,bx=b.cx,by=b.cy;
+  if(Math.random()>0.5){carveCorrH(ay,ax,bx);carveCorrV(bx,ay,by);}
+  else{carveCorrV(ax,ay,by);carveCorrH(by,ax,bx);}
+}
+function carveCorrH(y,x1,x2){
+  const mn=Math.min(x1,x2),mx=Math.max(x1,x2);
+  for(let x=mn;x<=mx;x++)for(let dy=0;dy<2;dy++){
+    const yy=y+dy;if(yy>=0&&yy<MAP_H&&x>=0&&x<MAP_W&&map[yy][x]===TILE_WALL)map[yy][x]=TILE_FLOOR;
+  }
+}
+function carveCorrV(x,y1,y2){
+  const mn=Math.min(y1,y2),mx=Math.max(y1,y2);
+  for(let y=mn;y<=mx;y++)for(let dx=0;dx<2;dx++){
+    const xx=x+dx;if(y>=0&&y<MAP_H&&xx>=0&&xx<MAP_W&&map[y][xx]===TILE_WALL)map[y][xx]=TILE_FLOOR;
+  }
+}
+function ensureConnectivity(){
+  let tries=0;
+  while(tries<200){
+    if(isConnected(playerStartX||rooms[1].cx,playerStartY||rooms[1].cy,rooms[0].cx,rooms[0].cy))return;
+    const vis=bfs(rooms[1].cx,rooms[1].cy);
+    let carved=false;
+    for(let y=1;y<MAP_H-1&&!carved;y++)for(let x=1;x<MAP_W-1&&!carved;x++){
+      if(vis[y][x]&&map[y][x]!==TILE_WALL){
+        for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){
+          const nx=x+dx,ny=y+dy;
+          if(nx>0&&nx<MAP_W-1&&ny>0&&ny<MAP_H-1&&map[ny][nx]===TILE_WALL){map[ny][nx]=TILE_FLOOR;carved=true;break;}
+        }
+      }
+    }
+    tries++;
+  }
+}
+function bfs(sx,sy){
+  const vis=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+  const q=[{x:sx,y:sy}];vis[sy][sx]=true;
+  while(q.length){
+    const{x,y}=q.shift();
+    for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){
+      const nx=x+dx,ny=y+dy;
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&!vis[ny][nx]&&map[ny][nx]!==TILE_WALL){vis[ny][nx]=true;q.push({x:nx,y:ny});}
+    }
+  }
+  return vis;
+}
+function isConnected(x1,y1,x2,y2){const vis=bfs(x1,y1);return vis[y2]&&vis[y2][x2];}
+function isWalkable(x,y){if(x<0||x>=MAP_W||y<0||y>=MAP_H)return false;return map[y][x]!==TILE_WALL;}
+function isOccupied(x,y,exclude){
+  // v23: Check all human players and bots
+  for(const p of humanPlayers){
+    if(exclude!==p&&p.alive&&p.x===x&&p.y===y)return true;
+  }
+  for(const b of botPlayers){
+    if(exclude!==b&&b.alive&&b.x===x&&b.y===y)return true;
+  }
+  if(boss&&boss.alive&&boss.x===x&&boss.y===y)return true;
+  if(mobs.some(m=>m.alive&&m.x===x&&m.y===y))return true;
+  return false;
+}
+
+// ===== PATHFINDING (A*) =====
+function findPath(sx,sy,tx,ty){
+  if(!isWalkable(tx,ty))return null;
+  const key=(x,y)=>y*MAP_W+x;
+  const open=[{x:sx,y:sy,g:0,h:dist(sx,sy,tx,ty),f:dist(sx,sy,tx,ty),parent:null}];
+  const closed=new Set();
+  const best=new Map();
+  best.set(key(sx,sy),0);
+  while(open.length){
+    open.sort((a,b)=>a.f-b.f);
+    const c=open.shift();
+    if(c.x===tx&&c.y===ty){
+      const path=[];let n=c;while(n){path.unshift({x:n.x,y:n.y});n=n.parent;}return path;
+    }
+    closed.add(key(c.x,c.y));
+    for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){
+      const nx=c.x+dx,ny=c.y+dy;
+      if(!isWalkable(nx,ny)||closed.has(key(nx,ny)))continue;
+      const ng=c.g+1;
+      const k=key(nx,ny);
+      if(!best.has(k)||ng<best.get(k)){
+        best.set(k,ng);
+        open.push({x:nx,y:ny,g:ng,h:dist(nx,ny,tx,ty),f:ng+dist(nx,ny,tx,ty),parent:c});
+      }
+    }
+  }
+  return null;
+}
+
+// ===== LINE OF SIGHT =====
+function hasLOS(x1,y1,x2,y2){
+  const dx=Math.abs(x2-x1),dy=Math.abs(y2-y1);
+  const sx=x1<x2?1:-1,sy=y1<y2?1:-1;
+  let err=dx-dy,cx=x1,cy=y1;
+  while(true){
+    if(cx===x2&&cy===y2)return true;
+    if(map[cy]&&map[cy][cx]===TILE_WALL&&!(cx===x1&&cy===y1))return false;
+    const e2=2*err;
+    if(e2>-dy){err-=dy;cx+=sx;}
+    if(e2<dx){err+=dx;cy+=sy;}
+  }
+}
+
+// ===== SUPPLY GENERATION =====
+function generateSupply(){
+  constSupply=CONST_SUPPLY.map(c=>({...c,remaining:c.stock}));
+  let pool=[...ALL_RANDOM_CARDS];
+  shuffle(pool);
+  let chosen=[];
+  for(let tier=1;tier<=5;tier++){
+    const tierCards=pool.filter(c=>c.tier===tier);
+    shuffle(tierCards);
+    const count={1:8,2:4,3:3,4:2,5:1}[tier]; // v20: Tier1を5→8に増加
+    chosen.push(...tierCards.slice(0,count));
+    pool=pool.filter(c=>!tierCards.slice(0,count).includes(c));
+  }
+  randomSupply=chosen.map(c=>({...c,remaining:c.stock}));
+  randomSupply.sort((a,b)=>a.tier-b.tier||a.xpCost-b.xpCost);
+}
+
+// ===== INITIAL DECK =====
+// 初期デッキ10枚: 弱いカードで構成
+function makeInitialDeck(){
+  const cards=[
+    {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,desc:'XP+1',xpGain:1,starter:true},
+    {id:'kogatana',name:'小刀',type:'武器',ap:1,noise:1,desc:'攻撃1、射程1',power:1,range:1,starter:true},
+    {id:'kogatana',name:'小刀',type:'武器',ap:1,noise:1,desc:'攻撃1、射程1',power:1,range:1,starter:true},
+    {id:'shunsoku',name:'俊足の薬',type:'道具',ap:0,noise:0,desc:'今ターンMP+3',mpGain:3,starter:true},
+    {id:'shuuchuu',name:'集中',type:'道具',ap:1,noise:0,desc:'AP+2',apGain:2,starter:true},
+    {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,desc:'XP+1',xpGain:1,starter:true},
+    {id:'miharashi',name:'見張り台',type:'道具',ap:1,noise:0,desc:'ソナーピン',sonar:true,starter:true},
+    {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,desc:'XP+1',xpGain:1,starter:true},
+    {id:'onmitsu',name:'隠密',type:'道具',ap:0,noise:0,desc:'30%の確率で次の行動のノイズ無効',stealth30:true,starter:true},
+  ];
+  return cards.map(c=>({...c,uid:Math.random()}));
+}
+
+// ===== PLAYER/BOT INIT =====
+function initEntities(){
+  player={
+    x:playerStartX,y:playerStartY,
+    startX:playerStartX,startY:playerStartY, // v25: per-player home base
+    hp:5,maxHp:5,xp:0,
+    deck:[],hand:[],discard:[],
+    ap:1,buys:1,noise:0,turnNoise:0,
+    mp:BASE_MP, // v7B: 移動ポイント
+    hasFlag:false,alive:true,
+    kills:0,flagVP:0,bossKill:0,
+    cardsPlayedThisTurn:0,
+    stealthTurns:0,frozenTurns:0,
+    reconTurns:0,reconRadius:0,
+    fullVisionTurns:0,
+    handLimit:HAND_SIZE,
+    nextNoiseZero:false,
+    extraTurnPending:false,
+    doubleCastNext:false,
+    levels:{atk:0,hp:0,mp:0},
+    nextMoveNoNoise:false,
+    defendingFlag:false,defendTurns:0,
+    leveledUpThisTurn:false,
+    hourglassCooldown:0,
+    lastNoiseEventIdx:0, // v25: global noise event tracking
+  };
+  bot={
+    x:botStartX,y:botStartY,
+    hp:5,maxHp:5,xp:0,
+    deck:[],hand:[],discard:[],
+    ap:1,buys:1,noise:0,turnNoise:0,
+    mp:BASE_MP, // v7B
+    hasFlag:false,alive:true,
+    kills:0,flagVP:0,bossKill:0,
+    cardsPlayedThisTurn:0,
+    stealthTurns:0,frozenTurns:0,
+    reconTurns:0,fullVisionTurns:0,
+    handLimit:HAND_SIZE,
+    nextNoiseZero:false,
+    levels:{atk:0,hp:0,mp:0},
+  };
+  player.deck=makeInitialDeck();
+  bot.deck=makeInitialDeck();
+  shuffle(player.deck);
+  shuffle(bot.deck);
+}
+
+// ===== DECK OPERATIONS =====
+function drawCards(entity,count){
+  for(let i=0;i<count;i++){
+    if(entity.deck.length===0){
+      if(entity.discard.length===0)break;
+      entity.deck=shuffle([...entity.discard]);entity.discard=[];
+    }
+    if(entity.deck.length===0)break;
+    entity.hand.push(entity.deck.pop());
+  }
+}
+
+// ===== VP CALCULATION =====
+function calcVP(entity){
+  let vp=0;
+  const allCards=[...entity.deck,...entity.hand,...entity.discard];
+  for(const c of allCards){
+    if(c.vpValue)vp+=c.vpValue;
+    if(c.garden){
+      vp+=Math.floor(allCards.length/5);
+    }
+    if(c.id==='noroi')vp-=1;
+  }
+  vp+=entity.flagVP;
+  vp+=entity.kills*3;
+  vp+=entity.bossKill*5;
+  return vp;
+}
+
+// ===== NOISE SYSTEM (v22c: distance-based attenuation, finer granularity, thinner) =====
+function emitNoise(entity,amount){
+  if(entity.nextNoiseZero){amount=0;entity.nextNoiseZero=false;}
+  // v25: 忍び足 (step-based stealth)
+  if(entity.stealthStepsRemaining&&entity.stealthStepsRemaining>0){amount=0;entity.stealthStepsRemaining--;}
+  // v25: 影の衣 (turn-based stealth)
+  if(entity.stealthNoiseZeroTurns&&entity.stealthNoiseZeroTurns>0){amount=0;}
+  entity.turnNoise+=amount;
+  if(amount>0 && noiseHeatmap.length>0){
+    noiseRipples.push({x:entity.x,y:entity.y,radius:0,maxRadius:amount*2,alpha:0.6,color:humanPlayers.includes(entity)?'#4488ff66':'#ff444466'});
+
+    // v25c: no distance attenuation, flat intensity at half strength
+    const baseIntensity = amount * 0.03;
+    const spread = Math.max(5, Math.min(20, Math.floor(amount * 8 + 3)));
+    const jitter = 2;
+
+    for(let dy=-spread;dy<=spread;dy++) for(let dx=-spread;dx<=spread;dx++){
+      const nx = entity.x + dx + randInt(-jitter, jitter);
+      const ny = entity.y + dy + randInt(-jitter, jitter);
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H){
+        const d = dist(entity.x, entity.y, nx, ny);
+        if(d <= spread){
+          const falloff = Math.pow(1 - (d / spread), 2);
+          noiseHeatmap[ny][nx] = Math.min(0.5, noiseHeatmap[ny][nx] + baseIntensity * falloff);
+        }
+      }
+    }
+    // v25: Log noise event for cross-player heatmap sharing
+    globalNoiseEvents.push({x:entity.x, y:entity.y, amount, turn:turnNumber});
+  }
+}
+
+function getNoiseLevel(distance){
+  if(distance<=2)return '大';
+  if(distance<=5)return '中';
+  if(distance<=10)return '小';
+  return null;
+}
+
+function updateNoiseIndicator(){
+  const ind=document.getElementById('noise-indicator');
+  const botDist=dist(player.x,player.y,bot.x,bot.y);
+  if(bot.turnNoise>0||bot.hasFlag){
+    const level=bot.hasFlag?'大':getNoiseLevel(botDist);
+    if(level){
+      ind.style.display='block';
+      ind.textContent=`敵ノイズ: ${level}`;
+      ind.style.borderColor=level==='大'?'#ff4444':level==='中'?'#ffaa44':'#44aa88';
+      ind.style.color=level==='大'?'#ff4444':level==='中'?'#ffaa44':'#44aa88';
+      ind.style.animation='noise-pulse 1.5s infinite';
+    }else{
+      ind.style.display='none';
+    }
+  }else{
+    ind.style.display='none';
+  }
+}
+
+// ===== TRAP SYSTEM =====
+function placeTrap(owner,x,y,dmg,noise,freeze,aoe,type){
+  traps.push({x,y,owner,dmg:dmg||1,noise:noise||0,freeze:freeze||0,aoe:aoe||0,type:type||'画鋲'});
+}
+
+function checkTraps(entity){
+  for(let i=traps.length-1;i>=0;i--){
+    const t=traps[i];
+    if(t.x===entity.x&&t.y===entity.y&&t.owner!==entity){
+      // v15: Treasure chest handling
+      if(t.owner==='treasure'){
+        const xpReward=randInt(2,5);
+        entity.xp+=xpReward;
+        addLog(`${humanPlayers.includes(entity)?(entity.name||'あなた'):(entity.name||'ボット')}が宝箱を発見! XP+${xpReward}`,'vp');
+        traps.splice(i,1);
+        continue;
+      }
+      // v15: owner===null traps (pre-placed) trigger on everyone
+      if(t.dmg>0){
+        entity.hp-=t.dmg;
+        const trapName = humanPlayers.includes(entity) ? (entity.name||'あなた') : (entity.name||'ボット');
+        addLog(`${trapName}が${t.type}を踏んだ! ${t.dmg}ダメ!`,'dmg');
+      }
+      if(t.noise>0){
+        emitNoise(entity,t.noise);
+        addLog(`ノイズ爆発! ノイズ+${t.noise}`,'system');
+      }
+      if(t.freeze>0){
+        entity.frozenTurns=Math.max(entity.frozenTurns,t.freeze);
+        const freezeName = humanPlayers.includes(entity) ? (entity.name||'あなた') : (entity.name||'ボット');
+        addLog(`${freezeName}は${t.freeze}T移動不可!`,'dmg');
+      }
+      if(t.aoe>0){
+        for(const e of [...humanPlayers,...botPlayers,...mobs]){
+          if(e===entity||!e.alive)continue;
+          if(dist(e.x,e.y,t.x,t.y)<=1){
+            e.hp-=t.aoe;
+            addLog(`${e.name||'対象'}に爆風${t.aoe}ダメ!`,'dmg');
+            if(e.hp<=0){
+              if(humanPlayers.includes(e)||botPlayers.includes(e))handleDeath(e);
+              else{e.alive=false;player.xp+=(e.xpReward||1);}
+            }
+          }
+        }
+      }
+      revealedTraps.push({x:t.x, y:t.y, type:t.type, turn:turnNumber}); // v20: mark triggered trap position
+      traps.splice(i,1);
+      if(entity.hp<=0)handleDeath(entity);
+      break;
+    }
+  }
+}
+
+// ===== DEATH/RESPAWN =====
+// v13: リスポーンをターン境界で処理（setTimeout競合修正）
+function handleDeath(entity,attacker){
+  entity.alive=false;
+  entity.pendingRespawn=true;
+  // v23: Check if entity is human or bot
+  const isHuman = humanPlayers.includes(entity);
+  const entityName = isHuman ? (entity.name||'あなた') : (entity.name||'ボット');
+  if(entity.hasFlag){
+    entity.hasFlag=false;
+    flagPos={x:entity.x,y:entity.y};
+    addLog(`${entityName}が倒れた! 旗がドロップ!`,'flag');
+  }else{
+    addLog(`${entityName}が倒れた!`,'dmg');
+  }
+  // v17: flag defense drop on death
+  if(entity.defendingFlag){
+    entity.defendingFlag=false;
+    flagPos={x:entity.x,y:entity.y};
+    addLog('防衛失敗! 旗がドロップ!','flag');
+  }
+  // v17: Death penalty for player (v23: any human player)
+  if(isHuman){
+    entity.xp=0;
+    const allCards=[...entity.deck,...entity.hand,...entity.discard];
+    if(allCards.length>0){
+      const lostCard=allCards[randInt(0,allCards.length-1)];
+      entity.deck=entity.deck.filter(c=>c!==lostCard);
+      entity.hand=entity.hand.filter(c=>c!==lostCard);
+      entity.discard=entity.discard.filter(c=>c!==lostCard);
+      showToast(`死亡! XPがゼロに / ${lostCard.name}を落とした`);
+      addLog(`死亡ペナルティ: XP=0, ${lostCard.name}を喪失`,'dmg');
+    }else{
+      showToast('死亡! XPがゼロに');
+    }
+    // v26: Show respawn choice if player has checkpoints
+    const playerCPs = checkpoints.filter(c=>c.owner===entity.name);
+    if(playerCPs.length > 0){
+      showRespawnChoice(entity, playerCPs);
+      return; // don't auto-respawn or force turn end yet
+    }
+    // v17: forced turn end on death
+    if(!enemyTurnActive){
+      setTimeout(()=>{if(!gameOver)endTurnFull();},500);
+    }
+  }
+}
+function processRespawns(){
+  // v23: Handle multiple players and bots
+  const allEntities = [...humanPlayers, ...botPlayers];
+  for(const e of allEntities){
+    if(e.pendingRespawn){
+      // v26: skip if respawn-modal is active (player choosing checkpoint)
+      if(document.getElementById('respawn-modal') && document.getElementById('respawn-modal').classList.contains('active')) continue;
+      e.pendingRespawn=false;
+      e.alive=true;
+      e.hp=e.maxHp;
+      // v25: Respawn at per-player start position
+      if(humanPlayers.includes(e)){
+        e.x=(e.startX||playerStartX); e.y=(e.startY||playerStartY);
+      } else if(botPlayers.includes(e)){
+        e.x=botStartX; e.y=botStartY;
+      } else {
+        const rooms2 = rooms.slice(1);
+        const r = rooms2[randInt(0, rooms2.length-1)];
+        e.x=r.cx; e.y=r.cy;
+      }
+      e.stealthTurns=0;e.frozenTurns=0;
+      const isHuman = humanPlayers.includes(e);
+      addLog(`${isHuman ? (e.name||'あなた') : (e.name||'ボット')}がリスポーン!`,'system');
+    }
+  }
+  render();
+}
+
+// v26: Respawn choice (checkpoint system)
+function showRespawnChoice(entity, cps){
+  const modal = document.getElementById('respawn-modal');
+  const options = document.getElementById('respawn-options');
+  let html = `<button class="btn" onclick="doRespawn('${entity.name}','home')" style="width:100%;margin:4px 0;padding:10px">🏠 自陣</button>`;
+  cps.forEach((cp,i) => {
+    html += `<button class="btn" onclick="doRespawn('${entity.name}','cp',${i})" style="width:100%;margin:4px 0;padding:10px">📍 チェックポイント ${i+1} (${cp.x},${cp.y})</button>`;
+  });
+  options.innerHTML = html;
+  modal.classList.add('active');
+}
+
+function doRespawn(name, type, cpIdx){
+  const entity = humanPlayers.find(p=>p.name===name) || (bot.name===name ? bot : null);
+  if(!entity) return;
+  entity.alive = true;
+  entity.hp = entity.maxHp;
+  entity.pendingRespawn = false;
+  entity.stealthTurns=0; entity.frozenTurns=0;
+
+  if(type === 'home'){
+    entity.x = entity.startX || playerStartX;
+    entity.y = entity.startY || playerStartY;
+  } else {
+    const cps = checkpoints.filter(c=>c.owner===name);
+    if(cps[cpIdx]){
+      entity.x = cps[cpIdx].x;
+      entity.y = cps[cpIdx].y;
+    }
+  }
+  document.getElementById('respawn-modal').classList.remove('active');
+  addLog(name + ' リスポーン!','system');
+  render(); updateUI();
+  // v26: force turn end after respawn choice
+  if(!enemyTurnActive && !gameOver){
+    setTimeout(()=>{endTurnFull();},500);
+  }
+}
+
+// ===== v7B: FREE MOVEMENT SYSTEM =====
+// WASD/矢印キー/マップクリックで自由移動（MPを消費、AP不要）
+function tryFreeMove(dx,dy){
+  if(enemyTurnActive||gameOver)return;
+  if(!player.alive)return;
+  if(player.frozenTurns>0){addLog('凍結中で移動不可!','dmg');return;}
+  if(player.mp<=0){addLog('移動ポイントがありません!','info');return;}
+  // targetMode中（杖照準等）は移動不可
+  if(targetMode)return;
+
+  const nx=player.x+dx,ny=player.y+dy;
+  if(!isWalkable(nx,ny))return;
+  // v23: Check all players and bots for collision
+  if(isOccupied(nx,ny,player))return;
+
+  player.x=nx;player.y=ny;
+  player.mp--;
+  // v16: stealthMove check
+  if(player.nextMoveNoNoise){
+    player.nextMoveNoNoise=false;
+    // no noise
+  }else{
+    emitNoise(player,1); // 移動1歩につきノイズ+1
+  }
+
+  // Check flag pickup
+  if(flagPos&&flagPos.x===player.x&&flagPos.y===player.y&&!player.hasFlag){
+    player.hasFlag=true;flagPos=null;
+    SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を取得! 全員にバレる!','flag');
+  }
+  // Check flag delivery - start defense (v25: per-player start position)
+  if(player.hasFlag&&player.x===(player.startX||playerStartX)&&player.y===(player.startY||playerStartY)&&!player.defendingFlag){
+    player.hasFlag=false;
+    player.defendingFlag=true;player.defendTurns=3;
+    SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を拠点に持ち帰った! 3ターン防衛開始!','flag');
+  }
+  // Check if player leaves home while defending → drop flag (v25: per-player start position)
+  if(player.defendingFlag&&(player.x!==(player.startX||playerStartX)||player.y!==(player.startY||playerStartY))){
+    player.defendingFlag=false;
+    flagPos={x:player.x,y:player.y};
+    addLog('拠点を離れた! 旗がドロップ!','flag');
+  }
+  // Check traps
+  checkTraps(player);
+
+  // v16: mobs step after each player move
+  stepMobs();
+
+  updateUI();render();
+  checkWinCondition();
+}
+
+// Keyboard input
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape'){
+    if(fuseMode){cancelFuseMode();return;}
+    if(targetMode){cancelTargetMode();return;}
+    document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
+    return;
+  }
+  // モーダルが開いている場合は無視
+  if(document.querySelector('.modal-overlay.active'))return;
+  if(enemyTurnActive||gameOver)return;
+
+  const key=e.key.toLowerCase();
+  // v19: AOE/watchtowerターゲットモード中はWASD/矢印でカメラ移動
+  if(targetMode==='aoe'||targetMode==='watchtower'){
+    if(key==='w'||key==='arrowup'){e.preventDefault();camY=Math.max(0,camY-1);render();}
+    else if(key==='s'||key==='arrowdown'){e.preventDefault();camY=Math.min(MAP_H-VIEWPORT,camY+1);render();}
+    else if(key==='a'||key==='arrowleft'){e.preventDefault();camX=Math.max(0,camX-1);render();}
+    else if(key==='d'||key==='arrowright'){e.preventDefault();camX=Math.min(MAP_W-VIEWPORT,camX+1);render();}
+    return;
+  }
+  // v21: Space bar = stamp/wait (足踏み)
+  if(key===' '||key==='space'){
+    e.preventDefault();
+    if(enemyTurnActive||gameOver||targetMode) return;
+    if(!player.alive) return;
+    if(player.mp <= 0){ addLog('MPがありません!','info'); return; }
+    player.mp--;
+    addLog('足踏み (待機)','info');
+    emitNoise(player, 1);
+    stepMobs();
+    updateUI(); render();
+    return;
+  }
+  // WASD / Arrow keys
+  if(key==='w'||key==='arrowup'){e.preventDefault();tryFreeMove(0,-1);}
+  else if(key==='s'||key==='arrowdown'){e.preventDefault();tryFreeMove(0,1);}
+  else if(key==='a'||key==='arrowleft'){e.preventDefault();tryFreeMove(-1,0);}
+  else if(key==='d'||key==='arrowright'){e.preventDefault();tryFreeMove(1,0);}
+});
+
+// ===== CARD PLAYING =====
+function canPlayCard(card){
+  if(!card)return false;
+  if(card.isVP||card.ap===99)return false;
+  if(card.id==='noroi')return false;
+  if(card.ap>0&&player.ap<card.ap)return false;
+  return true;
+}
+
+async function playCard(index){
+  if(enemyTurnActive||gameOver)return;
+  if(targetMode)return;
+  const card=player.hand[index];
+  if(!card||!canPlayCard(card))return;
+
+  // v18: hourglass cooldown check (before any processing)
+  if(card.extraTurn && player.hourglassCooldown>0){addLog('砂時計はまだ使えない!','info');return;}
+
+  // AP消費
+  if(card.ap>0)player.ap-=card.ap;
+  player.cardsPlayedThisTurn++;
+
+  // ノイズ発生
+  emitNoise(player,card.noise);
+
+  // カードを手札から除去
+  player.hand.splice(index,1);
+  selectedCardIndex=-1;
+
+  // doubleCast check
+  const isDoubleCast=player.doubleCastNext&&!card.doubleCast;
+  if(isDoubleCast){player.doubleCastNext=false;addLog('重奏効果発動! 2回発動!','card');}
+
+  addLog(`カード使用: ${card.name}`,'card');SFX.cardUse();
+  showCardPopup(card, false);
+
+  // === 効果処理 ===
+  // v25: 隠密系カード
+  if(card.stealth30){
+    if(Math.random()<0.3){
+      player.nextNoiseZero=true;
+      addLog('隠密成功! 次の行動は無音!','info');
+    } else {
+      addLog('隠密失敗...','info');
+    }
+  }
+  if(card.stealthSteps){
+    player.stealthStepsRemaining=(player.stealthStepsRemaining||0)+card.stealthSteps;
+    addLog(`忍び足! 次の${card.stealthSteps}歩はノイズ無効`,'info');
+  }
+  if(card.stealthTurns){
+    player.stealthNoiseZeroTurns=(player.stealthNoiseZeroTurns||0)+card.stealthTurns;
+    addLog(`影の衣! ${card.stealthTurns}ターンの間全ノイズ無効`,'info');
+  }
+  // AP回復
+  if(card.apGain){player.ap+=card.apGain;}
+
+  // ドロー
+  if(card.draw){drawCards(player,card.draw);}
+
+  // 購入+
+  if(card.buyPlus){player.buys+=card.buyPlus;}
+
+  // XP獲得
+  if(card.xpGain){player.xp+=card.xpGain;addLog(`XP+${card.xpGain}`,'info');}
+
+  // HP回復
+  if(card.healPower){
+    const healed=Math.min(card.healPower,player.maxHp-player.hp);
+    player.hp+=healed;
+    if(healed>0){SFX.heal();addLog(`HP+${healed}回復`,'heal');}
+  }
+
+  // v7B: MP回復（俊足の薬）
+  if(card.mpGain){
+    player.mp+=card.mpGain;
+    addLog(`移動ポイント+${card.mpGain}! (残MP:${player.mp})`,'info');
+  }
+
+  // v19: 見張り台 → 設置モード
+  if(card.sonar){
+    targetMode='watchtower'; targetCard=card;
+    addLog('見張り台: 設置場所をクリック','info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    updateUI(); render();
+    return;
+  }
+
+  // 偵察
+  if(card.recon){
+    player.reconTurns=card.reconTurns||2;
+    player.reconRadius=card.recon;
+    addLog(`偵察: 周囲${card.recon}マス可視化 (${card.reconTurns}T)`,'info');
+  }
+
+  // 全知の目
+  if(card.fullVision){
+    player.fullVisionTurns=card.fullVision;
+    addLog(`全知の目: マップ全体可視化 (${card.fullVision}T)`,'info');
+  }
+
+  // v16: stealthMove (風のマント)
+  if(card.stealthMove){
+    player.nextMoveNoNoise=true;
+    addLog('次の移動はノイズ0!','info');
+  }
+
+  // v26: checkpoint card (チェックポイント)
+  if(card.checkpoint){
+    // Max 2 checkpoints - remove oldest if already 2
+    if(checkpoints.filter(c=>c.owner===player.name).length >= 2){
+      const removed = checkpoints.find(c=>c.owner===player.name);
+      checkpoints = checkpoints.filter(c=>c !== removed);
+      addLog('最古のチェックポイントが消滅','info');
+    }
+    checkpoints.push({x:player.x, y:player.y, owner:player.name});
+    addLog('チェックポイント設置!','info');
+  }
+
+  // v16: levelUp card (成長の書) / v26: free level up
+  if(card.levelUp){
+    player.freeLevelUp = true; // v26: next level up is free
+    openLevelUp();
+    player.discard.push(card);
+    stepMobs();
+    updateUI();render();
+    return;
+  }
+
+  // v16: teleport card (瞬歩)
+  if(card.teleport){
+    targetMode='teleport';targetCard=card;
+    addLog('瞬歩: テレポート先をクリック (射程5)','info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    // stepMobs will be called when teleport target is clicked
+    updateUI();render();
+    return;
+  }
+
+  // v17: 範囲攻撃巻物 (aoeSize)
+  if(card.aoeSize){
+    targetMode='aoe';targetCard=card;
+    addLog(`${card.name}: ${card.aoeSize}x${card.aoeSize}範囲の中心をクリック (ミニマップ対応)`,'info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    // v20: auto-open enlarged minimap for AOE targeting
+    document.getElementById('minimap-popup').classList.add('active');
+    renderLargeMinimap();
+    updateUI();render();
+    return;
+  }
+
+  // v17: 転移の巻物 (randomWarp)
+  if(card.randomWarp){
+    let found=false;
+    for(let att=0;att<500;att++){
+      const rx=randInt(1,MAP_W-2),ry=randInt(1,MAP_H-2);
+      if(isWalkable(rx,ry)&&!isOccupied(rx,ry,player)){
+        player.x=rx;player.y=ry;
+        addLog(`ランダムワープ! (${rx},${ry})に移動!`,'info');
+        found=true;break;
+      }
+    }
+    if(!found)addLog('ワープ先が見つからない!','info');
+    if(flagPos&&flagPos.x===player.x&&flagPos.y===player.y&&!player.hasFlag){
+      player.hasFlag=true;flagPos=null;
+      SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を取得!','flag');
+    }
+    checkTraps(player);
+    player.discard.push(card);stepMobs();updateUI();render();checkWinCondition();
+    return;
+  }
+
+  // v17/v22: 入れ替えの巻物 (swapTarget) - ミニマップから選択、観測範囲内のみ
+  if(card.swapTarget){
+    // Check if any visible enemies exist (including watchtower range)
+    const visibleEnemies = getAllEnemyTargets().filter(t => isVisible(t.x, t.y));
+    if(visibleEnemies.length === 0){
+      addLog('観測範囲内に敵がいない!','info');
+      showToast('見える範囲に敵がいませんでした');
+      player.hand.push(card); // return card to hand
+      updateUI();render();
+      return;
+    }
+    targetMode='swap';targetCard=card;
+    addLog('入れ替え: ミニマップから交換する敵をクリック','info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    document.getElementById('minimap-popup').classList.add('active');
+    renderLargeMinimap();
+    updateUI();render();
+    return;
+  }
+
+  // v17: 総入れ替えの巻物 (shuffleAll)
+  if(card.shuffleAll){
+    const entities=[player];
+    if(bot.alive)entities.push(bot);
+    for(const m of mobs){if(m.alive)entities.push(m);}
+    if(boss&&boss.alive)entities.push(boss);
+    const positions=entities.map(e=>({x:e.x,y:e.y}));
+    shuffle(positions);
+    for(let i=0;i<entities.length;i++){entities[i].x=positions[i].x;entities[i].y=positions[i].y;}
+    addLog('総入れ替え! 全キャラの位置がシャッフル!','card');
+    player.discard.push(card);stepMobs();updateUI();render();checkWinCondition();
+    return;
+  }
+
+  // v17: 合成の巻物 (fusionScroll)
+  if(card.fusionScroll){
+    if(!canFuse()){addLog('手札に合成可能な組み合わせがありません','info');player.discard.push(card);updateUI();render();return;}
+    fuseMode=true;fuseSelections=[];
+    addLog('合成の巻物: 武器+杖 または 武器+武器 を選択してください','system');
+    player.discard.push(card);
+    updateUI();render();
+    return;
+  }
+
+  // v22: 攻撃カード (近接武器: 小刀/鉄の槍/死神の鎌) → ターゲット選択モードへ
+  if(card.power&&card.range&&!card.isStaff){
+    // v24: check for enemies in range before entering target mode
+    const inRange = getAllEnemyTargets().filter(t => dist(player.x,player.y,t.x,t.y) <= (card.range||1));
+    if(inRange.length === 0){
+      addLog('射程内に敵がいない! カードを戻します','info');
+      showToast('射程内に敵がいません');
+      player.hand.push(card);
+      if(card.ap>0) player.ap += card.ap;
+      player.cardsPlayedThisTurn--;
+      selectedCardIndex=-1;
+      updateUI(); render();
+      return;
+    }
+    targetMode='melee'; targetCard=card;
+    targetCard._doubleCast=isDoubleCast; // v22: preserve doubleCast state for handleMeleeClick
+    addLog(`${card.name}: 攻撃対象をクリック`,'info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    updateUI(); render();
+    return;
+  }
+
+  // 杖カード
+  if(card.isStaff){
+    targetMode='staff';targetCard=card;
+    addLog('杖の発射方向をクリック','info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    // stepMobs will be called when staff target is clicked
+    updateUI();render();
+    return;
+  }
+
+  // 罠カード
+  if(card.trapDmg){
+    if(card.trapSize&&card.trapSize>1){
+      // v17: 範囲罠 (trapSize x trapSize)
+      const half=Math.floor(card.trapSize/2);
+      let placed=0;
+      for(let dy=-half;dy<card.trapSize-half;dy++)for(let dx=-half;dx<card.trapSize-half;dx++){
+        const tx=player.x+dx,ty=player.y+dy;
+        if(isWalkable(tx,ty)){placeTrap(player,tx,ty,card.trapDmg,card.trapNoise||0,card.trapFreeze||0,card.trapAoe||0,card.name);placed++;}
+      }
+      addLog(`${card.name}を${card.trapSize}x${card.trapSize}範囲に${placed}個設置!`,'info');
+    }else{
+      // 画鋲: 1x1 single tile
+      placeTrap(player,player.x,player.y,card.trapDmg,card.trapNoise||0,card.trapFreeze||0,card.trapAoe||0,card.name);
+      addLog(`${card.name}を設置!`,'info');
+    }
+  }
+
+  // 礼拝堂
+  if(card.trash){
+    trashMax=card.trash;trashSelections=[];
+    openTrash();
+    player.discard.push(card);
+    updateUI();render();
+    return;
+  }
+
+  // 改築
+  if(card.remodel){
+    openRemodel();
+    player.discard.push(card);
+    updateUI();render();
+    return;
+  }
+
+  // 魔女
+  if(card.curse){
+    const curseCard={id:'noroi',name:'呪い',type:'呪い',ap:99,noise:0,desc:'-1VP デッドカード',uid:Math.random()};
+    bot.discard.push(curseCard);
+    addLog('ボットに呪いカードを追加!','card');
+  }
+
+  // 民兵
+  if(card.militia){
+    bot.handLimit=3;
+    addLog('ボットの次ターン手札上限を3枚に!','card');
+  }
+
+  // 泥棒
+  if(card.thief){
+    if(bot.deck.length>0){
+      const stolen=bot.deck.pop();
+      player.discard.push({...stolen,uid:Math.random()});
+      addLog(`ボットから${stolen.name}を奪取!`,'card');
+    }else{
+      addLog('ボットのデッキが空!','info');
+    }
+  }
+
+  // 大地の巻物
+  if(card.earthquake){
+    targetMode='earthquake';targetCard=card;
+    addLog('大地の巻物: 3x3範囲の中心をクリック','info');
+    player.discard.push(card);
+    document.getElementById('target-cancel').style.display = 'block';
+    updateUI();render();
+    return;
+  }
+
+  // 帰還の巻物
+  if(card.returnHome){
+    if(player.hasFlag){
+      addLog('旗持ち中は帰還不可!','dmg');
+    }else{
+      player.x=(player.startX||playerStartX);player.y=(player.startY||playerStartY); // v25: per-player home
+      addLog('自陣にテレポート!','info');
+    }
+  }
+
+  // === Tier3-5 新カード効果 ===
+  if(card.scytheAoe){addLog('闇の大鎌: 周囲8マス全てに攻撃!','dmg');screenShake();const scytheAtkBonus=player.levels.atk;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dx===0&&dy===0)continue;const ex=player.x+dx,ey=player.y+dy;if(ex<0||ex>=MAP_W||ey<0||ey>=MAP_H||!isWalkable(ex,ey))continue;for(const t of getAllEnemyTargets())if(t.x===ex&&t.y===ey)dealDamageToEntity(t,card.power+scytheAtkBonus,player);}addAoeAttackFade(player.x,player.y,3);player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.lightning){const cnt=card.lightningTargets||3,dmg=card.lightningDmg||2,tgts=shuffle([...getAllEnemyTargets()]).slice(0,cnt);addLog('雷の巻物: ランダム'+cnt+'体に各'+dmg+'ダメ!','dmg');screenShake();for(const t of tgts)dealDamageToEntity(t,dmg,player);if(!tgts.length)addLog('対象がいない!','info');player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.deathBreath){const r=card.deathBreathRange||2,dmg=card.deathBreathDmg||2;addLog('死の吐息: 周囲'+r+'マス全てに'+dmg+'ダメ!','dmg');screenShake();for(const t of getAllEnemyTargets())if(dist(player.x,player.y,t.x,t.y)<=r)dealDamageToEntity(t,dmg,player);player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.meteor){const cnt=card.meteorCount||3,dmg=card.meteorDmg||3;addLog('隕石の巻物: '+cnt+'箇所に3x3で'+dmg+'ダメ!','dmg');screenShake();for(let m=0;m<cnt;m++){const cx=randInt(1,MAP_W-2),cy=randInt(1,MAP_H-2);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const ex=cx+dx,ey=cy+dy;if(ex<0||ex>=MAP_W||ey<0||ey>=MAP_H)continue;for(const t of getAllEnemyTargets())if(t.x===ex&&t.y===ey)dealDamageToEntity(t,dmg,player);}}player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.divineStrike){const dmg=card.divineStrikeDmg||3;addLog('天罰の雷! 全敵に'+dmg+'ダメージ!','dmg');screenShake();for(const t of getAllEnemyTargets())dealDamageToEntity(t,dmg,player);player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.doubleCast){addLog('重奏の巻物! 次のカードを2回発動!','card');player.doubleCastNext=true;player.discard.push(card);updateUI();render();return;}
+  if(card.extraTurn){player.hourglassCooldown=2;addLog('時の砂時計! 追加ターン獲得!','vp');player.extraTurnPending=true;player.discard.push(card);updateUI();render();return;}
+  if(card.voidGate){addLog('虚無の門! 全モブ消滅!','dmg');screenShake();for(const m of mobs){if(m.alive){m.alive=false;m.hp=0;}}player.discard.push(card);stepMobs();checkWinCondition();updateUI();render();return;}
+  if(card.instantVP){const vp=card.instantVP||5;player.flagVP+=vp;addLog('英雄の証! '+vp+'VP獲得!','vp');checkWinCondition();updateUI();render();return;}
+
+  // doubleCast: replay simple effects a second time
+  if(isDoubleCast){
+    addLog(`${card.name} 2回目発動!`,'card');
+    if(card.apGain)player.ap+=card.apGain;
+    if(card.draw)drawCards(player,card.draw);
+    if(card.buyPlus)player.buys+=card.buyPlus;
+    if(card.xpGain){player.xp+=card.xpGain;addLog(`XP+${card.xpGain}`,'info');}
+    if(card.healPower){const h2=Math.min(card.healPower,player.maxHp-player.hp);player.hp+=h2;if(h2>0)addLog(`HP+${h2}回復`,'heal');}
+    if(card.mpGain){player.mp+=card.mpGain;addLog(`MP+${card.mpGain}`,'info');}
+    if(card.power&&card.range&&!card.isStaff&&card.range<=2){
+      const targets=[];
+      const allTargets=[...mobs.filter(m=>m.alive&&dist(player.x,player.y,m.x,m.y)<=card.range)];
+      if(bot.alive&&dist(player.x,player.y,bot.x,bot.y)<=card.range)allTargets.push(bot);
+      if(boss&&boss.alive&&dist(player.x,player.y,boss.x,boss.y)<=card.range)allTargets.push(boss);
+      if(allTargets.length>0){targets.push(allTargets[0]);for(const t of targets)dealDamageToEntity(t,card.power+player.levels.atk,player);}
+    }
+    if(card.trapDmg){
+      if(card.trapSize&&card.trapSize>1){const half=Math.floor(card.trapSize/2);for(let dy=-half;dy<card.trapSize-half;dy++)for(let dx=-half;dx<card.trapSize-half;dx++){const tx=player.x+dx,ty=player.y+dy;if(isWalkable(tx,ty))placeTrap(player,tx,ty,card.trapDmg,card.trapNoise||0,card.trapFreeze||0,card.trapAoe||0,card.name);}}
+      else placeTrap(player,player.x,player.y,card.trapDmg,card.trapNoise||0,card.trapFreeze||0,card.trapAoe||0,card.name);
+    }
+  }
+
+  player.discard.push(card);
+  // v25: stepMobs only on movement and attack cards (not utility/draw/buy)
+  checkWinCondition();
+  updateUI();
+  render();
+}
+
+// ===== MAP CLICK HANDLING =====
+canvas.addEventListener('click',(e)=>{
+  if(enemyTurnActive||gameOver)return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const tx=Math.floor(mx/tileSize)+camX;
+  const ty=Math.floor(my/tileSize)+camY;
+
+  if(targetMode==='melee'){
+    handleMeleeClick(tx,ty);
+    return;
+  }else if(targetMode==='watchtower'){
+    handleWatchtowerClick(tx,ty);
+    return;
+  }else if(targetMode==='staff'){
+    handleStaffClick(tx,ty);
+  }else if(targetMode==='earthquake'){
+    handleEarthquakeClick(tx,ty);
+  }else if(targetMode==='teleport'){
+    handleTeleportClick(tx,ty);
+  }else if(targetMode==='aoe'){
+    handleAoeClick(tx,ty);
+  }else if(targetMode==='swap'){
+    handleSwapClick(tx,ty);
+  }else{
+    // v7B: クリックでも自由移動（隣接マスのみ）
+    const dx=tx-player.x,dy=ty-player.y;
+    if(Math.abs(dx)+Math.abs(dy)===1){
+      tryFreeMove(dx,dy);
+    }
+  }
+});
+
+function handleStaffClick(tx,ty){
+  const card=targetCard;
+  const dx=tx-player.x,dy=ty-player.y;
+  if(dx===0&&dy===0)return;
+  let dirX=0,dirY=0;
+  if(Math.abs(dx)>=Math.abs(dy))dirX=dx>0?1:-1;
+  else dirY=dy>0?1:-1;
+  if(card.dragonVein){let cx=player.x+dirX,cy=player.y+dirY;const staffAtkBonus=player.levels.atk;screenShake();addLog('龍脈の杖! 直線貫通!','dmg');while(cx>=0&&cx<MAP_W&&cy>=0&&cy<MAP_H){if(map[cy][cx]===TILE_WALL)break;for(const t of getAllEnemyTargets())if(t.x===cx&&t.y===cy)dealDamageToEntity(t,card.power+staffAtkBonus,player);cx+=dirX;cy+=dirY;}targetMode=null;targetCard=null;document.getElementById('target-cancel').style.display='none';stepMobs();updateUI();render();checkWinCondition();return;}
+
+  let cx=player.x+dirX,cy=player.y+dirY;
+  let hitTarget=null;
+  for(let i=0;i<(card.range||4);i++){
+    if(!isWalkable(cx,cy))break;
+    if(bot.alive&&bot.x===cx&&bot.y===cy){hitTarget=bot;break;}
+    if(boss&&boss.alive&&boss.x===cx&&boss.y===cy){hitTarget=boss;break;}
+    const mob=mobs.find(m=>m.alive&&m.x===cx&&m.y===cy);
+    if(mob){hitTarget=mob;break;}
+    cx+=dirX;cy+=dirY;
+  }
+
+  if(hitTarget){
+    dealDamageToEntity(hitTarget,(card.power||1)+player.levels.atk,player);
+    if(card.freeze){
+      const nm=hitTarget===bot?'ボット':hitTarget===boss?'ボス':(hitTarget.name||'敵');
+      hitTarget.frozenTurns=Math.max(hitTarget.frozenTurns||0,card.freeze);
+      addLog(`${nm}を${card.freeze}T凍結!`,'info');
+    }
+    if(card.staffAoe){
+      for(const e of [bot,...mobs]){
+        if(!e.alive||e===hitTarget||dist(e.x,e.y,hitTarget.x,hitTarget.y)>1)continue;
+        dealDamageToEntity(e,card.staffAoe,player);
+      }
+      if(boss&&boss.alive&&boss!==hitTarget&&dist(boss.x,boss.y,hitTarget.x,hitTarget.y)<=1){
+        dealDamageToEntity(boss,card.staffAoe,player);
+      }
+    }
+    // v22: attack fade effect for staff hit
+    addAttackFade(hitTarget.x, hitTarget.y, 1);
+  }else{
+    addLog(`${card.name}: 外れた!`,'info');
+  }
+
+  targetMode=null;targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  stepMobs(); // v16: mobs step after staff shot
+  updateUI();render();
+  checkWinCondition();
+}
+
+function handleEarthquakeClick(tx,ty){
+  if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H||!isWalkable(tx,ty)){addLog('無効な位置!','info');return;}
+  if(dist(player.x,player.y,tx,ty)>8){addLog('射程外! (最大8マス)','info');return;}
+  addLog(`大地の巻物: (${tx},${ty})中心に3x3範囲攻撃!`,'dmg');
+  const dmg=targetCard.eqDmg||2;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+    const ex=tx+dx,ey=ty+dy;
+    if(bot.alive&&bot.x===ex&&bot.y===ey)dealDamageToEntity(bot,dmg,player);
+    if(boss&&boss.alive&&boss.x===ex&&boss.y===ey)dealDamageToEntity(boss,dmg,player);
+    for(const m of mobs){
+      if(m.alive&&m.x===ex&&m.y===ey)dealDamageToEntity(m,dmg,player);
+    }
+  }
+  addAoeAttackFade(tx, ty, 3); // v22: attack fade effect
+  targetMode=null;targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  stepMobs(); // v16: mobs step after earthquake
+  updateUI();render();
+  checkWinCondition();
+}
+
+// v16: Teleport (瞬歩)
+function handleTeleportClick(tx,ty){
+  if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H||!isWalkable(tx,ty)){addLog('無効な位置!','info');return;}
+  if(dist(player.x,player.y,tx,ty)>5){addLog('射程外! (最大5マス)','info');return;}
+  if(isOccupied(tx,ty,player)){addLog('その位置は占有されています!','info');return;}
+  player.x=tx;player.y=ty;
+  addLog(`瞬歩: (${tx},${ty})にテレポート!`,'info');
+  targetMode=null;targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  // Check flag pickup
+  if(flagPos&&flagPos.x===player.x&&flagPos.y===player.y&&!player.hasFlag){
+    player.hasFlag=true;flagPos=null;
+    SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を取得! 全員にバレる!','flag');
+  }
+  if(player.hasFlag&&player.x===(player.startX||playerStartX)&&player.y===(player.startY||playerStartY)&&!player.defendingFlag){
+    player.hasFlag=false;
+    player.defendingFlag=true;player.defendTurns=3;
+    SFX.flagCapture();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('旗を拠点に持ち帰った! 3ターン防衛開始!','flag');
+  }
+  checkTraps(player);
+  stepMobs();
+  updateUI();render();
+  checkWinCondition();
+}
+
+// v17: AOE scroll click handler
+function handleAoeClick(tx,ty){
+  if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H){addLog('無効な位置!','info');return;}
+  if(dist(player.x,player.y,tx,ty)>10){addLog('射程外! (最大10マス)','info');return;}
+  const card=targetCard;
+  const half=Math.floor(card.aoeSize/2);
+  addLog(`${card.name}: (${tx},${ty})中心に${card.aoeSize}x${card.aoeSize}範囲攻撃!`,'dmg');
+  screenShake();
+  for(let dy=-half;dy<card.aoeSize-half;dy++)for(let dx=-half;dx<card.aoeSize-half;dx++){
+    const ex=tx+dx,ey=ty+dy;
+    if(ex<0||ex>=MAP_W||ey<0||ey>=MAP_H)continue;
+    for(const t of getAllEnemyTargets())if(t.x===ex&&t.y===ey)dealDamageToEntity(t,card.aoeDmg,player);
+  }
+  addAoeAttackFade(tx, ty, card.aoeSize); // v22: attack fade effect
+  targetMode=null;targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  stepMobs();updateUI();render();checkWinCondition();
+}
+
+// v17: Swap scroll click handler
+function handleSwapClick(tx,ty){
+  // Find visible enemy at clicked position (vision + watchtower range)
+  let target=null;
+  for(const t of getAllEnemyTargets()){if(t.x===tx&&t.y===ty&&isVisible(t.x,t.y)){target=t;break;}}
+  if(!target){addLog('観測範囲内にその敵がいません!','info');return;}
+  const px=player.x,py=player.y;
+  player.x=target.x;player.y=target.y;
+  target.x=px;target.y=py;
+  const nm=target===bot?'ボット':target===boss?'ボス':(target.name||'敵');
+  addLog(`${nm}と位置を交換!`,'card');
+  targetMode=null;targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  stepMobs();updateUI();render();checkWinCondition();
+}
+
+// v22: Melee weapon target click handler
+function handleMeleeClick(tx, ty){
+  const card = targetCard;
+  const d = dist(player.x, player.y, tx, ty);
+  if(d > (card.range||1)){ addLog('射程外!','info'); return; }
+
+  // Find target at clicked position
+  let target = null;
+  if(bot.alive && bot.x===tx && bot.y===ty) target = bot;
+  if(!target && boss && boss.alive && boss.x===tx && boss.y===ty) target = boss;
+  if(!target){ const mob = mobs.find(m=>m.alive && m.x===tx && m.y===ty); if(mob) target = mob; }
+
+  if(!target){ addLog('そこに敵がいない!','info'); return; }
+
+  const totalDmg = (card.power||0) + (player.levels?.atk||0);
+  dealDamageToEntity(target, totalDmg, player);
+  SFX.attack();
+
+  // AoE damage (死神の鎌 etc)
+  if(card.aoeDmg){
+    for(const e of getAllEnemyTargets()){
+      if(e===target || !e.alive) continue;
+      if(dist(e.x,e.y,target.x,target.y)<=1) dealDamageToEntity(e, card.aoeDmg, player);
+    }
+  }
+
+  // v22: doubleCast second hit (auto-target same enemy)
+  if(card._doubleCast && target && target.alive){
+    addLog(`${card.name} 2回目発動!`,'card');
+    dealDamageToEntity(target, totalDmg, player);
+  }
+
+  // v22: Attack range fade effect
+  addAttackFade(tx, ty, card.range||1);
+
+  targetMode=null; targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  stepMobs();
+  updateUI(); render(); checkWinCondition();
+}
+
+// v22: Attack fade effect system
+function addAttackFade(cx, cy, range, color){
+  const tiles = [];
+  tiles.push({x:cx, y:cy});
+  attackFades.push({tiles, alpha:1, color: color||'rgba(255,80,50,'});
+}
+
+function addAoeAttackFade(cx, cy, size){
+  const tiles = [];
+  const sx = cx - Math.floor(size/2);
+  const sy = cy - Math.floor(size/2);
+  for(let dy=0;dy<size;dy++) for(let dx=0;dx<size;dx++){
+    tiles.push({x:sx+dx, y:sy+dy});
+  }
+  attackFades.push({tiles, alpha:1, color:'rgba(255,80,50,'});
+}
+
+// v19: Watchtower click handler
+function handleWatchtowerClick(tx,ty){
+  if(!isWalkable(tx,ty)){addLog('そこには設置できない!','info');return;}
+  watchtowers.push({x:tx, y:ty, radius:4, owner:player.name});
+  addLog(`見張り台を(${tx},${ty})に設置! 周囲${4}マス監視`,'info');
+  // Mark area as explored
+  for(let dy=-4;dy<=4;dy++) for(let dx=-4;dx<=4;dx++){
+    const nx=tx+dx, ny=ty+dy;
+    if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&dist(tx,ty,nx,ny)<=4){
+      exploredMap[ny][nx]=true;
+    }
+  }
+  targetMode=null; targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  stepMobs();
+  updateUI(); render();
+}
+
+// v24: Cancel target mode and return card to hand
+function cancelTargetMode(){
+  if(!targetMode) return;
+  if(targetCard){
+    player.discard = player.discard.filter(c => c !== targetCard);
+    player.hand.push(targetCard);
+    if(targetCard.ap > 0) player.ap += targetCard.ap;
+    player.cardsPlayedThisTurn--;
+    addLog('キャンセル','info');
+  }
+  targetMode = null;
+  targetCard = null;
+  document.getElementById('minimap-popup').classList.remove('active');
+  document.getElementById('target-cancel').style.display = 'none';
+  updateUI(); render();
+}
+
+// ===== TRASH (礼拝堂) =====
+function openTrash(){
+  const modal=document.getElementById('trash-modal');
+  modal.classList.add('active');
+  document.getElementById('trash-title').textContent=`除外するカードを選択 (最大${trashMax}枚)`;
+  trashSelections=[];
+  renderTrashList();
+}
+function closeTrash(){document.getElementById('trash-modal').classList.remove('active');trashSelections=[];}
+function renderTrashList(){
+  const list=document.getElementById('trash-list');
+  list.innerHTML='';
+  player.hand.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='deck-card trash-select'+(trashSelections.includes(i)?' selected-trash':'');
+    d.innerHTML=`<div class="dc-name">${c.name}</div><div class="dc-type" style="color:#7766aa">${c.type}</div><div style="font-size:10px;color:#aaa">${c.desc}</div>`;
+    d.onclick=()=>{
+      if(trashSelections.includes(i))trashSelections=trashSelections.filter(x=>x!==i);
+      else if(trashSelections.length<trashMax)trashSelections.push(i);
+      renderTrashList();
+    };
+    list.appendChild(d);
+  });
+}
+function confirmTrash(){
+  if(trashSelections.length===0){closeTrash();return;}
+  trashSelections.sort((a,b)=>b-a);
+  for(const i of trashSelections){
+    const c=player.hand.splice(i,1)[0];
+    addLog(`${c.name}を除外!`,'card');
+  }
+  trashSelections=[];
+  closeTrash();
+  updateUI();render();
+}
+
+// ===== REMODEL (改築) =====
+function openRemodel(){
+  const modal=document.getElementById('remodel-modal');
+  modal.classList.add('active');
+  const list=document.getElementById('remodel-hand-list');
+  list.innerHTML='';
+  player.hand.forEach((c,i)=>{
+    const d=document.createElement('div');
+    d.className='deck-card trash-select';
+    d.innerHTML=`<div class="dc-name">${c.name}</div><div class="dc-type">${c.type} | XP${c.xpCost||0}</div><div style="font-size:10px;color:#aaa">${c.desc}</div>`;
+    d.onclick=()=>{
+      const removed=player.hand.splice(i,1)[0];
+      remodelXpMax=(removed.xpCost||0)+2;
+      addLog(`${removed.name}を除外 (改築)`,'card');
+      closeRemodel();
+      openRemodelGain();
+    };
+    list.appendChild(d);
+  });
+}
+function closeRemodel(){document.getElementById('remodel-modal').classList.remove('active');}
+function openRemodelGain(){
+  const modal=document.getElementById('remodel-gain-modal');
+  modal.classList.add('active');
+  document.getElementById('remodel-max-xp').textContent=remodelXpMax;
+  const list=document.getElementById('remodel-gain-list');
+  list.innerHTML='';
+  const allSupply=[...constSupply,...randomSupply];
+  for(const s of allSupply){
+    if(s.remaining<=0||s.xpCost>remodelXpMax)continue;
+    const d=document.createElement('div');
+    d.className='shop-card';
+    d.innerHTML=`<div class="sc-name">${s.name}</div><div class="sc-type" style="color:#7766aa">${s.type}</div><div class="sc-effect">${s.desc}</div><div class="sc-bottom"><span class="sc-cost">XP${s.xpCost}</span></div>`;
+    d.onclick=()=>{
+      s.remaining--;
+      const card={...s,uid:Math.random()};
+      delete card.stock;delete card.remaining;
+      player.discard.push(card);
+      addLog(`改築: ${s.name}を獲得!`,'buy');
+      closeRemodelGain();
+      updateUI();render();
+    };
+    list.appendChild(d);
+  }
+}
+function closeRemodelGain(){document.getElementById('remodel-gain-modal').classList.remove('active');}
+
+// ===== LEVEL UP SYSTEM (v16) =====
+function getLevelUpCost(currentLevel){return (currentLevel+1)*2;}
+function openLevelUp(){
+  const modal=document.getElementById('levelup-modal');
+  modal.classList.add('active');
+  renderLevelUp();
+}
+function closeLevelUp(){document.getElementById('levelup-modal').classList.remove('active');}
+function renderLevelUp(){
+  document.getElementById('levelup-xp').textContent=player.xp;
+  const grid=document.getElementById('levelup-grid');
+  grid.innerHTML='';
+  const stats=[
+    {key:'atk',name:'ATK (攻撃力)',desc:'全武器/近接攻撃の基礎ダメージ+1',color:'#ff6644'},
+    {key:'hp',name:'HP (体力)',desc:'最大HP+2 (即座にHP+2回復)',color:'#44ff88'},
+    {key:'mp',name:'MP (移動力)',desc:'毎ターンの基礎MP+1',color:'#44aaff'},
+  ];
+  for(const s of stats){
+    const lv=player.levels[s.key];
+    const cost=getLevelUpCost(lv);
+    const isFree = !!player.freeLevelUp; // v26
+    const canUp=isFree || player.xp>=cost;
+    const d=document.createElement('div');
+    d.style.cssText='background:#1a1a3a;border:1px solid #3a2a6a;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center';
+    d.innerHTML=`
+      <div>
+        <div style="font-size:14px;font-weight:bold;color:${s.color}">${s.name} Lv.${lv}</div>
+        <div style="font-size:11px;color:#aaa;margin-top:2px">${s.desc}</div>
+      </div>
+      <button class="btn" style="border-color:${s.color};color:${s.color};min-width:80px;${canUp?'':'opacity:0.3;cursor:not-allowed'}" ${canUp?'':'disabled'} id="lvup-${s.key}">
+        ${isFree ? '無料!' : 'XP'+cost+'で強化'}
+      </button>
+    `;
+    if(canUp){
+      d.querySelector('button').onclick=()=>doLevelUp(s.key);
+    }
+    grid.appendChild(d);
+  }
+}
+function doLevelUp(stat){
+  if(player.leveledUpThisTurn){showToast('1ターンに1回のみレベルアップ可能');return;}
+  const lv=player.levels[stat];
+  const cost=getLevelUpCost(lv);
+  if(player.freeLevelUp){
+    // v26: Free level up from 成長の書
+    player.levels[stat]++;
+    player.freeLevelUp = false;
+    player.leveledUpThisTurn=true;
+  } else {
+    if(player.xp<cost){showToast('XP不足');return;}
+    player.xp-=cost;
+    player.levels[stat]++;
+    player.leveledUpThisTurn=true;
+  }
+  if(stat==='hp'){
+    player.maxHp+=2;
+    player.hp=Math.min(player.maxHp,player.hp+2);
+    addLog(`レベルアップ! HP Lv.${player.levels.hp} (最大HP+2, HP+2回復)`,'heal');
+  }else if(stat==='atk'){
+    addLog(`レベルアップ! ATK Lv.${player.levels.atk} (基礎ダメージ+1)`,'card');
+  }else if(stat==='mp'){
+    addLog(`レベルアップ! MP Lv.${player.levels.mp} (基礎MP+1)`,'card');
+  }
+  SFX.vpGain();
+  renderLevelUp();
+  updateUI();render();
+}
+
+// ===== SHOP =====
+function openShop(){
+  const modal=document.getElementById('shop-modal');
+  modal.classList.add('active');
+  renderShop();
+}
+function closeShop(){document.getElementById('shop-modal').classList.remove('active');}
+
+function renderShop(){
+  document.getElementById('shop-xp').textContent=player.xp;
+  document.getElementById('shop-buys').textContent=player.buys;
+  document.getElementById('shop-deck-count').textContent=getAllCards(player).length;
+
+  const grid=document.getElementById('shop-all-grid');
+  grid.innerHTML='';
+
+  const constLabel=document.createElement('div');
+  constLabel.style.gridColumn='1/-1';
+  constLabel.innerHTML='<span class="shop-section-label const-label">常設サプライ</span>';
+  grid.appendChild(constLabel);
+  const constGrid=document.createElement('div');
+  constGrid.className='shop-grid';
+  constGrid.style.gridColumn='1/-1';
+  for(const s of constSupply)constGrid.appendChild(makeShopCard(s,'const-border'));
+  grid.appendChild(constGrid);
+
+  const tiers=[{t:1,label:'Tier1 (XP1-3)',cls:'tier1'},{t:2,label:'Tier2 (XP3-5)',cls:'tier2'},{t:3,label:'Tier3 (XP5-7)',cls:'tier3'},{t:4,label:'Tier4 (XP8-10)',cls:'tier4'},{t:5,label:'Tier5 伝説 (XP12-13)',cls:'tier5'}];
+  for(const{t,label,cls} of tiers){
+    const cards=randomSupply.filter(c=>c.tier===t);
+    if(cards.length===0)continue;
+    const lbl=document.createElement('div');
+    lbl.style.gridColumn='1/-1';
+    lbl.innerHTML=`<span class="shop-section-label ${cls}-label">${label}</span>`;
+    grid.appendChild(lbl);
+    const g=document.createElement('div');
+    g.className='shop-grid';
+    g.style.gridColumn='1/-1';
+    for(const s of cards)g.appendChild(makeShopCard(s,cls+'-border'));
+    grid.appendChild(g);
+  }
+
+  // v24: debug mode add card button
+  if(debugMode){
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn';
+    addBtn.style.cssText = 'width:100%;margin-top:10px;border-color:#ffaa44;color:#ffaa44';
+    addBtn.textContent = '+ カード追加 (デバッグ)';
+    addBtn.onclick = debugAddCardToSupply;
+    grid.parentNode.appendChild(addBtn);
+  }
+}
+
+function makeShopCard(s,borderCls){
+  const d=document.createElement('div');
+  const effectiveCost=shopDiscountActive ? Math.max(1, Math.floor(s.xpCost / 2)) : s.xpCost;
+  const canBuy=player.buys>0&&player.xp>=effectiveCost&&s.remaining>0;
+  d.className='shop-card '+(borderCls||'')+(s.remaining<=0&&!debugMode?' sold':'');
+  // v21: show effective cost (with half price discount) in shop display
+  const costLabel = (shopDiscountActive && effectiveCost < s.xpCost) ? `<s style="color:#666">XP${s.xpCost}</s> XP${effectiveCost}` : `XP${effectiveCost}`;
+  // v23: debug mode stock edit buttons
+  const debugBtns = debugMode ? `<div style="margin-top:4px;display:flex;gap:4px"><button onclick="event.stopPropagation();debugStockChange('${s.id}',${s.tier===0?'true':'false'},-1)" style="background:#3a1a1a;border:1px solid #6a2a2a;color:#ff8888;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:10px">-</button><button onclick="event.stopPropagation();debugStockChange('${s.id}',${s.tier===0?'true':'false'},1)" style="background:#1a3a1a;border:1px solid #2a6a2a;color:#88ff88;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:10px">+</button><button onclick="event.stopPropagation();debugStockChange('${s.id}',${s.tier===0?'true':'false'},5)" style="background:#1a1a3a;border:1px solid #2a2a6a;color:#8888ff;padding:1px 6px;border-radius:3px;cursor:pointer;font-size:10px">+5</button></div>` : '';
+  d.innerHTML=`<span class="sc-stock">残${s.remaining}</span><div class="sc-name">${s.name}</div><div class="sc-type" style="color:#7766aa">${s.type}</div><div class="sc-effect">${s.desc}</div><div class="sc-bottom"><span class="sc-cost">${costLabel}</span><span class="sc-ap">${s.ap===99?'-':s.ap===0?'AP0':'AP'+s.ap}</span></div>${debugBtns}`;
+  if(canBuy){
+    d.style.cursor='pointer';
+    d.onclick=()=>buyCard(s);
+  }else if(!debugMode){
+    d.style.opacity=s.remaining<=0?'0.3':'0.6';
+  }
+  // v24: debug mode remove button
+  if(debugMode){
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '\u2715';
+    delBtn.style.cssText = 'position:absolute;top:2px;left:2px;background:#ff4444;color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;z-index:1';
+    delBtn.onclick = (e) => { e.stopPropagation(); debugRemoveFromSupply(s.id); };
+    d.style.position = 'relative';
+    d.appendChild(delBtn);
+  }
+  return d;
+}
+
+function buyCard(supply){
+  const cost=shopDiscountActive ? Math.max(1, Math.floor(supply.xpCost / 2)) : supply.xpCost; // v21: half price discount
+  if(player.buys<=0||player.xp<cost||supply.remaining<=0)return;
+  player.xp-=cost;
+  if(shopDiscountActive){addLog(`ショップ半額セール適用! (${supply.xpCost}→${cost})`,'shop');shopDiscountActive=false;}
+  player.buys--;
+  supply.remaining--;
+
+  const card={...supply,uid:Math.random()};
+  delete card.stock;delete card.remaining;
+
+  player.discard.push(card);
+  addLog(`購入: ${supply.name} (XP${cost})`,'buy');SFX.cardBuy();
+  renderShop();
+  updateUI();
+  checkWinCondition();
+}
+
+// v23: Debug stock change for supply editing
+function debugStockChange(cardId, isConst, delta){
+  if(!debugMode) return;
+  const supply = isConst ? constSupply : randomSupply;
+  const card = supply.find(s => s.id === cardId);
+  if(!card) return;
+  card.remaining = Math.max(0, card.remaining + delta);
+  addLog('デバッグ: ' + card.name + ' 在庫 → ' + card.remaining, 'system');
+  renderShop();
+}
+
+// v24: Debug supply editor - add any card from full pool
+function debugAddCardToSupply(){
+  const currentIds = [...constSupply, ...randomSupply].map(c => c.id);
+  const available = [...ALL_RANDOM_CARDS, ...CONST_SUPPLY].filter(c => !currentIds.includes(c.id));
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  overlay.id = 'debug-add-card-modal';
+  overlay.onclick = e => { if(e.target===overlay) overlay.remove(); };
+
+  let html = '<div class="modal" style="max-width:600px;max-height:80vh;overflow-y:auto">';
+  html += '<button class="modal-close" onclick="document.getElementById(\'debug-add-card-modal\').remove()">閉じる</button>';
+  html += '<h2>カード追加</h2>';
+  html += '<div class="shop-grid">';
+  available.forEach(c => {
+    html += `<div class="shop-card" style="cursor:pointer" onclick="debugAddCard('${c.id}')">
+      <div class="sc-name">${c.name}</div>
+      <div class="sc-type" style="color:#7766aa">${c.type}</div>
+      <div class="sc-effect">${c.desc}</div>
+      <div class="sc-bottom"><span class="sc-cost">XP${c.xpCost}</span><span>Tier${c.tier}</span></div>
+    </div>`;
+  });
+  html += '</div></div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+}
+
+function debugAddCard(id){
+  const card = ALL_RANDOM_CARDS.find(c=>c.id===id) || CONST_SUPPLY.find(c=>c.id===id);
+  if(!card) return;
+  const entry = {...card, remaining: card.stock};
+  if(card.constant) constSupply.push(entry);
+  else randomSupply.push(entry);
+  randomSupply.sort((a,b)=>a.tier-b.tier||a.xpCost-b.xpCost);
+  document.getElementById('debug-add-card-modal')?.remove();
+  renderShop();
+  addLog('サプライに ' + card.name + ' を追加','system');
+}
+
+function debugRemoveFromSupply(id){
+  constSupply = constSupply.filter(c=>c.id!==id);
+  randomSupply = randomSupply.filter(c=>c.id!==id);
+  renderShop();
+  addLog('サプライから削除','system');
+}
+
+// ===== DECK VIEW =====
+let deckFilter='all';
+function openDeck(){openDeckFiltered('all');}
+function openDeckFiltered(filter){
+  deckFilter=filter||'all';
+  const modal=document.getElementById('deck-modal');
+  modal.classList.add('active');
+  const all=getAllCards(player);
+  document.getElementById('deck-total').textContent=all.length;
+  const stats=document.getElementById('deck-stats-area');
+  stats.innerHTML=`<div class="ds-item"><div>デッキ</div><div class="ds-val">${player.deck.length}</div></div><div class="ds-item"><div>手札</div><div class="ds-val">${player.hand.length}</div></div><div class="ds-item"><div>捨て札</div><div class="ds-val">${player.discard.length}</div></div>`;
+  // v17: highlight active tab
+  for(const t of ['all','deck','hand','discard']){
+    const btn=document.getElementById('deck-tab-'+t);
+    if(btn)btn.style.borderColor=(t===deckFilter)?'#aa88ff':'#4a3a7a';
+  }
+  let cards;
+  if(deckFilter==='deck')cards=[...player.deck];
+  else if(deckFilter==='hand')cards=[...player.hand];
+  else if(deckFilter==='discard')cards=[...player.discard];
+  else cards=all;
+  const list=document.getElementById('deck-list');
+  list.innerHTML='';
+  if(cards.length===0){list.innerHTML='<div style="color:#888;font-size:12px;padding:10px">カードなし</div>';return;}
+  for(const c of cards){
+    const d=document.createElement('div');
+    d.className='deck-card';
+    d.innerHTML=`<div class="dc-name">${c.name}</div><div class="dc-type" style="color:#7766aa">${c.type}</div><div style="font-size:10px;color:#aaa">${c.desc}</div>`;
+    list.appendChild(d);
+  }
+}
+function closeDeck(){document.getElementById('deck-modal').classList.remove('active');}
+
+function getAllCards(entity){return [...entity.deck,...entity.hand,...entity.discard];}
+
+// ===== BOT AI =====
+async function botTurn(){
+  if(!bot.alive||gameOver)return;
+  enemyTurnActive=true;
+  // cameraTarget='bot'; // v26: disabled to hide bot position
+  document.getElementById('enemy-turn-indicator').style.opacity='1';
+
+  // Reset bot turn state
+  bot.ap=1;bot.buys=1;bot.turnNoise=0;bot.cardsPlayedThisTurn=0;
+  bot.mp=BASE_MP+bot.levels.mp; // v7B: ボットもMP (レベル補正込み)
+  bot.xp=0; // v16: XP resets every turn
+  bot.handLimit=HAND_SIZE;
+  if(bot.frozenTurns>0)bot.frozenTurns--;
+  if(bot.stealthTurns>0)bot.stealthTurns--;
+
+  // Draw hand
+  bot.hand=[];
+  drawCards(bot,HAND_SIZE);
+
+  await delay(500);
+
+  // v7B: Bot free movement first (use MP)
+  if(bot.frozenTurns<=0){
+    let tx,ty;
+    if(flagPos&&!bot.hasFlag){
+      // v25: go toward flag, but if flag is at own base, go toward player instead
+      if(flagPos.x===botStartX&&flagPos.y===botStartY){
+        tx=player.alive?player.x:rooms[0].cx;
+        ty=player.alive?player.y:rooms[0].cy;
+      } else {
+        tx=flagPos.x;ty=flagPos.y;
+      }
+    }
+    else if(bot.hasFlag){tx=bot.startX||botStartX;ty=bot.startY||botStartY;}
+    else if(player.alive){tx=player.x;ty=player.y;}
+    else{tx=rooms[0].cx;ty=rooms[0].cy;}
+
+    const path=findPath(bot.x,bot.y,tx,ty);
+    if(path){
+      for(let s=1;s<path.length&&bot.mp>0&&bot.alive;s++){
+        const n=path[s];
+        if(isOccupied(n.x,n.y,bot))break;
+        bot.x=n.x;bot.y=n.y;bot.mp--;
+        emitNoise(bot,1);
+        // Check flag
+        if(flagPos&&flagPos.x===bot.x&&flagPos.y===bot.y&&!bot.hasFlag){
+          bot.hasFlag=true;flagPos=null;
+          flagRevealed=true; // v22: flag is now revealed since bot picked it up
+          addLog('[Bot] 旗を取得!','flag');
+        }
+        if(bot.hasFlag&&bot.x===botStartX&&bot.y===botStartY){
+          bot.hasFlag=false;bot.flagVP+=10;
+          addLog('[Bot] 旗を持ち帰った! VP+10!','flag');
+        }
+        checkTraps(bot);
+      }
+    }
+    render();
+    await delay(300);
+  }
+
+  // v13: Bot死亡チェック（罠で死んだ場合）
+  if(!bot.alive){
+    document.getElementById('enemy-turn-indicator').style.opacity='0';
+    enemyTurnActive=false;
+    cameraTarget='player';
+    return;
+  }
+
+  // Sort hand: AP0 cards first
+  const ap0Cards=bot.hand.filter(c=>c.ap===0&&c.ap!==99&&c.id!=='noroi');
+  const ap1Cards=bot.hand.filter(c=>c.ap===1&&c.id!=='noroi');
+
+  // Play AP0 cards first
+  for(const c of ap0Cards){
+    if(gameOver)break;
+    const idx=bot.hand.indexOf(c);
+    if(idx===-1)continue;
+    bot.hand.splice(idx,1);
+
+    if(c.apGain)bot.ap+=c.apGain;
+    if(c.draw)drawCards(bot,c.draw);
+    if(c.buyPlus)bot.buys+=c.buyPlus;
+    if(c.xpGain)bot.xp+=c.xpGain;
+    emitNoise(bot,c.noise||0);
+    bot.discard.push(c);
+    addLog(`[Bot] ${c.name}使用`,'bot-action');
+    showCardPopup(c, true);
+    render();
+    await delay(300);
+  }
+
+  // Play AP1 cards
+  while(bot.ap>0&&!gameOver){
+    const playable=bot.hand.filter(c=>c.ap<=bot.ap&&c.ap!==99&&c.id!=='noroi');
+    if(playable.length===0)break;
+
+    let chosen=null;
+
+    // Check if adjacent to player - attack
+    if(player.alive&&dist(bot.x,bot.y,player.x,player.y)<=1){
+      chosen=playable.find(c=>c.power&&c.range&&c.range<=2);
+    }
+    // Check if adjacent to mob - attack
+    if(!chosen){
+      const adjMob=mobs.find(m=>m.alive&&dist(bot.x,bot.y,m.x,m.y)<=1);
+      if(adjMob)chosen=playable.find(c=>c.power&&c.range&&c.range<=2);
+    }
+    // v7B: 俊足の薬を使って追加移動
+    if(!chosen&&bot.frozenTurns<=0){
+      const mpCard=playable.find(c=>c.mpGain);
+      if(mpCard)chosen=mpCard;
+    }
+    // Use utility
+    if(!chosen){
+      chosen=playable.find(c=>c.draw||c.healPower||c.recon||c.trapDmg);
+    }
+    if(!chosen)chosen=playable[0];
+
+    const idx=bot.hand.indexOf(chosen);
+    if(idx===-1)break;
+    bot.hand.splice(idx,1);
+    bot.ap-=chosen.ap;
+    emitNoise(bot,chosen.noise||0);
+
+    // Execute card
+    // v7B: mpGain card
+    if(chosen.mpGain){
+      bot.mp+=chosen.mpGain;
+      addLog(`[Bot] MP+${chosen.mpGain}`,'bot-action');
+      // Use extra MP to move
+      if(bot.frozenTurns<=0){
+        let tx,ty;
+        if(flagPos&&!bot.hasFlag){tx=flagPos.x;ty=flagPos.y;}
+        else if(bot.hasFlag){tx=botStartX;ty=botStartY;}
+        else if(player.alive){tx=player.x;ty=player.y;}
+        else{tx=rooms[0].cx;ty=rooms[0].cy;}
+        const path=findPath(bot.x,bot.y,tx,ty);
+        if(path){
+          for(let s=1;s<path.length&&bot.mp>0&&bot.alive;s++){
+            const n=path[s];
+            if(isOccupied(n.x,n.y,bot))break;
+            bot.x=n.x;bot.y=n.y;bot.mp--;
+            emitNoise(bot,1);
+            if(flagPos&&flagPos.x===bot.x&&flagPos.y===bot.y&&!bot.hasFlag){
+              bot.hasFlag=true;flagPos=null;
+              flagRevealed=true; // v22: flag is now revealed since bot picked it up
+              addLog('[Bot] 旗を取得!','flag');
+            }
+            if(bot.hasFlag&&bot.x===botStartX&&bot.y===botStartY){
+              bot.hasFlag=false;bot.flagVP+=10;
+              addLog('[Bot] 旗を持ち帰った! VP+10!','flag');
+            }
+            checkTraps(bot);
+          }
+        }
+      }
+    }else if(chosen.power&&chosen.range){
+      const targets=[...mobs.filter(m=>m.alive&&dist(bot.x,bot.y,m.x,m.y)<=chosen.range)];
+      if(player.alive&&dist(bot.x,bot.y,player.x,player.y)<=chosen.range)targets.push(player);
+      if(boss&&boss.alive&&dist(bot.x,bot.y,boss.x,boss.y)<=chosen.range)targets.push(boss);
+      if(targets.length>0){
+        const t=targets[0];
+        dealDamageToEntity(t,chosen.power,bot);
+      }
+    // v13: Bot杖カード使用
+    }else if(chosen.isStaff){
+      let bestTarget=null,bestDist=99;
+      for(const t of [player,...mobs]){
+        if(!t.alive)continue;
+        const d=dist(bot.x,bot.y,t.x,t.y);
+        if(d<bestDist&&d<=(chosen.range||4)){bestDist=d;bestTarget=t;}
+      }
+      if(boss&&boss.alive&&dist(bot.x,bot.y,boss.x,boss.y)<bestDist)bestTarget=boss;
+      if(bestTarget){
+        const dx=bestTarget.x-bot.x,dy=bestTarget.y-bot.y;
+        let dirX=0,dirY=0;
+        if(Math.abs(dx)>=Math.abs(dy))dirX=dx>0?1:-1;else dirY=dy>0?1:-1;
+        let cx=bot.x+dirX,cy=bot.y+dirY,hit=null;
+        for(let i=0;i<(chosen.range||4);i++){
+          if(!isWalkable(cx,cy))break;
+          if(player.alive&&player.x===cx&&player.y===cy){hit=player;break;}
+          const mob=mobs.find(m=>m.alive&&m.x===cx&&m.y===cy);
+          if(mob){hit=mob;break;}
+          if(boss&&boss.alive&&boss.x===cx&&boss.y===cy){hit=boss;break;}
+          cx+=dirX;cy+=dirY;
+        }
+        if(hit){
+          dealDamageToEntity(hit,chosen.power||1,bot);
+        }
+      }
+    }else if(chosen.draw){drawCards(bot,chosen.draw);}
+    else if(chosen.healPower){bot.hp=Math.min(bot.maxHp,bot.hp+chosen.healPower);}
+    else if(chosen.trapDmg){placeTrap(bot,bot.x,bot.y,chosen.trapDmg,chosen.trapNoise||0,chosen.trapFreeze||0,chosen.trapAoe||0,chosen.name);}
+    // v22: Bot places watchtower when using sonar card
+    if(chosen.sonar){
+      watchtowers.push({x:bot.x, y:bot.y, radius:4, owner:'bot'});
+      addLog('[Bot] 見張り台を設置!','bot-action');
+    }
+
+    bot.discard.push(chosen);
+    addLog(`[Bot] ${chosen.name}使用`,'bot-action');
+    showCardPopup(chosen, true);
+    render();
+    await delay(400);
+  }
+
+  // Bot buy phase
+  if(bot.buys>0&&bot.xp>0&&!gameOver){
+    const allSupply=[...constSupply,...randomSupply];
+    const affordable=allSupply.filter(s=>s.remaining>0&&s.xpCost<=bot.xp);
+    if(affordable.length>0){
+      const botVP=calcVP(bot);
+      // v13: Bot購入AI改善 - VP段階購入
+      let pick=null;
+      if(botVP>=20)pick=affordable.find(s=>s.id==='zoushou')||affordable.find(s=>s.id==='kouryou');
+      if(!pick&&botVP>=15)pick=affordable.find(s=>s.id==='kouryou')||affordable.find(s=>s.id==='yashiki');
+      if(!pick&&bot.xp>=7)pick=affordable.find(s=>s.id==='zoushou');
+      if(!pick&&bot.xp>=4)pick=affordable.find(s=>s.id==='kouryou');
+      if(!pick)pick=affordable.find(s=>s.id==='ginka')||affordable.find(s=>s.id==='mura');
+      if(!pick)pick=affordable.find(s=>s.id==='yashiki');
+      if(!pick)pick=affordable.find(s=>s.tier>=1&&s.tier<=2&&(s.power||s.draw));
+      if(!pick&&affordable.length>0)pick=affordable[randInt(0,affordable.length-1)];
+      if(pick){
+        bot.xp-=pick.xpCost;bot.buys--;pick.remaining--;
+        const card={...pick,uid:Math.random()};delete card.stock;delete card.remaining;bot.discard.push(card);
+        addLog(`[Bot] 購入: ${pick.name}`,'bot-action');
+      }
+    }
+  }
+
+  // Discard remaining hand
+  bot.discard.push(...bot.hand);
+  bot.hand=[];
+
+  document.getElementById('enemy-turn-indicator').style.opacity='0';
+  enemyTurnActive=false;
+  cameraTarget='player';
+  checkWinCondition();
+  render();
+}
+
+// ===== MOB SYSTEM =====
+function spawnInitialMobs(){
+  mobs=[];
+  for(let i=0;i<8;i++)spawnOneMob(); // v25: 15→8
+}
+function spawnOneMob(){
+  if(mobs.filter(m=>m.alive).length>=20)return; // v25: 40→20
+  let def;
+  if(turnNumber<8)def=MOB_DEFS[randInt(0,3)];
+  else if(turnNumber<20)def=MOB_DEFS[randInt(1,5)];
+  else def=MOB_DEFS[randInt(3,7)];
+  for(let att=0;att<200;att++){
+    const x=randInt(1,MAP_W-2),y=randInt(1,MAP_H-2);
+    if(map[y][x]!==TILE_WALL&&dist(x,y,player.x,player.y)>5&&dist(x,y,bot.x,bot.y)>5&&!mobs.some(m=>m.alive&&m.x===x&&m.y===y)){
+      mobs.push({x,y,hp:def.hp,maxHp:def.hp,name:def.name,icon:def.icon,rank:def.rank,atk:def.atk,xpReward:def.xp,alive:true});
+      return;
+    }
+  }
+}
+
+async function mobsTurn(){
+  const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+  for(const m of mobs){
+    if(!m.alive||gameOver)continue;
+    // v21: mimics don't move in mobsTurn either, only attack if adjacent
+    if(m.isMimic){
+      const distP=dist(m.x,m.y,player.x,player.y);
+      const distB=dist(m.x,m.y,bot.x,bot.y);
+      if(player.alive&&distP<=1) dealDamageToEntity(player,m.atk,m);
+      else if(bot.alive&&distB<=1) dealDamageToEntity(bot,m.atk,m);
+      continue;
+    }
+    if(Math.random()<0.4)continue;
+    const distP=dist(m.x,m.y,player.x,player.y);
+    const distB=dist(m.x,m.y,bot.x,bot.y);
+
+    // v17: move OR attack, not both
+    let attacked=false;
+    if(player.alive&&distP<=1){dealDamageToEntity(player,m.atk,m);attacked=true;}
+    if(!attacked&&bot.alive&&distB<=1){dealDamageToEntity(bot,m.atk,m);attacked=true;}
+    if(!attacked){
+      let tx=null,ty=null;
+      if(distP<=4&&player.alive){tx=player.x;ty=player.y;}
+      else if(distB<=4&&bot.alive){tx=bot.x;ty=bot.y;}
+      if(tx!==null){
+        const path=findPath(m.x,m.y,tx,ty);
+        if(path&&path.length>1){
+          const n=path[1];
+          if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,m)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===n.x&&m2.y===n.y)){
+            m.x=n.x;m.y=n.y;
+          }
+        }
+      }else{
+        const sh=shuffle([...dirs]);
+        for(const[dx,dy]of sh){
+          const nx=m.x+dx,ny=m.y+dy;
+          if(isWalkable(nx,ny)&&!isOccupied(nx,ny,m)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===nx&&m2.y===ny)){
+            m.x=nx;m.y=ny;break;
+          }
+        }
+      }
+    }
+    // v22: Mobs emit random noise in mobsTurn too
+    if(m.alive){
+      const noiseAmount = Math.random() * 0.6; // v25b: lower mob noise to prevent saturation
+      if(noiseAmount > 0.15) emitNoise(m, noiseAmount);
+    }
+  }
+  // Boss behavior
+  if(boss&&boss.alive){
+    const distP=dist(boss.x,boss.y,player.x,player.y);
+    const distB=dist(boss.x,boss.y,bot.x,bot.y);
+    let tx,ty;
+    if(distP<=distB&&player.alive){tx=player.x;ty=player.y;}
+    else if(bot.alive){tx=bot.x;ty=bot.y;}
+    else{tx=rooms[0].cx;ty=rooms[0].cy;}
+    if(tx!==undefined){
+      const path=findPath(boss.x,boss.y,tx,ty);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)&&!mobs.some(m=>m.alive&&m.x===n.x&&m.y===n.y)){
+          boss.x=n.x;boss.y=n.y;
+        }
+      }
+    }
+    if(player.alive&&dist(boss.x,boss.y,player.x,player.y)<=1){
+      dealDamageToEntity(player,boss.atk,boss);
+    }
+    if(bot.alive&&dist(boss.x,boss.y,bot.x,bot.y)<=1){
+      dealDamageToEntity(bot,boss.atk,boss);
+    }
+    updateBossOverlay();
+  }
+  // v25: spawn 1 per turn
+  spawnOneMob();
+}
+
+// v16: stepMobs - mobs move after each player action (roguelike style)
+function stepMobs(){
+  if(gameOver)return;
+  for(const m of mobs){
+    if(!m.alive)continue;
+    // v21: mimics don't move, only attack if adjacent
+    if(m.isMimic){
+      const distP=dist(m.x,m.y,player.x,player.y);
+      const distB=dist(m.x,m.y,bot.x,bot.y);
+      if(player.alive&&distP<=1) dealDamageToEntity(player,m.atk,m);
+      else if(bot.alive&&distB<=1) dealDamageToEntity(bot,m.atk,m);
+      continue;
+    }
+    const distP=dist(m.x,m.y,player.x,player.y);
+    const distB=dist(m.x,m.y,bot.x,bot.y);
+
+    // v17: move OR attack, not both
+    if(player.alive&&distP<=1){
+      // Adjacent to player: attack only, don't move
+      dealDamageToEntity(player,m.atk,m);
+    }else{
+      // Not adjacent: try to move toward target
+      let tx,ty;
+      if(distP<=5&&player.alive){tx=player.x;ty=player.y;}
+      else if(distB<=5&&bot.alive){tx=bot.x;ty=bot.y;}
+      else{
+        // v25b: Distant mobs patrol - move toward a waypoint, change when reached
+        if(!m.waypointX||dist(m.x,m.y,m.waypointX,m.waypointY)<=1||Math.random()<0.05){
+          // Pick a new waypoint: random walkable tile in a nearby room or corridor
+          for(let att=0;att<20;att++){
+            const wx=m.x+randInt(-10,10), wy=m.y+randInt(-10,10);
+            if(wx>=0&&wx<MAP_W&&wy>=0&&wy<MAP_H&&isWalkable(wx,wy)){
+              m.waypointX=wx;m.waypointY=wy;break;
+            }
+          }
+        }
+        if(m.waypointX!==undefined&&Math.random()<0.6){ // 60% chance to move toward waypoint
+          const path=findPath(m.x,m.y,m.waypointX,m.waypointY);
+          if(path&&path.length>1){
+            const n=path[1];
+            if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,m)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===n.x&&m2.y===n.y)){
+              m.x=n.x;m.y=n.y;
+            }
+          }
+        }
+      }
+
+      if(tx!==undefined){
+        const path=findPath(m.x,m.y,tx,ty);
+        if(path&&path.length>1){
+          const n=path[1];
+          if(isWalkable(n.x,n.y)&&!isOccupied(n.x,n.y,m)&&!mobs.some(m2=>m2.alive&&m2!==m&&m2.x===n.x&&m2.y===n.y)){
+            m.x=n.x;m.y=n.y;
+          }
+        }
+      }
+    }
+    // v22: Mobs emit random noise
+    if(m.alive){
+      const noiseAmount = Math.random() * 0.6; // v25b: lower mob noise to prevent saturation
+      if(noiseAmount > 0.15) emitNoise(m, noiseAmount);
+    }
+  }
+  // Boss also steps
+  if(boss&&boss.alive){
+    const distP=dist(boss.x,boss.y,player.x,player.y);
+    if(distP<=8){
+      const path=findPath(boss.x,boss.y,player.x,player.y);
+      if(path&&path.length>1){
+        const n=path[1];
+        if(isWalkable(n.x,n.y)){boss.x=n.x;boss.y=n.y;}
+      }
+    }
+    if(player.alive&&dist(boss.x,boss.y,player.x,player.y)<=1){
+      dealDamageToEntity(player,boss.atk,boss);
+    }
+  }
+  render();
+}
+
+function updateBossOverlay(){
+  const el=document.getElementById('boss-hp-overlay');
+  if(boss&&boss.alive){
+    el.style.display='block';
+    const pct=Math.max(0,boss.hp/boss.maxHp*100);
+    document.getElementById('boss-hp-fill').style.width=pct+'%';
+    document.getElementById('boss-hp-text').textContent=`${Math.max(0,boss.hp)}/${boss.maxHp}`;
+  }else{
+    el.style.display='none';
+  }
+}
+
+// ===== TURN MANAGEMENT =====
+function startPlayerTurn(){
+  if(gameOver)return;
+  // v24: Load first player's maps at turn start
+  player = humanPlayers[0];
+  loadPlayerMaps(player);
+  // v21: decay heatmap (persists, fades over ~3 turns)
+  for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+    if(noiseHeatmap[y]) noiseHeatmap[y][x] *= 0.45; // v25b: faster decay to prevent saturation
+  }
+  // v25b: Ambient noise removed - mobs patrolling generates natural noise
+  turnNumber++;
+  player.ap=1;
+  player.buys=1;
+  player.mp=BASE_MP+player.levels.mp;SFX.turnStart(); // 毎ターンMP リセット (レベル補正込み)
+  player.xp=0; // v16: XP resets every turn
+  player.turnNoise=0;
+  player.cardsPlayedThisTurn=0;
+  player.nextNoiseZero=false;
+  player.leveledUpThisTurn=false; // v17: 1ターン1回制限リセット
+  if(player.hourglassCooldown>0) player.hourglassCooldown--; // v18: hourglass cooldown
+  if(player.frozenTurns>0)player.frozenTurns--;
+  if(player.stealthTurns>0)player.stealthTurns--;
+  if(player.reconTurns>0)player.reconTurns--;
+  if(player.stealthNoiseZeroTurns>0)player.stealthNoiseZeroTurns--;
+  if(player.fullVisionTurns>0)player.fullVisionTurns--;
+
+  // v17: Flag defense countdown
+  if(player.defendingFlag){
+    player.defendTurns--;
+    if(player.defendTurns<=0){
+      player.defendingFlag=false;
+      player.flagVP+=10;
+      SFX.vpGain();flashScreen('rgba(255,215,0,0.3)',0.3);addLog('防衛成功! VP+10!','vp');
+    }
+  }
+
+  // v17: Event countdown
+  if(currentEvent){
+    currentEvent.turnsLeft--;
+    if(currentEvent.turnsLeft<=0){currentEvent=null;}
+  }
+
+  // Discard previous hand
+  player.discard.push(...player.hand);
+  player.hand=[];
+
+  // Draw new hand
+  drawCards(player,HAND_SIZE);
+
+  // Reset hand limit (militia wears off)
+  player.handLimit=HAND_SIZE;
+
+  // v15: Event system - every 5 turns
+  if(turnNumber>1&&turnNumber%5===0){
+    triggerEvent();
+  }
+
+  // Show turn banner
+  const banner=document.getElementById('turn-banner');
+  banner.textContent=`ターン ${turnNumber}`;
+  banner.style.opacity='1';
+  setTimeout(()=>banner.style.opacity='0',1200);
+
+  updateUI();
+  render();
+}
+
+async function endTurnFull(){
+  if(enemyTurnActive||gameOver)return;
+  if(targetMode){targetMode=null;targetCard=null;document.getElementById('target-cancel').style.display='none';}
+  fuseMode=false;fuseSelections=[];
+
+  // Check if 0 cards played AND 0 movement = stealth
+  if(player.cardsPlayedThisTurn===0&&player.mp===(BASE_MP+player.levels.mp)){
+    addLog('潜伏: カード0枚+移動0歩 = 完全ステルス','info');
+    player.turnNoise=0;
+  }
+
+  // v23: Multi-player turn cycling
+  if(numHumanPlayers > 1){
+    // Discard current player's hand
+    player.discard.push(...player.hand);
+    player.hand=[];
+
+    // v24: Save current player's explored map and noise
+    savePlayerMaps(humanPlayers[activePlayerIdx]);
+
+    activePlayerIdx++;
+    if(activePlayerIdx < humanPlayers.length){
+      // Switch to next human player
+      player = humanPlayers[activePlayerIdx];
+      // v24: Restore this player's maps
+      loadPlayerMaps(player);
+      // Show banner
+      const banner = document.getElementById('turn-banner');
+      banner.textContent = player.name + ' のターン';
+      banner.style.color = player.color;
+      banner.style.opacity='1';
+      setTimeout(()=>{banner.style.opacity='0';banner.style.color='#fff';},1200);
+      // Reset this player's turn state
+      player.ap=1; player.buys=1; player.mp=BASE_MP+(player.levels?player.levels.mp:0);
+      player.xp=0; player.turnNoise=0; player.cardsPlayedThisTurn=0;
+      player.discard.push(...player.hand); player.hand=[];
+      drawCards(player, HAND_SIZE);
+      SFX.turnStart();
+      updateUI(); render();
+      return; // Don't proceed to bots yet
+    }
+    // All humans done, save last player's maps, reset to first player
+    savePlayerMaps(humanPlayers[humanPlayers.length-1]);
+    activePlayerIdx = 0;
+    player = humanPlayers[0];
+  }
+
+  // All humans done (or single player), run bots
+  for(const b of botPlayers){
+    if(!b.alive || gameOver) continue;
+    bot = b;
+    await botTurn();
+  }
+  if(botPlayers.length > 0 && botPlayers[0].alive){
+    bot = botPlayers[0];
+  }
+  if(gameOver)return;
+
+  // v25: spawn 1 per turn
+  spawnOneMob();
+  if(gameOver)return;
+
+  // v20: heatmap reset moved to startPlayerTurn (persists through opponent's turn)
+
+  // v13: ターン境界でリスポーン処理
+  processRespawns();
+
+  // Extra turn check (v15 fix: properly reset state without incrementing turn)
+  if(player.extraTurnPending){
+    player.extraTurnPending=false;
+    addLog('追加ターン発動!','system');
+    player.ap=1;player.buys=1;player.mp=BASE_MP+player.levels.mp;player.xp=0;player.turnNoise=0;
+    player.cardsPlayedThisTurn=0;player.nextNoiseZero=false;player.leveledUpThisTurn=false;
+    player.handLimit=HAND_SIZE;
+    if(player.frozenTurns>0)player.frozenTurns--;
+    if(player.stealthTurns>0)player.stealthTurns--;
+    if(player.reconTurns>0)player.reconTurns--;
+    if(player.fullVisionTurns>0)player.fullVisionTurns--;
+    player.discard.push(...player.hand);player.hand=[];
+    drawCards(player,HAND_SIZE);
+    const banner=document.getElementById('turn-banner');
+    banner.textContent=`追加ターン!`;banner.style.opacity='1';
+    setTimeout(()=>banner.style.opacity='0',1200);
+    SFX.turnStart();
+    updateUI();render();return;
+  }
+  // Next player turn
+  startPlayerTurn();
+}
+
+// ===== WIN CONDITION =====
+function checkWinCondition(){
+  if(gameOver)return;
+  // v23: Check all human players and bots
+  let bestPlayerVP = 0;
+  for(const p of humanPlayers){ bestPlayerVP = Math.max(bestPlayerVP, calcVP(p)); }
+  let bestBotVP = 0;
+  for(const b of botPlayers){ bestBotVP = Math.max(bestBotVP, calcVP(b)); }
+  if(bestPlayerVP>=VP_WIN){
+    gameOver=true;
+    showGameOver(true,bestPlayerVP,bestBotVP);
+  }else if(bestBotVP>=VP_WIN){
+    gameOver=true;
+    showGameOver(false,bestPlayerVP,bestBotVP);
+  }
+}
+
+function showGameOver(playerWon,pVP,bVP){
+  const screen=document.getElementById('game-over-screen');
+  screen.style.display='flex';
+  const title=document.getElementById('game-over-text');
+  title.textContent=playerWon?'勝利!':'敗北...';
+  title.className=playerWon?'win':'lose';
+  document.getElementById('game-over-detail').textContent=`あなた: ${pVP}VP | ボット: ${bVP}VP`;
+  document.getElementById('game-over-scores').textContent=
+    `キル: ${player.kills} | 旗VP: ${player.flagVP} | ボス: ${player.bossKill}`;
+}
+
+// ===== RENDERING =====
+function render(){
+  const vpW=VIEWPORT,vpH=VIEWPORT;
+  const target = cameraTarget === 'bot' && bot.alive ? bot : player;
+  camX=Math.max(0,Math.min(MAP_W-vpW,target.x-Math.floor(vpW/2)));
+  camY=Math.max(0,Math.min(MAP_H-vpH,target.y-Math.floor(vpH/2)));
+  canvas.width=vpW*tileSize;
+  canvas.height=vpH*tileSize;
+
+  // Mark explored tiles
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+    if(isVisible(x,y)&&exploredMap[y]) exploredMap[y][x]=true;
+  }
+
+  // Draw tiles
+  for(let y=0;y<vpH;y++)for(let x=0;x<vpW;x++){
+    const mx=camX+x,my=camY+y;
+    const px=x*tileSize,py=y*tileSize;
+    if(mx<0||mx>=MAP_W||my<0||my>=MAP_H){
+      ctx.fillStyle='#000';ctx.fillRect(px,py,tileSize,tileSize);continue;
+    }
+    const tile=map[my][mx];
+    const visible=isVisible(mx,my);
+
+    if(!visible){
+      ctx.fillStyle='#0a0a14';ctx.fillRect(px,py,tileSize,tileSize);
+      continue;
+    }
+
+    if(tile===TILE_WALL){
+      ctx.fillStyle='#1a1a28';ctx.fillRect(px,py,tileSize,tileSize);
+      // Wall texture: subtle brick pattern
+      ctx.strokeStyle='#6a2a2a';ctx.lineWidth=0.5;
+      ctx.strokeRect(px+2,py+2,tileSize/2-2,tileSize/2-2);
+      ctx.strokeRect(px+tileSize/2+1,py+tileSize/2+1,tileSize/2-3,tileSize/2-3);
+      ctx.lineWidth=1;
+    } else if(tile===TILE_BOSS_FLOOR){
+      ctx.fillStyle='#1a0a2a';ctx.fillRect(px,py,tileSize,tileSize);
+      ctx.strokeStyle='#3a1a5a';ctx.strokeRect(px+1,py+1,tileSize-2,tileSize-2);
+      // Boss room: diamond pattern
+      ctx.strokeStyle='#2a1040';ctx.beginPath();
+      ctx.moveTo(px+tileSize/2,py+2);ctx.lineTo(px+tileSize-2,py+tileSize/2);
+      ctx.lineTo(px+tileSize/2,py+tileSize-2);ctx.lineTo(px+2,py+tileSize/2);ctx.closePath();ctx.stroke();
+    } else {
+      // Floor: bright with subtle dot pattern
+      ctx.fillStyle='#2a2a48';ctx.fillRect(px,py,tileSize,tileSize);
+      // Small dot in center for floor texture
+      ctx.fillStyle='#333360';
+      ctx.fillRect(px+tileSize/2-1,py+tileSize/2-1,2,2);
+    }
+
+    ctx.strokeStyle='#14142a';ctx.strokeRect(px,py,tileSize,tileSize);
+  }
+
+  // Draw traps
+  for(const t of traps){
+    const sx=t.x-camX,sy=t.y-camY;
+    if(sx<0||sx>=vpW||sy<0||sy>=vpH)continue;
+    if(!isVisible(t.x,t.y))continue;
+    // v15: Treasure chests always visible
+    if(t.owner==='treasure'){
+      ctx.fillStyle='rgba(255,215,0,0.3)';
+      ctx.fillRect(sx*tileSize+4,sy*tileSize+4,tileSize-8,tileSize-8);
+      ctx.fillStyle='#ffd700';ctx.font='bold 14px sans-serif';
+      ctx.fillText('箱',sx*tileSize+10,sy*tileSize+26);
+    }else if(t.owner===player||player.fullVisionTurns>0){
+      ctx.fillStyle='rgba(255,100,50,0.3)';
+      ctx.fillRect(sx*tileSize+4,sy*tileSize+4,tileSize-8,tileSize-8);
+      ctx.fillStyle='#ff6644';ctx.font='bold 10px sans-serif';
+      ctx.fillText('罠',sx*tileSize+12,sy*tileSize+24);
+    }
+  }
+
+  // v20: Draw revealed trap positions
+  for(const rt of revealedTraps){
+    const sx=rt.x-camX, sy=rt.y-camY;
+    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+      ctx.fillStyle='rgba(255,100,50,0.2)';
+      ctx.fillRect(sx*tileSize+2,sy*tileSize+2,tileSize-4,tileSize-4);
+      ctx.fillStyle='#ff664488';ctx.font='8px sans-serif';
+      ctx.fillText('罠跡',sx*tileSize+6,sy*tileSize+24);
+    }
+  }
+
+  // v26: Draw checkpoints
+  for(const cp of checkpoints){
+    if(cp.owner !== player.name) continue; // only show own checkpoints
+    const sx=cp.x-camX, sy=cp.y-camY;
+    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+      ctx.fillStyle='rgba(68,255,170,0.3)';
+      ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);
+      ctx.fillStyle='#44ffaa';ctx.font='bold 10px sans-serif';
+      ctx.fillText('CP',sx*tileSize+10,sy*tileSize+24);
+    }
+  }
+
+  // Draw flag (v22: only if flagRevealed)
+  if(flagPos&&flagRevealed){
+    const fx=flagPos.x-camX,fy=flagPos.y-camY;
+    if(fx>=0&&fx<vpW&&fy>=0&&fy<vpH&&isVisible(flagPos.x,flagPos.y)){
+      ctx.fillStyle='#ffd700';
+      ctx.font='bold 20px sans-serif';
+      ctx.fillText('旗',fx*tileSize+10,fy*tileSize+28);
+    }
+  }
+
+  // Draw start positions (v25: per-player home base)
+  const psx=(player.startX||playerStartX)-camX,psy=(player.startY||playerStartY)-camY;
+  if(psx>=0&&psx<vpW&&psy>=0&&psy<vpH){
+    ctx.fillStyle='rgba(68,136,255,0.15)';ctx.fillRect(psx*tileSize,psy*tileSize,tileSize,tileSize);
+    ctx.fillStyle='#4488ff44';ctx.font='9px sans-serif';ctx.fillText('自陣',psx*tileSize+8,psy*tileSize+12);
+  }
+  const bsx=botStartX-camX,bsy=botStartY-camY;
+  if(bsx>=0&&bsx<vpW&&bsy>=0&&bsy<vpH){
+    ctx.fillStyle='rgba(255,68,68,0.15)';ctx.fillRect(bsx*tileSize,bsy*tileSize,tileSize,tileSize);
+  }
+
+  // Coordinate labels
+  ctx.fillStyle='rgba(100,100,150,0.5)';ctx.font='bold 9px sans-serif';
+  for(let x=0;x<vpW;x++){
+    const mx=camX+x;
+    if(mx%5===0){
+      ctx.fillText(String.fromCharCode(65+Math.floor(mx/5)),x*tileSize+2,10);
+    }
+  }
+  for(let y=0;y<vpH;y++){
+    const my=camY+y;
+    if(my%5===0){
+      ctx.fillText(''+(my+1),2,y*tileSize+10);
+    }
+  }
+
+  // Draw mobs
+  for(const m of mobs){
+    if(!m.alive)continue;
+    const sx=m.x-camX,sy=m.y-camY;
+    if(sx<0||sx>=vpW||sy<0||sy>=vpH)continue;
+    if(!isVisible(m.x,m.y))continue;
+    ctx.fillStyle='#ff4444'; // v22: all mobs same red as bot
+    ctx.font='bold 18px sans-serif';
+    ctx.fillText(m.icon,sx*tileSize+10,sy*tileSize+28);
+    const hpPct=m.hp/m.maxHp;
+    ctx.fillStyle='#333';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,tileSize-4,3);
+    ctx.fillStyle=hpPct>0.5?'#44dd66':'#ff4444';
+    ctx.fillRect(sx*tileSize+2,sy*tileSize+2,(tileSize-4)*hpPct,3);
+  }
+
+  // Draw boss
+  if(boss&&boss.alive){
+    const sx=boss.x-camX,sy=boss.y-camY;
+    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH&&isVisible(boss.x,boss.y)){
+      ctx.fillStyle='#cc44ff';
+      ctx.font='bold 22px sans-serif';
+      ctx.fillText('鬼',sx*tileSize+8,sy*tileSize+30);
+      const hpPct=boss.hp/boss.maxHp;
+      ctx.fillStyle='#333';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,tileSize-4,4);
+      ctx.fillStyle='#ff2200';ctx.fillRect(sx*tileSize+2,sy*tileSize+2,(tileSize-4)*hpPct,4);
+    }
+  }
+
+  // Draw bots (v25: only show if in current player's vision)
+  for(const b of botPlayers){
+    if(!b.alive) continue;
+    const showBot=b.hasFlag||player.fullVisionTurns>0||(player.reconTurns>0&&dist(player.x,player.y,b.x,b.y)<=player.reconRadius)||(isVisible(b.x,b.y)&&dist(player.x,player.y,b.x,b.y)<=3);
+    if(showBot){
+      const sx=b.x-camX,sy=b.y-camY;
+      if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+        ctx.fillStyle=b.color||'#ff4444';
+        ctx.font='bold 20px sans-serif';
+        ctx.fillText('敵',sx*tileSize+10,sy*tileSize+28);
+        if(b.hasFlag){
+          ctx.fillStyle='#ffd700';ctx.font='10px sans-serif';
+          ctx.fillText('旗',sx*tileSize+2,sy*tileSize+12);
+        }
+      }
+    }
+  }
+
+  // Draw players (v25: other human players hidden unless in vision)
+  for(const p of humanPlayers){
+    if(!p.alive) continue;
+    if(p !== player && !isVisible(p.x, p.y)) continue; // v25: hide other players if not in vision
+    const sx=p.x-camX,sy=p.y-camY;
+    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+      const isActive = (p === player);
+      ctx.fillStyle=p.stealthTurns>0?(p.color+'88'):(isActive?p.color:(p.color+'88'));
+      ctx.font='bold 20px sans-serif';
+      const label = (p === humanPlayers[0]) ? '自' : p.name.slice(-1);
+      ctx.fillText(label,sx*tileSize+10,sy*tileSize+28);
+      if(p.hasFlag){
+        ctx.fillStyle='#ffd700';ctx.font='10px sans-serif';
+        ctx.fillText('旗',sx*tileSize+2,sy*tileSize+12);
+      }
+      // HP bar
+      const hpPct=p.hp/p.maxHp;
+      ctx.fillStyle='#333';ctx.fillRect(sx*tileSize+2,sy*tileSize+tileSize-5,tileSize-4,3);
+      ctx.fillStyle=p.color||'#4488ff';ctx.fillRect(sx*tileSize+2,sy*tileSize+tileSize-5,(tileSize-4)*hpPct,3);
+      // v23: Active player indicator
+      if(isActive && numHumanPlayers > 1){
+        ctx.strokeStyle=p.color;ctx.lineWidth=2;
+        ctx.strokeRect(sx*tileSize+1,sy*tileSize+1,tileSize-2,tileSize-2);
+        ctx.lineWidth=1;
+      }
+    }
+  }
+
+  // Draw noise ripples
+  for(let i=noiseRipples.length-1;i>=0;i--){
+    const r=noiseRipples[i];
+    r.radius+=0.15;r.alpha-=0.02;
+    if(r.alpha<=0){noiseRipples.splice(i,1);continue;}
+    const sx=r.x-camX,sy=r.y-camY;
+    const px=(sx+0.5)*tileSize,py=(sy+0.5)*tileSize;
+    ctx.beginPath();
+    ctx.arc(px,py,r.radius*tileSize,0,Math.PI*2);
+    ctx.strokeStyle=r.color||`rgba(100,100,255,${r.alpha})`;
+    ctx.lineWidth=2;ctx.stroke();
+  }
+
+  // v7B: Highlight walkable adjacent tiles when MP > 0
+  if(player.alive&&player.mp>0&&!targetMode&&!enemyTurnActive&&player.frozenTurns<=0){
+    for(const[dx,dy]of[[0,-1],[0,1],[-1,0],[1,0]]){
+      const tx=player.x+dx,ty=player.y+dy;
+      if(!isWalkable(tx,ty)||isOccupied(tx,ty,player))continue;
+      const sx=tx-camX,sy=ty-camY;
+      if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+        ctx.fillStyle='rgba(68,255,170,0.2)';
+        ctx.fillRect(sx*tileSize,sy*tileSize,tileSize,tileSize);
+      }
+    }
+  }
+
+  // v25: Draw watchtower markers (only own watchtowers shown, others only if player in range)
+  for(const wt of watchtowers){
+    const isOwn = wt.owner === player.name;
+    const playerInRange = dist(player.x, player.y, wt.x, wt.y) <= wt.radius;
+    if(!isOwn && !playerInRange) continue; // hide other watchtowers unless player is in range
+    const wtColor = isOwn ? 'rgba(68,170,255,' : 'rgba(255,68,68,';
+    const sx=wt.x-camX, sy=wt.y-camY;
+    if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+      ctx.fillStyle=wtColor+'0.08)';
+      for(let dy=-wt.radius;dy<=wt.radius;dy++) for(let dx=-wt.radius;dx<=wt.radius;dx++){
+        if(dist(0,0,dx,dy)>wt.radius) continue;
+        const mx2=wt.x+dx, my2=wt.y+dy;
+        if(mx2<0||mx2>=MAP_W||my2<0||my2>=MAP_H) continue;
+        if(map[my2][mx2]===TILE_WALL) continue; // skip walls
+        const wx=mx2-camX, wy=my2-camY;
+        if(wx>=0&&wx<vpW&&wy>=0&&wy<vpH){
+          ctx.fillRect(wx*tileSize,wy*tileSize,tileSize,tileSize);
+        }
+      }
+      ctx.fillStyle=isOwn?'#44aaff':'#ff4444';
+      ctx.font='bold 14px sans-serif';
+      ctx.fillText('塔',sx*tileSize+12,sy*tileSize+24);
+    }
+  }
+
+  // v18: AOE target preview
+  if(targetMode==='aoe' && targetCard){
+    const size = targetCard.aoeSize || 3;
+    if(mouseMapX !== undefined){
+      const sx = mouseMapX - Math.floor(size/2);
+      const sy = mouseMapY - Math.floor(size/2);
+      for(let dy=0;dy<size;dy++) for(let dx=0;dx<size;dx++){
+        const tx = (sx+dx-camX)*tileSize;
+        const ty = (sy+dy-camY)*tileSize;
+        if(tx>=0 && tx<canvas.width && ty>=0 && ty<canvas.height){
+          ctx.fillStyle = 'rgba(255,50,50,0.3)';
+          ctx.fillRect(tx, ty, tileSize, tileSize);
+        }
+      }
+    }
+  }
+
+  // v22: Melee target highlight
+  if(targetMode==='melee' && targetCard){
+    const range = targetCard.range || 1;
+    for(const t of getAllEnemyTargets()){
+      if(dist(player.x,player.y,t.x,t.y) <= range){
+        const sx=t.x-camX, sy=t.y-camY;
+        if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+          ctx.fillStyle = 'rgba(255,50,50,0.25)';
+          ctx.fillRect(sx*tileSize, sy*tileSize, tileSize, tileSize);
+          // Brighter if mouse is over this tile
+          if(mouseMapX===t.x && mouseMapY===t.y){
+            ctx.fillStyle = 'rgba(255,50,50,0.5)';
+            ctx.fillRect(sx*tileSize, sy*tileSize, tileSize, tileSize);
+          }
+        }
+      }
+    }
+  }
+
+  // v22: Draw attack fade effects
+  for(let i=attackFades.length-1;i>=0;i--){
+    const af = attackFades[i];
+    af.alpha -= 0.02;
+    if(af.alpha <= 0){ attackFades.splice(i,1); continue; }
+    for(const t of af.tiles){
+      const sx=t.x-camX, sy=t.y-camY;
+      if(sx>=0&&sx<vpW&&sy>=0&&sy<vpH){
+        ctx.fillStyle = af.color + af.alpha + ')';
+        ctx.fillRect(sx*tileSize, sy*tileSize, tileSize, tileSize);
+      }
+    }
+  }
+
+  // Minimap
+  renderMinimap();
+  updateNoiseIndicator();
+}
+
+function isVisible(mx,my){
+  if(player.fullVisionTurns>0)return true;
+  if(player.reconTurns>0&&dist(player.x,player.y,mx,my)<=player.reconRadius)return true;
+  const d=dist(player.x,player.y,mx,my);
+  if(d<=4&&hasLOS(player.x,player.y,mx,my))return true; // v21: narrower visibility (was 6)
+  // v19: watchtower visibility (v25: only current player's watchtowers provide visibility)
+  for(const wt of watchtowers){
+    if(wt.owner===player.name && dist(mx,my,wt.x,wt.y) <= wt.radius) return true;
+  }
+  return false;
+}
+
+function renderMinimap(){
+  const scale=180/MAP_W;
+  miniCtx.fillStyle='#0a0a14';
+  miniCtx.fillRect(0,0,180,180);
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+    if(map[y][x]===TILE_WALL)continue;
+    if(!exploredMap[y]||!exploredMap[y][x])continue; // v15: only show explored
+    miniCtx.fillStyle=map[y][x]===TILE_BOSS_FLOOR?'#2a1a3a':'#222240';
+    miniCtx.fillRect(x*scale,y*scale,scale+0.5,scale+0.5);
+  }
+  // v21: Draw noise heatmap on minimap (toggleable)
+  if(showNoiseOnMinimap && noiseHeatmap && noiseHeatmap.length > 0){
+    for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++){
+      const val = noiseHeatmap[y] ? noiseHeatmap[y][x] : 0;
+      if(val > 0.01){
+        const alpha = Math.min(0.9, val * 1.5);
+        miniCtx.fillStyle = `rgba(255,100,50,${alpha})`;
+        miniCtx.fillRect(x*scale, y*scale, scale+0.5, scale+0.5);
+      }
+    }
+  }
+  // v22: Draw player noise heatmap on minimap (blue)
+  // (playerNoiseHeatmap merged into main heatmap)
+
+  // v25: Draw watchtower areas on minimap (only own watchtowers, others if in range)
+  for(const wt of watchtowers){
+    const isOwn = wt.owner === player.name;
+    const playerInRange = dist(player.x, player.y, wt.x, wt.y) <= wt.radius;
+    if(!isOwn && !playerInRange) continue;
+    const wtColor = isOwn ? 'rgba(68,170,255,' : 'rgba(255,68,68,';
+    miniCtx.fillStyle=wtColor+'0.15)';
+    for(let dy=-wt.radius;dy<=wt.radius;dy++) for(let dx=-wt.radius;dx<=wt.radius;dx++){
+      if(dist(0,0,dx,dy)>wt.radius) continue;
+      const nx=wt.x+dx, ny=wt.y+dy;
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H){
+        miniCtx.fillRect(nx*scale,ny*scale,scale+0.5,scale+0.5);
+      }
+    }
+    miniCtx.fillStyle=isOwn?'#44aaff':'#ff4444';
+    miniCtx.fillRect(wt.x*scale-1,wt.y*scale-1,3,3);
+  }
+
+  // v25: always show current player's home base on minimap
+  miniCtx.fillStyle='rgba(68,136,255,0.4)';
+  miniCtx.fillRect((player.startX||playerStartX)*scale-2,(player.startY||playerStartY)*scale-2,5,5);
+  // v22: only show flag on minimap if flagRevealed
+  if(flagPos&&flagRevealed){
+    miniCtx.fillStyle='#ffd700';
+    miniCtx.fillRect(flagPos.x*scale-1,flagPos.y*scale-1,4,4);
+  }
+  // v25: Draw human players on minimap (others only if in vision)
+  for(const p of humanPlayers){
+    if(!p.alive) continue;
+    if(p !== player && !isVisible(p.x, p.y)) continue; // v25: hide others
+    miniCtx.fillStyle=p.color||'#4488ff';
+    miniCtx.fillRect(p.x*scale-1,p.y*scale-1,4,4);
+  }
+  // v25: Draw bots on minimap (only if in vision)
+  for(const b of botPlayers){
+    if(!b.alive) continue;
+    if(b.hasFlag||player.fullVisionTurns>0||isVisible(b.x,b.y)){
+      miniCtx.fillStyle=b.color||'#ff4444';
+      miniCtx.fillRect(b.x*scale-1,b.y*scale-1,4,4);
+    }
+  }
+  // v25: Show mobs/boss on minimap if visible (vision + watchtower)
+  for(const m of mobs){if(!m.alive||!isVisible(m.x,m.y))continue;miniCtx.fillStyle='#ff4444';miniCtx.fillRect(m.x*scale-1,m.y*scale-1,3,3);}
+  if(boss&&boss.alive&&isVisible(boss.x,boss.y)){miniCtx.fillStyle='#cc44ff';miniCtx.fillRect(boss.x*scale-1,boss.y*scale-1,4,4);}
+  miniCtx.strokeStyle='#6666aa';
+  miniCtx.strokeRect(camX*scale,camY*scale,VIEWPORT*scale,VIEWPORT*scale);
+  // Coordinate labels on minimap
+  miniCtx.fillStyle='#666688';miniCtx.font='7px sans-serif';
+  for(let x=0;x<MAP_W;x+=5){miniCtx.fillText(String.fromCharCode(65+Math.floor(x/5)),x*scale+1,7);}
+  for(let y=0;y<MAP_H;y+=5){miniCtx.fillText(''+(y+1),1,y*scale+7);}
+}
+
+function renderLargeMinimap(){
+  const c=document.getElementById('minimap-large');
+  const ctx2=c.getContext('2d');
+  const s=400/MAP_W;
+  ctx2.fillStyle='#0a0a14';ctx2.fillRect(0,0,400,400);
+  // Draw explored tiles
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+    if(map[y][x]===TILE_WALL)continue;
+    if(!exploredMap[y]||!exploredMap[y][x])continue;
+    ctx2.fillStyle=map[y][x]===TILE_BOSS_FLOOR?'#2a1a3a':'#222240';
+    ctx2.fillRect(x*s,y*s,s+0.5,s+0.5);
+  }
+  // v21: Draw noise heatmap on large minimap (toggleable)
+  if(showNoiseOnMinimap && noiseHeatmap && noiseHeatmap.length > 0){
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+      const val=noiseHeatmap[y]?noiseHeatmap[y][x]:0;
+      if(val>0.01){ctx2.fillStyle=`rgba(255,100,50,${Math.min(0.9,val*1.5)})`;ctx2.fillRect(x*s,y*s,s+0.5,s+0.5);}
+    }
+  }
+  // (playerNoiseHeatmap merged into main heatmap)
+  // Watchtowers (v25: only own watchtowers, others if in range)
+  for(const wt of watchtowers){
+    const isOwn = wt.owner === player.name;
+    const playerInRange = dist(player.x, player.y, wt.x, wt.y) <= wt.radius;
+    if(!isOwn && !playerInRange) continue;
+    const wtColor = isOwn ? 'rgba(68,170,255,' : 'rgba(255,68,68,';
+    ctx2.fillStyle=wtColor+'0.15)';
+    for(let dy=-wt.radius;dy<=wt.radius;dy++)for(let dx=-wt.radius;dx<=wt.radius;dx++){
+      if(dist(0,0,dx,dy)>wt.radius)continue;
+      const nx=wt.x+dx,ny=wt.y+dy;
+      if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H)ctx2.fillRect(nx*s,ny*s,s+0.5,s+0.5);
+    }
+    ctx2.fillStyle=isOwn?'#44aaff':'#ff4444';ctx2.fillRect(wt.x*s-1,wt.y*s-1,4,4);
+  }
+  // v25: Home base always (per-player)
+  ctx2.fillStyle='rgba(68,136,255,0.3)';ctx2.fillRect((player.startX||playerStartX)*s,(player.startY||playerStartY)*s,s*2,s*2);
+  // Flag (v22: only if flagRevealed)
+  if(flagPos&&flagRevealed){ctx2.fillStyle='#ffd700';ctx2.fillRect(flagPos.x*s-2,flagPos.y*s-2,6,6);}
+  // v25: Draw human players (others only if in vision)
+  for(const p of humanPlayers){
+    if(!p.alive) continue;
+    if(p !== player && !isVisible(p.x, p.y)) continue; // v25: hide others
+    ctx2.fillStyle=p.color||'#4488ff';
+    ctx2.fillRect(p.x*s-2,p.y*s-2,6,6);
+  }
+  // v25: Draw bots (only if in vision)
+  for(const b of botPlayers){
+    if(!b.alive) continue;
+    if(b.hasFlag||player.fullVisionTurns>0||isVisible(b.x,b.y)){
+      ctx2.fillStyle=b.color||'#ff4444';
+      ctx2.fillRect(b.x*s-2,b.y*s-2,6,6);
+    }
+  }
+  // v25: Mobs/Boss if visible (vision + watchtower)
+  for(const m of mobs){if(!m.alive||!isVisible(m.x,m.y))continue;ctx2.fillStyle='#ff4444';ctx2.fillRect(m.x*s-1,m.y*s-1,4,4);}
+  if(boss&&boss.alive&&isVisible(boss.x,boss.y)){ctx2.fillStyle='#cc44ff';ctx2.fillRect(boss.x*s-2,boss.y*s-2,6,6);}
+  // Viewport rect
+  ctx2.strokeStyle='#6666aa';ctx2.lineWidth=2;ctx2.strokeRect(camX*s,camY*s,VIEWPORT*s,VIEWPORT*s);
+  // Coordinate labels
+  ctx2.fillStyle='#666688';ctx2.font='9px sans-serif';
+  for(let x=0;x<MAP_W;x+=5){ctx2.fillText(String.fromCharCode(65+Math.floor(x/5)),x*s+1,8);}
+  for(let y=0;y<MAP_H;y+=5){ctx2.fillText(''+(y+1),1,y*s+9);}
+}
+
+document.getElementById('minimap-canvas').addEventListener('click', () => {
+  document.getElementById('minimap-popup').classList.add('active');
+  renderLargeMinimap();
+});
+
+// v22: Swap targeting from enlarged minimap
+document.getElementById('minimap-large').addEventListener('click', function swapHandler(e) {
+  if(targetMode!=='swap') return;
+  const c = document.getElementById('minimap-large');
+  const rect = c.getBoundingClientRect();
+  const s = 400/MAP_W;
+  const tx = Math.floor((e.clientX - rect.left) / s);
+  const ty = Math.floor((e.clientY - rect.top) / s);
+  // Find visible enemy at this position
+  const target = getAllEnemyTargets().find(t => t.x===tx && t.y===ty && isVisible(t.x, t.y));
+  if(!target){ showToast('そこに見える敵がいません'); return; }
+  const ox=player.x, oy=player.y;
+  player.x=target.x; player.y=target.y;
+  target.x=ox; target.y=oy;
+  addLog('入れ替え! 位置を交換!','card');
+  targetMode=null; targetCard=null;
+  document.getElementById('target-cancel').style.display='none';
+  setTimeout(()=>{ document.getElementById('minimap-popup').classList.remove('active'); }, 500);
+  stepMobs(); updateUI(); render(); checkWinCondition();
+});
+
+// v20: AOE targeting from enlarged minimap - click handler
+document.getElementById('minimap-large').addEventListener('click', (e) => {
+  if(targetMode!=='aoe') return;
+  const c = document.getElementById('minimap-large');
+  const rect = c.getBoundingClientRect();
+  const s = 400/MAP_W;
+  const tx = Math.floor((e.clientX - rect.left) / s);
+  const ty = Math.floor((e.clientY - rect.top) / s);
+  if(tx>=0 && tx<MAP_W && ty>=0 && ty<MAP_H){
+    handleAoeClick(tx, ty);
+    // Close minimap after attack effect (delay for visual feedback)
+    setTimeout(()=>{ document.getElementById('minimap-popup').classList.remove('active'); }, 800);
+  }
+});
+
+// v20: AOE targeting from enlarged minimap - mousemove preview
+document.getElementById('minimap-large').addEventListener('mousemove', (e) => {
+  if(targetMode!=='aoe' || !targetCard) return;
+  const c = document.getElementById('minimap-large');
+  const rect = c.getBoundingClientRect();
+  const s = 400/MAP_W;
+  const mx = Math.floor((e.clientX - rect.left) / s);
+  const my = Math.floor((e.clientY - rect.top) / s);
+  renderLargeMinimap();
+  // Draw AOE preview
+  const ctx2 = c.getContext('2d');
+  const size = targetCard.aoeSize || 2;
+  const sx = mx - Math.floor(size/2);
+  const sy = my - Math.floor(size/2);
+  ctx2.fillStyle = 'rgba(255,50,50,0.4)';
+  for(let dy=0;dy<size;dy++) for(let dx=0;dx<size;dx++){
+    ctx2.fillRect((sx+dx)*s, (sy+dy)*s, s, s);
+  }
+});
+
+document.getElementById('log-area').addEventListener('click', () => {
+  const content = document.getElementById('log-area').innerHTML;
+  document.getElementById('log-popup-content').innerHTML = content;
+  document.getElementById('log-popup').classList.add('active');
+});
+
+// ===== UI UPDATE =====
+function updateUI(){
+  document.getElementById('top-turn').textContent=turnNumber;
+  document.getElementById('top-ap').textContent=player.ap;
+  document.getElementById('top-mp').textContent=player.mp; // v7B
+  document.getElementById('top-buys').textContent=player.buys;
+  document.getElementById('top-xp').textContent=player.xp;
+  document.getElementById('top-noise').textContent=player.turnNoise;
+
+  const pVP=calcVP(player),bVP=calcVP(bot);
+  document.getElementById('top-vp').textContent=pVP;
+  document.getElementById('score-player-vp').textContent=pVP;
+  document.getElementById('score-bot-vp').textContent=bVP;
+  document.getElementById('score-player-bar').style.width=Math.min(100,pVP/VP_WIN*100)+'%';
+  document.getElementById('score-bot-bar').style.width=Math.min(100,bVP/VP_WIN*100)+'%';
+
+  const pCardVP=getAllCards(player).reduce((s,c)=>s+(c.vpValue||0)+(c.garden?Math.floor(getAllCards(player).length/5):0)-(c.id==='noroi'?1:0),0);
+  const bCardVP=getAllCards(bot).reduce((s,c)=>s+(c.vpValue||0)+(c.garden?Math.floor(getAllCards(bot).length/5):0)-(c.id==='noroi'?1:0),0);
+  document.getElementById('score-player-detail').textContent=`旗:${player.flagVP} カード:${pCardVP} キル:${player.kills*3} ボス:${player.bossKill*5}`;
+  document.getElementById('score-bot-detail').textContent=`旗:${bot.flagVP} カード:${bCardVP} キル:${bot.kills*3} ボス:${bot.bossKill*5}`;
+
+  document.getElementById('player-hp').textContent=`${player.hp}/${player.maxHp}`;
+  document.getElementById('player-ap').textContent=player.ap;
+  document.getElementById('player-mp').textContent=player.mp; // v7B
+  document.getElementById('player-xp').textContent=player.xp;
+  document.getElementById('player-noise').textContent=player.turnNoise;
+  document.getElementById('player-flag').textContent=player.hasFlag?'所持中':'なし';
+  document.getElementById('deck-count').textContent=player.deck.length;
+  document.getElementById('discard-count').textContent=player.discard.length;
+  document.getElementById('bot-hp').textContent=`${bot.hp}/${bot.maxHp}`;
+  document.getElementById('bot-flag').textContent=bot.hasFlag?'所持中':'なし';
+
+  // Render hand
+  const handArea=document.getElementById('hand-area');
+  handArea.innerHTML='';
+  player.hand.forEach((card,i)=>{
+    const div=document.createElement('div');
+    const playable=canPlayCard(card);
+    const isDead=card.isVP||card.ap===99||card.id==='noroi';
+    div.className='card'+(selectedCardIndex===i?' selected':'')+(isDead?' dead-card':(!playable?' disabled':''));
+    let typeColor='#7766aa';
+    if(card.type==='足技')typeColor='#44dd88';
+    else if(card.type==='武器')typeColor='#ff6644';
+    else if(card.type==='杖')typeColor='#6688ff';
+    else if(card.type==='罠')typeColor='#ff8844';
+    else if(card.type==='巻物')typeColor='#cc44ff';
+    else if(card.type==='道具')typeColor='#aaaacc';
+    else if(card.type==='財宝')typeColor='#ffcc44';
+    else if(card.type==='融合武器')typeColor='#ff8800';
+    else if(card.type==='勝利点')typeColor='#ffd700';
+    else if(card.type==='呪い')typeColor='#666600';
+
+    div.innerHTML=`
+      <div class="card-name">${card.name}</div>
+      <div class="card-type" style="color:${typeColor}">${card.type}</div>
+      <div class="card-effect">${card.desc}</div>
+      <div class="card-stats">
+        <span class="card-ap">${card.ap===99?'-':card.ap===0?'AP0':'AP'+card.ap}</span>
+        <span class="card-noise">${card.noise>0?'N'+card.noise:''}</span>
+      </div>
+    `;
+    if(fuseMode){
+      if(card.type==='武器'||card.type==='杖'){
+        div.style.cursor='pointer';
+        if(fuseSelections.includes(i))div.style.borderColor='#ff8800';
+        div.onclick=()=>handleFuseSelect(i);
+      }else{div.style.opacity='0.4';}
+    }else if(!isDead&&playable&&!enemyTurnActive&&!targetMode){
+      div.onclick=()=>{
+        if(selectedCardIndex===i){
+          playCard(i);
+        }else{
+          selectedCardIndex=i;
+          updateUI();
+        }
+      };
+    }
+    if(card.fused)div.classList.add('fused-card');
+    handArea.appendChild(div);
+  });
+  updateFuseButton();
+
+  // Boss overlay
+  updateBossOverlay();
+
+  // v17: Defense banner
+  const defBanner=document.getElementById('defense-banner');
+  if(player.defendingFlag){
+    defBanner.style.display='block';
+    defBanner.textContent=`防衛中! 残り${player.defendTurns}ターン`;
+  }else{
+    defBanner.style.display='none';
+  }
+
+  // v17: Event banner
+  const evBanner=document.getElementById('event-banner');
+  if(currentEvent&&currentEvent.turnsLeft>0){
+    evBanner.style.display='block';
+    evBanner.textContent=`${currentEvent.name} (残り${currentEvent.turnsLeft}T)`;
+  }else{
+    evBanner.style.display='none';
+  }
+}
+
+// ===== v15: PRE-PLACED TRAPS =====
+function placeInitialTraps(){
+  for(const room of rooms.slice(1)){
+    const count=randInt(1,2);
+    for(let i=0;i<count;i++){
+      const tx=room.x+randInt(1,room.w-2);
+      const ty=room.y+randInt(1,room.h-2);
+      if(isWalkable(tx,ty)){
+        traps.push({x:tx,y:ty,owner:null,dmg:1,noise:0,freeze:0,aoe:0,type:'隠し罠'});
+      }
+    }
+  }
+}
+
+// ===== v15: EVENT SYSTEM =====
+let bossSpawned=false;
+let shopDiscountActive=false;
+let currentEvent=null; // {name, desc, turnsLeft}
+
+function showEventPopup(name,desc){
+  const popup=document.getElementById('event-popup');
+  document.getElementById('event-popup-name').textContent=name;
+  document.getElementById('event-popup-desc').textContent=desc;
+  popup.style.display='block';
+  setTimeout(()=>{popup.style.display='none';},3000);
+}
+
+function triggerEvent(){
+  const eventTypes=[];
+  if(!bossSpawned)eventTypes.push('boss');
+  eventTypes.push('mobwave','treasure','fog','discount');
+  const evt=eventTypes[randInt(0,eventTypes.length-1)];
+  switch(evt){
+    case 'boss':
+      bossSpawned=true;
+      boss={x:rooms[0].cx,y:rooms[0].cy+1,hp:12,maxHp:12,atk:4,alive:true,name:'深淵の守護者',frozenTurns:0};
+      addLog('イベント: 深淵の守護者が出現!','boss-action');
+      flashScreen('rgba(200,60,255,0.3)',0.4);
+      updateBossOverlay();
+      showEventPopup('深淵の守護者','ボスがマップ中央に出現!');
+      currentEvent={name:'ボス出現',desc:'深淵の守護者が出現!',turnsLeft:99};
+      break;
+    case 'mobwave': {
+      const waveCount=30;
+      addLog(`イベント: 大モブウェーブ! ${waveCount}体出現!`,'mob-action');
+      flashScreen('rgba(255,100,0,0.2)',0.3);
+      for(let i=0;i<waveCount;i++)spawnOneMob();
+      showEventPopup('大モブウェーブ',`${waveCount}体のモブがマップ全域に出現!`);
+      currentEvent={name:'大モブウェーブ',desc:`${waveCount}体出現`,turnsLeft:3};
+      break;
+    }
+    case 'treasure': {
+      let placedCount=0;
+      let mimicPlaced=false;
+      for(let ci=0;ci<5;ci++){
+        const tRoom=rooms[randInt(1,rooms.length-1)];
+        const cx2=tRoom.x+randInt(1,tRoom.w-2);
+        const cy2=tRoom.y+randInt(1,tRoom.h-2);
+        if(isWalkable(cx2,cy2)){
+          if(!mimicPlaced && ci===0){
+            // Spawn mimic as a special mob
+            mobs.push({x:cx2, y:cy2, hp:3, maxHp:3, name:'ミミック', icon:'箱', rank:'C', atk:2, xpReward:3, alive:true, isMimic:true, mimicReward:'card'});
+            mimicPlaced=true;
+            placedCount++;
+          }else{
+            traps.push({x:cx2,y:cy2,owner:'treasure',dmg:0,noise:0,freeze:0,aoe:0,type:'宝箱'});
+            placedCount++;
+          }
+        }
+      }
+      addLog(`イベント: 宝箱${placedCount}個がマップに出現! (1つはミミック...)`,'vp');
+      showEventPopup('宝箱出現',`${placedCount}個の宝箱が出現! 注意: ミミックが潜んでいる...`);
+      currentEvent={name:'宝箱出現',desc:`宝箱${placedCount}個出現`,turnsLeft:5};
+      break;
+    }
+    case 'fog':
+      // Reveal all terrain (not enemy positions)
+      for(let y=0;y<MAP_H;y++) for(let x=0;x<MAP_W;x++) exploredMap[y][x]=true;
+      addLog('地図が明らかに! マップ全体の地形が判明!','info');
+      showEventPopup('地図発見','マップ全体の地形が明らかに!');
+      currentEvent={name:'地図発見',desc:'マップ全体判明',turnsLeft:1};
+      break;
+    case 'discount':
+      shopDiscountActive=true;
+      addLog('イベント: ショップ半額セール! 次の購入が半額!','shop');
+      showEventPopup('ショップ半額セール','次の購入が半額!');
+      currentEvent={name:'ショップ半額セール',desc:'半額',turnsLeft:1};
+      break;
+  }
+}
+
+// ===== v17: AUDIO SETTINGS & BGM =====
+let audioSettings={bgmOn:true,bgmVol:30,seOn:true,seVol:30};
+try{const saved=localStorage.getItem('rp_audio_settings');if(saved)audioSettings={...audioSettings,...JSON.parse(saved)};}catch(e){}
+function saveAudioSettings(){try{localStorage.setItem('rp_audio_settings',JSON.stringify(audioSettings));}catch(e){}}
+
+let bgmPlaying=false,bgmNodes=[];
+function startBGM(type){
+  stopBGM();
+  if(!audioSettings.bgmOn)return;
+  if(!ensureAudio())return;
+  const vol=audioSettings.bgmVol*0.003;
+  // Create ambient drone with oscillators
+  const freqs=type==='event'?[110,165,220]:[55,82.5,110];
+  for(const freq of freqs){
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    const lfo=audioCtx.createOscillator();
+    const lfoGain=audioCtx.createGain();
+    osc.type='sine';osc.frequency.value=freq;
+    lfo.type='sine';lfo.frequency.value=0.1+Math.random()*0.2;
+    lfoGain.gain.value=freq*0.02;
+    lfo.connect(lfoGain);lfoGain.connect(osc.frequency);
+    gain.gain.value=vol;
+    osc.connect(gain);gain.connect(audioCtx.destination);
+    osc.start();lfo.start();
+    bgmNodes.push({osc,gain,lfo,lfoGain});
+  }
+  bgmPlaying=true;
+}
+function stopBGM(){
+  for(const n of bgmNodes){try{n.osc.stop();n.lfo.stop();}catch(e){}}
+  bgmNodes=[];bgmPlaying=false;
+}
+function updateBGMVolume(){
+  const vol=audioSettings.bgmVol*0.003;
+  for(const n of bgmNodes){try{n.gain.gain.value=vol;}catch(e){}}
+}
+function toggleBGM(on){audioSettings.bgmOn=on;saveAudioSettings();if(on&&!bgmPlaying)startBGM('normal');else if(!on)stopBGM();}
+function setBGMVol(v){audioSettings.bgmVol=parseInt(v);saveAudioSettings();updateBGMVolume();}
+function toggleSE(on){audioSettings.seOn=on;soundEnabled=on;saveAudioSettings();}
+function setSEVol(v){audioSettings.seVol=parseInt(v);saveAudioSettings();if(masterGain)masterGain.gain.value=v/100;}
+// ===== v23: DEBUG MODE SYSTEM =====
+// v24: Per-player map management
+function savePlayerMaps(p){
+  if(!p||!p.name) return;
+  perPlayerExplored[p.name]=exploredMap.map(r=>[...r]);
+}
+function loadPlayerMaps(p){
+  if(!p||!p.name) return;
+  if(perPlayerExplored[p.name]) exploredMap=perPlayerExplored[p.name].map(r=>[...r]);
+  else exploredMap=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+  // v25: noise heatmap is shared - no save/restore needed
+}
+
+function toggleDebugMode(on){
+  debugMode = on;
+  document.getElementById('debug-controls').style.display = on ? 'block' : 'none';
+  if(on) addLog('デバッグモード ON','system');
+  else addLog('デバッグモード OFF','system');
+}
+
+function createPlayerObj(x, y){
+  return {
+    x, y, startX:x, startY:y, // v25: per-player home base
+    hp:5, maxHp:5, xp:0,
+    deck:[], hand:[], discard:[],
+    ap:1, buys:1, noise:0, turnNoise:0,
+    mp:BASE_MP, hasFlag:false, alive:true,
+    kills:0, flagVP:0, bossKill:0,
+    cardsPlayedThisTurn:0,
+    stealthTurns:0, frozenTurns:0,
+    reconTurns:0, reconRadius:0,
+    fullVisionTurns:0, handLimit:HAND_SIZE,
+    nextNoiseZero:false, extraTurnPending:false,
+    levels:{atk:0,hp:0,mp:0}, leveledUpThisTurn:false,
+    defendingFlag:false, defendTurns:0, hourglassCooldown:0,
+    doubleCastNext:false, nextMoveNoNoise:false,
+    pendingRespawn:false, name:'P1', color:'#4488ff',
+    lastNoiseEventIdx:0 // v25: global noise event tracking
+  };
+}
+
+function createBotObj(x, y){
+  const b = createPlayerObj(x, y);
+  b.name = 'Bot1';
+  b.color = '#ff4444';
+  b.deck = makeInitialDeck();
+  shuffle(b.deck);
+  return b;
+}
+
+function debugChangePlayerCount(count){
+  count = parseInt(count);
+  const total = count + botPlayers.length;
+  if(total > 4){ showToast('合計4人まで'); document.getElementById('debug-players').value=numHumanPlayers; return; }
+
+  const playerColors = ['#4488ff','#44ff88','#ffaa44','#ff44aa'];
+
+  // Ensure we have enough players
+  while(humanPlayers.length < count){
+    const rooms2 = rooms.slice(1);
+    const r = rooms2[randInt(0, rooms2.length-1)];
+    const newP = createPlayerObj(r.cx, r.cy);
+    newP.startX = r.cx; // v25: per-player home base
+    newP.startY = r.cy;
+    newP.name = 'P' + (humanPlayers.length + 1);
+    newP.color = playerColors[humanPlayers.length] || '#ffffff';
+    newP.deck = makeInitialDeck();
+    shuffle(newP.deck);
+    drawCards(newP, HAND_SIZE);
+    humanPlayers.push(newP);
+  }
+  // Remove extra
+  while(humanPlayers.length > count){
+    humanPlayers.pop();
+  }
+  numHumanPlayers = count;
+  activePlayerIdx = 0;
+  player = humanPlayers[0];
+  addLog('プレイヤー数: ' + count + '人','system');
+  updateUI(); render();
+}
+
+function debugChangeBotCount(count){
+  count = parseInt(count);
+  const total = humanPlayers.length + count;
+  if(total > 4){ showToast('合計4人まで'); document.getElementById('debug-bots').value=botPlayers.length; return; }
+
+  const botColors = ['#ff4444','#ff8844','#ff44ff'];
+
+  while(botPlayers.length < count){
+    const rooms2 = rooms.slice(1);
+    const r = rooms2[randInt(0, rooms2.length-1)];
+    const newBot = createBotObj(r.cx, r.cy);
+    newBot.name = 'Bot' + (botPlayers.length + 1);
+    newBot.color = botColors[botPlayers.length] || '#ff4444';
+    botPlayers.push(newBot);
+  }
+  while(botPlayers.length > count){
+    botPlayers.pop();
+  }
+  if(botPlayers.length > 0){
+    bot = botPlayers[0];
+  } else {
+    bot = {alive:false,x:-1,y:-1,hp:0,maxHp:1,xp:0,deck:[],hand:[],discard:[],ap:0,buys:0,noise:0,turnNoise:0,mp:0,hasFlag:false,kills:0,flagVP:0,bossKill:0,cardsPlayedThisTurn:0,stealthTurns:0,frozenTurns:0,reconTurns:0,fullVisionTurns:0,handLimit:HAND_SIZE,nextNoiseZero:false,levels:{atk:0,hp:0,mp:0}};
+  }
+  addLog('ボット数: ' + count + '体','system');
+  updateUI(); render();
+}
+
+function debugTriggerEvent(){
+  if(!debugMode) return;
+  triggerEvent();
+  addLog('デバッグ: イベントを手動発生','system');
+}
+
+function debugOpenSupply(){
+  if(!debugMode) return;
+  openShop();
+  addLog('サプライ編集モード: デバッグ中はカードの在庫を+/-できます','system');
+}
+
+function debugRestart(){
+  if(!debugMode) return;
+  const savedDebug = debugMode;
+  const savedPlayers = numHumanPlayers;
+  const savedBots = botPlayers.length;
+  initGame();
+  debugMode = savedDebug;
+  // Restore debug player/bot counts
+  if(savedPlayers > 1) debugChangePlayerCount(savedPlayers);
+  if(savedBots !== 1) debugChangeBotCount(savedBots);
+  addLog('デバッグ: ゲーム再起動','system');
+}
+
+function openSettings(){
+  const modal=document.getElementById('settings-modal');
+  modal.classList.add('active');
+  document.getElementById('settings-bgm-on').checked=audioSettings.bgmOn;
+  document.getElementById('settings-bgm-vol').value=audioSettings.bgmVol;
+  document.getElementById('settings-se-on').checked=audioSettings.seOn;
+  document.getElementById('settings-se-vol').value=audioSettings.seVol;
+  document.getElementById('settings-debug').checked=debugMode;
+  document.getElementById('debug-controls').style.display=debugMode?'block':'none';
+}
+function closeSettings(){document.getElementById('settings-modal').classList.remove('active');}
+
+// ===== GAME INIT =====
+function initGame(){
+  generateMap();
+  exploredMap=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+  initNoiseHeatmap();
+  initPlayerNoiseHeatmap(); // v22
+  watchtowers=[];
+  attackFades=[]; // v22
+  flagRevealed=false; // v22: flag hidden until stolen
+  checkpoints=[]; // v26: reset checkpoints
+  generateSupply();
+  initEntities();
+
+  // v23: Initialize player/bot arrays for debug mode
+  humanPlayers = [player];
+  botPlayers = [bot];
+  activePlayerIdx = 0;
+  numHumanPlayers = 1;
+  // v25: Init per-player maps and global noise events
+  perPlayerExplored = {};
+  perPlayerNoise = {};
+  globalNoiseEvents = [];
+  player.name = player.name || 'P1';
+  player.lastNoiseEventIdx = 0;
+  savePlayerMaps(player);
+
+  // v15: Boss no longer spawns at start - spawns via event system
+  boss=null;
+
+  // Spawn mobs
+  spawnInitialMobs();
+
+  // v15: Pre-placed traps in rooms
+  placeInitialTraps();
+
+  // Initial draw for player
+  turnNumber=1;
+  drawCards(player,HAND_SIZE);
+
+  addLog('レイヴン・ポータル v25 開始!','system');
+  addLog('v25: マルチプレイヤー視界分離、拠点分離、ノイズ共有','system');
+  addLog('WASD/矢印キー/クリックで移動 (MP消費、ノイズ+1/歩)','system');
+  addLog('旗は敵拠点に! 持ち帰ったら3ターン防衛で10VP!','flag');
+  addLog('30VP で勝利。旗持ち帰り=10VP、キル=3VP、ボス=5VP','system');
+  addLog(`サプライ: ${randomSupply.map(c=>c.name).join(', ')}`,'shop');
+
+  tileSize=Math.floor(Math.min(
+    (window.innerHeight-200)/VIEWPORT,
+    (window.innerWidth-340)/VIEWPORT
+  ));
+  tileSize=Math.max(28,Math.min(48,tileSize));
+
+  updateUI();
+  render();
+
+  // Animation loop for ripples and attack fades (v13: rAF instead of setInterval, v22: attackFades)
+  function animLoop(){if(noiseRipples.length>0||attackFades.length>0)render();requestAnimationFrame(animLoop);}
+  requestAnimationFrame(animLoop);
+}
+
+// Handle window resize
+window.addEventListener('resize',()=>{
+  tileSize=Math.floor(Math.min(
+    (window.innerHeight-200)/VIEWPORT,
+    (window.innerWidth-340)/VIEWPORT
+  ));
+  tileSize=Math.max(28,Math.min(48,tileSize));
+  render();
+});
+
+// ===== START =====
+initGame();
+// v17: Start BGM on first user interaction
+document.addEventListener('click',function bgmStart(){
+  if(!bgmPlaying&&audioSettings.bgmOn)startBGM('normal');
+  if(masterGain)masterGain.gain.value=audioSettings.seVol/100;
+  soundEnabled=audioSettings.seOn;
+  document.removeEventListener('click',bgmStart);
+},{once:true});
+</script>
+</body>
+</html>

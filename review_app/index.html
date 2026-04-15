@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RAVEN REBORN v1.15 - レビューアプリ</title>
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg: #0a0a16; --bg2: #12122a; --bg3: #1a1a3e;
+  --accent: #00f0ff; --accent2: #6c5ce7;
+  --text: #e0e0f0; --text2: #9898c0;
+  --danger: #ff4466; --success: #44ff88;
+  --c-weapon: #ff6644; --c-staff: #6688ff; --c-tool: #aaaacc;
+  --c-scroll: #cc44ff; --c-trap: #ff8844; --c-treasure: #ffcc44;
+  --c-vp: #ffd700; --c-hp: #44ff88; --c-fusion: #ff8800;
+  --t-starter: #88aacc; --t-constant: #44aadd;
+  --t-1: #44dd66; --t-2: #dddd44; --t-3: #ff6644; --t-4: #cc66ff; --t-5: #ffd700;
+}
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI','Hiragino Kaku Gothic Pro','Yu Gothic',sans-serif;
+  background: var(--bg); color: var(--text);
+  overflow: hidden; -webkit-tap-highlight-color: transparent;
+}
+#app { display:flex; flex-direction:column; height:100vh; height:100dvh; }
+header {
+  background: var(--bg2); border-bottom: 1px solid rgba(0,240,255,0.15);
+  padding: 10px 16px; flex-shrink:0; text-align:center;
+}
+header h1 { font-size:16px; font-weight:700; color:var(--accent); letter-spacing:2px; text-shadow:0 0 12px rgba(0,240,255,0.4); }
+header .version { font-size:11px; color:var(--text2); margin-top:2px; }
+.tab-content {
+  flex:1; overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch; scrollbar-width:thin;
+  scrollbar-color: var(--bg3) var(--bg);
+}
+.tab-content::-webkit-scrollbar { width:6px; }
+.tab-content::-webkit-scrollbar-track { background:var(--bg); }
+.tab-content::-webkit-scrollbar-thumb { background:var(--bg3); border-radius:3px; }
+.tab-panel { display:none; padding:12px; padding-bottom:80px; }
+.tab-panel.active { display:block; }
+nav {
+  display:flex; background:var(--bg2);
+  border-top:1px solid rgba(0,240,255,0.15);
+  flex-shrink:0; position:relative; z-index:100;
+}
+nav button {
+  flex:1; background:none; border:none; color:var(--text2);
+  font-size:10px; padding:6px 0 8px; cursor:pointer;
+  transition: color 0.2s, background 0.2s;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  font-family:inherit; min-width:0;
+}
+nav button .nav-icon { font-size:16px; line-height:1; }
+nav button.active { color:var(--accent); background:rgba(0,240,255,0.06); }
+nav button:active { background:rgba(0,240,255,0.1); }
+
+/* ========== SECTIONS ========== */
+.section {
+  background: var(--bg2); border-radius:10px; margin-bottom:12px;
+  border:1px solid rgba(255,255,255,0.05); overflow:hidden;
+}
+.section-title {
+  font-size:14px; font-weight:700; padding:10px 14px;
+  background:var(--bg3); color:var(--accent); cursor:pointer;
+  display:flex; align-items:center; gap:8px; user-select:none;
+}
+.section-title .arrow { font-size:10px; color:var(--text2); transition:transform 0.2s; margin-left:auto; }
+.section.collapsed .arrow { transform:rotate(-90deg); }
+.section.collapsed .section-body { display:none; }
+.section-body { padding:12px 14px; }
+.section-body p, .section-body li { font-size:12px; line-height:1.7; color:var(--text); }
+.section-body ul { padding-left:18px; margin:4px 0; }
+.section-body h4 { font-size:13px; font-weight:700; color:var(--accent2); margin:10px 0 4px 0; }
+.section-body h5 { font-size:12px; font-weight:700; color:var(--c-treasure); margin:8px 0 4px 0; }
+
+/* ========== CARD TABLE ========== */
+.card-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:8px 0; }
+.card-table { width:100%; border-collapse:collapse; font-size:11px; }
+.card-table th {
+  position:sticky; top:0; background:var(--bg3); padding:6px 5px;
+  text-align:left; border-bottom:2px solid var(--accent);
+  white-space:nowrap; user-select:none; color:var(--accent); font-size:10px;
+}
+.card-table td { padding:5px; border-bottom:1px solid rgba(255,255,255,0.04); vertical-align:top; }
+.card-table tr:hover { background:rgba(0,240,255,0.03); }
+.card-table .tier-label {
+  font-size:9px; padding:1px 5px; border-radius:8px; font-weight:700; white-space:nowrap;
+}
+
+/* ========== SEARCH / FILTER ========== */
+.controls {
+  position:sticky; top:0; z-index:10; background:var(--bg);
+  padding:12px 12px 10px 12px; margin:-12px -12px 8px -12px;
+}
+.search-row { display:flex; gap:8px; margin-bottom:8px; }
+.search-row input {
+  flex:1; background:var(--bg2); border:1px solid rgba(0,240,255,0.2);
+  border-radius:8px; padding:8px 12px; color:var(--text); font-size:14px;
+  outline:none; font-family:inherit;
+}
+.search-row input:focus { border-color:var(--accent); box-shadow:0 0 8px rgba(0,240,255,0.15); }
+.search-row input::placeholder { color:var(--text2); opacity:0.6; }
+.filter-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip {
+  padding:4px 10px; border-radius:14px; font-size:11px; font-weight:600;
+  cursor:pointer; border:1px solid rgba(255,255,255,0.1);
+  background:var(--bg2); color:var(--text2); transition:all 0.2s; white-space:nowrap;
+}
+.chip.active { background:rgba(0,240,255,0.15); border-color:var(--accent); color:var(--accent); }
+
+/* ========== CHANGELOG ========== */
+.cl-ver { font-size:14px; font-weight:700; color:var(--accent); margin:10px 0 4px 0; }
+.cl-cat { font-size:11px; font-weight:700; padding:2px 8px; border-radius:4px; display:inline-block; margin:6px 0 4px 0; }
+.cl-cat.feat { background:rgba(0,240,255,0.15); color:var(--accent); }
+.cl-cat.fix { background:rgba(255,68,102,0.15); color:var(--danger); }
+.cl-cat.bal { background:rgba(255,204,68,0.15); color:var(--c-treasure); }
+.cl-cat.ai { background:rgba(108,92,231,0.15); color:var(--accent2); }
+.cl-cat.vis { background:rgba(170,136,255,0.15); color:#aa88ff; }
+.cl-cat.sfx { background:rgba(68,255,136,0.15); color:var(--success); }
+.cl-item { font-size:12px; padding:2px 0 2px 14px; line-height:1.6; position:relative; }
+.cl-item::before { content:''; display:inline-block; width:4px; height:4px; border-radius:50%; background:var(--text2); margin-right:6px; vertical-align:middle; }
+
+/* ========== STAT HIGHLIGHT ========== */
+.stat-hl { color:var(--accent); font-weight:600; }
+.stat-dmg { color:var(--danger); font-weight:600; }
+.stat-hp { color:var(--c-hp); font-weight:600; }
+.stat-xp { color:#aa88ff; font-weight:600; }
+.stat-vp { color:var(--c-vp); font-weight:600; }
+.stat-noise { color:var(--c-trap); font-weight:600; }
+
+/* ========== MOB TABLE ========== */
+.mob-table { width:100%; border-collapse:collapse; font-size:11px; margin:8px 0; }
+.mob-table th { background:var(--bg3); padding:6px; text-align:left; border-bottom:2px solid var(--danger); color:var(--danger); font-size:10px; white-space:nowrap; }
+.mob-table td { padding:5px; border-bottom:1px solid rgba(255,255,255,0.04); }
+.rank-e { color:#cccccc; } .rank-d { color:#44dd66; } .rank-c { color:#ff8844; } .rank-b { color:#ff4444; }
+
+/* ========== COMMENT SYSTEM ========== */
+.comment-toggle {
+  background:none; border:1px solid rgba(0,240,255,0.2); color:var(--accent);
+  font-size:11px; padding:3px 10px; border-radius:6px; cursor:pointer;
+  margin:8px 0 4px 0; display:inline-flex; align-items:center; gap:4px;
+  font-family:inherit; transition:all 0.2s;
+}
+.comment-toggle:hover { background:rgba(0,240,255,0.1); }
+.comment-toggle .count { background:var(--accent); color:var(--bg); border-radius:8px; padding:0 5px; font-size:9px; font-weight:700; }
+.comment-area { margin:8px 0 12px 0; padding:8px; background:var(--bg); border-radius:8px; border:1px solid rgba(0,240,255,0.1); }
+.comment-area textarea {
+  width:100%; background:var(--bg2); border:1px solid rgba(0,240,255,0.2);
+  border-radius:6px; padding:8px; color:var(--text); font-size:12px;
+  font-family:inherit; resize:vertical; min-height:50px; outline:none;
+}
+.comment-area textarea:focus { border-color:var(--accent); }
+.comment-save-btn {
+  background:var(--accent); color:var(--bg); border:none; border-radius:6px;
+  padding:5px 14px; font-size:11px; font-weight:700; cursor:pointer;
+  margin-top:6px; font-family:inherit;
+}
+.comment-save-btn:hover { opacity:0.85; }
+.comment-list { margin-top:8px; }
+.comment-entry {
+  background:var(--bg2); border-radius:6px; padding:8px 10px; margin-bottom:6px;
+  border-left:3px solid var(--accent2); font-size:12px; line-height:1.6;
+  position:relative;
+}
+.comment-entry .comment-time { font-size:10px; color:var(--text2); margin-bottom:4px; }
+.comment-entry .comment-del {
+  position:absolute; top:6px; right:8px; background:none; border:none;
+  color:var(--danger); cursor:pointer; font-size:14px; line-height:1; opacity:0.6;
+}
+.comment-entry .comment-del:hover { opacity:1; }
+
+/* ========== CARD ROW COMMENT ========== */
+.card-comment-icon {
+  cursor:pointer; color:var(--text2); font-size:14px; transition:color 0.2s;
+  display:inline-flex; align-items:center; gap:2px;
+}
+.card-comment-icon:hover { color:var(--accent); }
+.card-comment-icon .count { font-size:9px; color:var(--accent); font-weight:700; }
+.card-comment-row td { padding:0 5px 8px 5px; }
+
+/* ========== MODAL ========== */
+.modal-overlay {
+  display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;
+}
+.modal-overlay.open { display:flex; }
+.modal {
+  background:var(--bg2); border:1px solid rgba(0,240,255,0.2); border-radius:12px;
+  padding:20px; width:90%; max-width:480px; max-height:85vh; overflow-y:auto;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+.modal h3 { color:var(--accent); font-size:16px; margin-bottom:14px; }
+.modal label { display:block; font-size:12px; color:var(--text2); margin:10px 0 4px 0; }
+.modal input, .modal select, .modal textarea {
+  width:100%; background:var(--bg3); border:1px solid rgba(0,240,255,0.2);
+  border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px;
+  font-family:inherit; outline:none;
+}
+.modal input:focus, .modal select:focus, .modal textarea:focus { border-color:var(--accent); }
+.modal textarea { resize:vertical; min-height:60px; }
+.modal-btns { display:flex; gap:8px; margin-top:16px; justify-content:flex-end; }
+.modal-btns button {
+  padding:8px 18px; border-radius:8px; border:none; font-size:12px;
+  font-weight:700; cursor:pointer; font-family:inherit;
+}
+.btn-primary { background:var(--accent); color:var(--bg); }
+.btn-primary:hover { opacity:0.85; }
+.btn-cancel { background:var(--bg3); color:var(--text2); }
+.btn-cancel:hover { background:rgba(255,255,255,0.1); }
+
+/* ========== ADD BUTTONS ========== */
+.add-btn {
+  display:inline-flex; align-items:center; gap:6px;
+  background:rgba(0,240,255,0.1); border:1px dashed var(--accent);
+  color:var(--accent); padding:8px 16px; border-radius:8px; font-size:13px;
+  font-weight:600; cursor:pointer; font-family:inherit; margin-bottom:12px;
+  transition:all 0.2s;
+}
+.add-btn:hover { background:rgba(0,240,255,0.2); }
+
+/* ========== CUSTOM ITEMS ========== */
+.custom-card, .custom-rule {
+  background:var(--bg2); border:1px solid rgba(108,92,231,0.3); border-radius:8px;
+  padding:10px 12px; margin-bottom:8px; position:relative;
+}
+.custom-del {
+  position:absolute; top:8px; right:10px; background:none; border:none;
+  color:var(--danger); cursor:pointer; font-size:16px; opacity:0.6;
+}
+.custom-del:hover { opacity:1; }
+
+/* ========== REQUEST TAB ========== */
+.request-card {
+  background:var(--bg2); border-radius:10px; padding:14px; margin-bottom:10px;
+  border:1px solid rgba(255,255,255,0.05); position:relative;
+}
+.request-card .req-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:4px; }
+.request-card .req-detail { font-size:12px; color:var(--text2); line-height:1.6; margin-bottom:8px; white-space:pre-wrap; }
+.request-card .req-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.priority-badge {
+  font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;
+}
+.priority-high { background:rgba(255,68,102,0.2); color:var(--danger); }
+.priority-mid { background:rgba(255,204,68,0.2); color:var(--c-treasure); }
+.priority-low { background:rgba(68,255,136,0.2); color:var(--success); }
+.status-btn {
+  font-size:10px; padding:3px 10px; border-radius:10px; cursor:pointer;
+  border:1px solid rgba(255,255,255,0.1); background:var(--bg3); color:var(--text2);
+  font-family:inherit; transition:all 0.2s;
+}
+.status-btn:hover { border-color:var(--accent); }
+.status-pending { border-color:var(--text2); color:var(--text2); }
+.status-reviewing { border-color:var(--c-treasure); color:var(--c-treasure); background:rgba(255,204,68,0.1); }
+.status-done { border-color:var(--success); color:var(--success); background:rgba(68,255,136,0.1); }
+.request-card .req-del {
+  position:absolute; top:10px; right:12px; background:none; border:none;
+  color:var(--danger); cursor:pointer; font-size:16px; opacity:0.6;
+}
+.request-card .req-del:hover { opacity:1; }
+
+@media(max-width:600px){
+  .card-table, .mob-table { font-size:10px; }
+  .card-table th, .card-table td, .mob-table th, .mob-table td { padding:3px; }
+  .modal { width:95%; padding:14px; }
+  nav button { font-size:9px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <h1>RAVEN REBORN</h1>
+  <div class="version">v1.15 完全リファレンス</div>
+</header>
+
+<div class="tab-content">
+
+<!-- ========== タブ: パッチノート ========== -->
+<div class="tab-panel active" id="tab-changelog">
+
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>v1.0 〜 v1.15 全パッチノート</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+
+<div class="cl-ver" id="cl-v1.15">v1.15</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">BGM: WAV 2曲（Pixel Dungeon Loop1/2）、ランダム選曲、ループ再生、初回クリックで自動開始</div>
+<div class="cl-item">クリック移動: A*経路の自動歩行、MP範囲内の歩行可能タイルをクリック</div>
+<div class="cl-item">オーディオ設定: BGM/SE音量スライダー、ON/OFF切替、localStorageに保存</div>
+<div data-comment-id="cl-v1.15"></div>
+
+<div class="cl-ver" id="cl-v1.14">v1.14</div>
+<div class="cl-cat vis">ビジュアル</div>
+<div class="cl-item">パーティクルシステム: フルスクリーンcanvasによるVFX（カード使用、キル、レベルアップ、ボス）</div>
+<div class="cl-item">ボス登場演出: 2.5秒のオーバーレイ（拡大/ブラー/フェード）、赤パーティクルリング</div>
+<div class="cl-item">クリティカルヒット閃光: 白の二重点滅 + 白パーティクルバースト</div>
+<div class="cl-item">レベルアップ演出: 紫グローリングアニメーション</div>
+<div class="cl-item">カード使用演出: カードが上昇しながら縮小・フェードアウト</div>
+<div class="cl-item">スコアポップアップ: 浮遊テキスト（「KILL!」「BOSS KILL!」「LEVEL UP!」）</div>
+<div class="cl-item">ボスHPオーバーレイ: 画面上部中央にグラデーションバーとHPテキスト</div>
+<div data-comment-id="cl-v1.14"></div>
+
+<div class="cl-ver" id="cl-v1.13">v1.13</div>
+<div class="cl-cat bal">バランス</div>
+<div class="cl-item">トラッパークラス強化: HP+1（元は0）、罠ダメージボーナス+2</div>
+<div class="cl-item">自動ターン終了ディレイ: 300ms（500msから短縮）</div>
+<div class="cl-item">燃焼タイル踏み込みダメージ: 燃焼タイルを踏むと1HPダメージ + 火SFX</div>
+<div class="cl-item">スカウトクラスの説明文をMP+1と偵察VPに更新</div>
+<div data-comment-id="cl-v1.13"></div>
+
+<div class="cl-ver" id="cl-v1.12">v1.12</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">内部クリーンアップ、バージョン文字列の更新</div>
+<div data-comment-id="cl-v1.12"></div>
+
+<div class="cl-ver" id="cl-v1.11">v1.11</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">モブ近接攻撃復活: モブは人間プレイヤーに50%ダメージ（元は0%）</div>
+<div class="cl-item">初期デッキを正確に10枚に修正（薬草を追加）</div>
+<div class="cl-item">部屋効果の多様性保証: マップに最低1つずつ回復・沈黙・祭壇・反響を配置</div>
+<div class="cl-item">スカウトVP: 新しい部屋を発見するたびに+1 VP</div>
+<div class="cl-item">自動ターン終了: AP=0、MP=0、使用可能カードなしで自動終了</div>
+<div class="cl-item">パスホバー時のMP消費プレビュー</div>
+<div class="cl-item">トラッパークラス追加（罠スペシャリスト）</div>
+<div class="cl-item">ゲーム終了後の統計画面: ターン数、キル数、旗VP、部屋数、距離、使用カード数、ノイズ、デッキサイズ、シード</div>
+<div class="cl-item">シナジーボーナスシステム: 3種（待ち伏せ、幸運、秘術）</div>
+<div class="cl-item">拡張コンボ条件: 部屋発見+旗獲得もコンボにカウント</div>
+<div class="cl-item">草地火災: 草地への雷/火で燃焼タイル生成（3ターン、50%で拡散）</div>
+<div class="cl-item">地形SFX: 水/草/火の踏み込み音</div>
+<div class="cl-item">カードポップアップ表示延長（プレイヤー2.5秒、ボット1.5秒）</div>
+<div class="cl-item">ゲームシード表示とクリップボードコピー</div>
+<div data-comment-id="cl-v1.11"></div>
+
+<div class="cl-ver" id="cl-v1.10">v1.10</div>
+<div class="cl-cat bal">バランス</div>
+<div class="cl-item">モブフェーズ中、モブが人間プレイヤーを攻撃しなくなった（ボットのみ対象）</div>
+<div data-comment-id="cl-v1.10"></div>
+
+<div class="cl-ver" id="cl-v1.9">v1.9</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">タッチ操作: キャンバスをスワイプで移動（WASD相当）、カードタップで選択/使用</div>
+<div class="cl-item">高APカード確認ダイアログ（AP2以上のカード使用時）</div>
+<div class="cl-item">モバイル用ミニバー: サイドバー非表示時のコンパクトHP/VPバー</div>
+<div class="cl-item">重複CSSキーフレームの整理</div>
+<div class="cl-cat fix">バグ修正</div>
+<div class="cl-item">無効カードのツールチップスタイル修正（カーソル変更、ホバー時赤枠線）</div>
+<div data-comment-id="cl-v1.9"></div>
+
+<div class="cl-ver" id="cl-v1.8">v1.8</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">ボスフェーズシステム: HP 75%/50%/25%で3段階変化</div>
+<div class="cl-item">ノイズゾーン誘引: モブがノイズヒートマップの高い地点に移動</div>
+<div class="cl-item">カード情報階層: 使用不可ツールチップで理由を説明</div>
+<div class="cl-item">反響+雷シナジー: 反響デバフ付きの敵に雷ダメージ1.5倍</div>
+<div class="cl-item">パスプレビュー: ホバー時にA*経路を表示（緑ドット）</div>
+<div class="cl-item">囮+大鎌コンボ: AOEが囮にも命中して混乱を誘発</div>
+<div class="cl-item">ボットAI記憶: プレイヤーの移動パターンを追跡（直近20手）</div>
+<div data-comment-id="cl-v1.8"></div>
+
+<div class="cl-ver" id="cl-v1.7">v1.7</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">ボットnullガード: 未定義ボット参照によるクラッシュを防止</div>
+<div class="cl-item">ターン終了に明示的な2回目のEキー入力が必要（自動実行なし）</div>
+<div class="cl-item">ショップカード詳細ポップアップ: ホバーで拡大表示+デッキ内枚数</div>
+<div class="cl-item">モバイルレスポンシブレイアウト（@media max-width:768px）</div>
+<div data-comment-id="cl-v1.7"></div>
+
+<div class="cl-ver" id="cl-v1.6">v1.6</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">反撃システム: 近接攻撃を受けた時50%の確率でATKの半分を反撃</div>
+<div class="cl-item">水+雷コンボ: 水タイル上で3倍ダメージ</div>
+<div class="cl-item">手札カードのホバープレビューポップアップ</div>
+<div class="cl-item">ターン終了確認バナー（カード/キル/AP/MPの概要表示）</div>
+<div class="cl-cat fix">バグ修正</div>
+<div class="cl-item">水+雷が自分自身にもダメージを与えていた問題を修正</div>
+<div class="cl-item">ターゲットキャンセル時のノイズ減算修正</div>
+<div class="cl-item">ボットの旗帰還バグ修正</div>
+<div data-comment-id="cl-v1.6"></div>
+
+<div class="cl-ver" id="cl-v1.5">v1.5</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">地形コンボ: 草地でノイズ半減、水で雷増幅</div>
+<div class="cl-item">崩落通路: ターン15以降、ランダムな通路タイルが崩落</div>
+<div class="cl-item">足跡システム: 10ターン分の移動軌跡を表示</div>
+<div class="cl-item">墓石: 死亡時にランダムなカードをドロップ、他プレイヤーが拾える</div>
+<div class="cl-item">部屋共鳴: 同じ効果の部屋が2つ以上あると効果が強化</div>
+<div class="cl-item">コンボカウンター: 1ターン3行動以上でXP1.5倍、4行動以上でXP2.0倍（ULTRA COMBO）</div>
+<div class="cl-item">旗ドラマ演出: 旗所持中に金色の軌跡</div>
+<div class="cl-cat fix">バグ修正</div>
+<div class="cl-item">Bug1: emitNoiseのダミーオブジェクトガード</div>
+<div class="cl-item">Bug2: 草地のnextMoveNoNoiseをemit前にチェック（emit後ではなく）</div>
+<div class="cl-item">Bug3: ボスVP+5をログから削除（calcVPがbossKillを処理）</div>
+<div class="cl-item">Bug4: ターゲットキャンセル時にカードノイズを減算</div>
+<div data-comment-id="cl-v1.5"></div>
+
+<div class="cl-ver" id="cl-v1.4">v1.4</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">スプリントモード: 25x25マップ、15VP勝利、短時間ゲーム</div>
+<div class="cl-item">ダメージ数値: 命中時の浮遊数字表示</div>
+<div class="cl-item">旗所持者の金色軌跡（ビジュアル）</div>
+<div class="cl-item">ボットにランダムなクラスを割り当て</div>
+<div class="cl-item">杖と罠の相互作用</div>
+<div class="cl-item">ミニマップにエンティティアイコン表示</div>
+<div data-comment-id="cl-v1.4"></div>
+
+<div class="cl-ver" id="cl-v1.3">v1.3</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">部屋効果システム: 7種（なし、回復、毒、反響、沈黙、祭壇、商人）</div>
+<div class="cl-item">キャラクタークラス選択: 4種（スカウト、ウォーリア、マーチャント、トラッパー）</div>
+<div class="cl-item">探索ボーナス: 全部屋発見でVP+3</div>
+<div data-comment-id="cl-v1.3"></div>
+
+<div class="cl-ver" id="cl-v1.2">v1.2</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">バグ修正とチュートリアルシステム</div>
+<div class="cl-item">HPバー改善、ステータスツールチップ</div>
+<div class="cl-item">占術カード（運命の選択）: デッキトップ5枚を見て1枚選択</div>
+<div class="cl-item">残響の罠: ノイズ増幅デバフ</div>
+<div class="cl-item">旗の出現位置を内側リングの部屋に（両スタート地点から離れた場所）</div>
+<div data-comment-id="cl-v1.2"></div>
+
+<div class="cl-ver" id="cl-v1.1">v1.1</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">ボットAI性格: ハンター、コレクター、トリックスター</div>
+<div class="cl-item">地形効果: 水（ノイズ+2、雷3倍）、草（次の移動ノイズ0）</div>
+<div class="cl-item">囮カード（影分身）: 3ターン、毎ターンノイズ2、モブを誘引</div>
+<div class="cl-item">ステルス緩和: 0枚使用+1歩以下で完全ステルス（ノイズリセット）</div>
+<div data-comment-id="cl-v1.1"></div>
+
+<div class="cl-ver" id="cl-v1.0">v1.0</div>
+<div class="cl-cat feat">機能</div>
+<div class="cl-item">A*探索（バイナリヒープ）を使ったローグライクデッキビルダーの基盤</div>
+<div class="cl-item">40x40マップ、リングレイアウト（内側/外側の部屋、中央にボス）</div>
+<div class="cl-item">戦場の霧: 3段階の可視性（可視/探索済み薄暗/未知）</div>
+<div class="cl-item">統一ダメージシステム、ノイズヒートマップ、XP減衰（-1/ターン）</div>
+<div class="cl-item">キーボードショートカット（WASD, 1-5, E, Q, R, M）</div>
+<div class="cl-item">タイプ別カード枠線色、ショップティアシステム（T1-T5）</div>
+<div class="cl-item">VPシステム: カード + 旗 + キル + ボス</div>
+<div class="cl-item">デッキ構築: サプライから購入、除外、改築</div>
+<div data-comment-id="cl-v1.0"></div>
+
+</div></div>
+</div>
+
+<!-- ========== タブ: カード ========== -->
+<div class="tab-panel" id="tab-cards">
+<div class="controls">
+  <div class="search-row">
+    <input type="text" id="card-search" placeholder="カードを検索..." oninput="filterCards()">
+  </div>
+  <div class="filter-chips" id="card-filters"></div>
+</div>
+<button class="add-btn" onclick="openModal('card')">＋ カード追加</button>
+<div id="custom-cards-section"></div>
+<div id="card-list"></div>
+</div>
+
+<!-- ========== タブ: 仕様 ========== -->
+<div class="tab-panel" id="tab-specs">
+
+<button class="add-btn" onclick="openModal('rule')">＋ ルール追加</button>
+<div id="custom-rules-section"></div>
+
+<!-- クラス -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>クラス（4種）</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<h4 style="color:#44ff88">スカウト / 偵察スペシャリスト</h4>
+<ul>
+  <li><span class="stat-hl">MP+1</span>（基本4、通常3）</li>
+  <li>デッキ変更: <span class="stat-dmg">小刀</span>1枚を削除、<span class="stat-hp">忍び足</span>1枚 + <span class="stat-hl">偵察</span>1枚を追加</li>
+  <li>スカウトVP: <span class="stat-vp">新しい部屋発見ごとに+1 VP</span></li>
+</ul>
+
+<h4 style="color:#ff6644">ウォーリア / 攻撃スペシャリスト</h4>
+<ul>
+  <li><span class="stat-hp">HP+2</span>（基本7、通常5）</li>
+  <li>デッキ変更: <span class="stat-xp">銅貨</span>1枚を削除、<span class="stat-dmg">小刀</span>1枚を追加</li>
+</ul>
+
+<h4 style="color:#ffcc44">マーチャント / 経済スペシャリスト</h4>
+<ul>
+  <li><span class="stat-hl">購入+1</span>（基本2、通常1）</li>
+  <li>デッキ変更: <span class="stat-hl">見張り台</span>1枚を削除、<span class="stat-xp">行商人</span>1枚 + <span class="stat-xp">銅貨</span>1枚を追加</li>
+</ul>
+
+<h4 style="color:#ff8844">トラッパー / 罠スペシャリスト</h4>
+<ul>
+  <li><span class="stat-hp">HP+1</span>（基本6、通常5）</li>
+  <li><span class="stat-dmg">全罠カードにダメージ+2ボーナス</span></li>
+  <li>デッキ変更: <span class="stat-hl">見張り台</span>1枚 + <span class="stat-hl">隠密</span>1枚を削除、<span class="stat-dmg">画鋲</span>2枚 + <span class="stat-dmg">とげの罠</span>1枚を追加</li>
+</ul>
+<div data-comment-id="spec-classes"></div>
+</div></div>
+
+<!-- 敵 -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>敵 / モブ</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<table class="mob-table">
+<thead><tr><th>名前</th><th>アイコン</th><th>ランク</th><th>HP</th><th>ATK</th><th>XP</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>シャドウバグ</td><td>虫</td><td class="rank-e">E</td><td>1</td><td>1</td><td>1</td><td>最弱モブ</td></tr>
+<tr><td>ダークラット</td><td>鼠</td><td class="rank-e">E</td><td>1</td><td>1</td><td>1</td><td>最弱モブ</td></tr>
+<tr><td>スケルトンバット</td><td>蝙蝠</td><td class="rank-d">D</td><td>2</td><td>1</td><td>2</td><td>-</td></tr>
+<tr><td>ポイズンフロッグ</td><td>蛙</td><td class="rank-d">D</td><td>2</td><td>1</td><td>2</td><td>-</td></tr>
+<tr><td>ゴーストスパイダー</td><td>蜘蛛</td><td class="rank-c">C</td><td>3</td><td>1</td><td>3</td><td>-</td></tr>
+<tr><td>ロットスネーク</td><td>蛇</td><td class="rank-c">C</td><td>3</td><td>2</td><td>3</td><td>-</td></tr>
+<tr><td>カースドアイ</td><td>目</td><td class="rank-b">B</td><td>4</td><td>2</td><td>4</td><td>-</td></tr>
+<tr><td>アッシュウルフ</td><td>狼</td><td class="rank-b">B</td><td>5</td><td>2</td><td>5</td><td>-</td></tr>
+</tbody>
+</table>
+
+<h4>モブ出現ルール</h4>
+<ul>
+  <li>初期出現数: <span class="stat-hl">8</span>（通常）/ <span class="stat-hl">5</span>（スプリント）</li>
+  <li>最大同時存在: <span class="stat-hl">20</span></li>
+  <li>毎ターン+1体出現</li>
+  <li>ターン1-7: ランクE-D（インデックス0-3）</li>
+  <li>ターン8-19: ランクE-C（インデックス1-5）</li>
+  <li>ターン20+: ランクD-B（インデックス3-7）</li>
+</ul>
+
+<h4>モブ行動</h4>
+<ul>
+  <li>毎ターン40%の確率で行動スキップ</li>
+  <li>最寄りのプレイヤー/ボットに向かって移動（A*探索）</li>
+  <li>ノイズヒートマップに引き寄せられる（閾値0.3）</li>
+  <li>囮に引き寄せられる（より近い場合は優先）</li>
+  <li><span class="stat-dmg">50%ダメージルール</span>: モブは人間プレイヤーに<strong>ATKの半分</strong>、ボットに<strong>全ATK</strong></li>
+  <li>モブドロップ率: E=20%, D=30%, C=40%, B=50%</li>
+  <li>ドロップ報酬: E: XP+1 / D: XP+2またはHP+1 / C: XP+3またはT1カード / B: XP+5またはT2カード</li>
+</ul>
+
+<h4>ミミック</h4>
+<ul>
+  <li>HP:<span class="stat-hl">3</span> ATK:<span class="stat-dmg">2</span> XP:<span class="stat-xp">3</span> ランク:C</li>
+  <li>移動せず、隣接ターゲットのみ攻撃</li>
+  <li>人間に50%ダメージ、ボットにフルダメージ</li>
+  <li>撃破時にティア3以上のカードをドロップ</li>
+  <li>宝箱イベント時に出現（イベントあたりミミック1体）</li>
+</ul>
+
+<h4>ボス: 深淵の守護者</h4>
+<ul>
+  <li>HP:<span class="stat-hl">12</span> ATK:<span class="stat-dmg">4</span></li>
+  <li>イベントシステムで出現（ランダム、ゲーム開始時ではない）</li>
+  <li>出現位置: マップ中央（ボス部屋）</li>
+  <li>毎ターン隣接する全プレイヤー/ボットを攻撃</li>
+  <li>撃破時に旗をドロップ、<span class="stat-xp">XP+15</span> と <span class="stat-vp">VP+5</span>を獲得（bossKill経由）</li>
+</ul>
+
+<h5>ボスフェーズシステム（v1.8）</h5>
+<ul>
+  <li><span class="stat-hl">フェーズ1</span>（HP &lt; 75%）: 移動速度+1（2歩/ターン）</li>
+  <li><span class="stat-dmg">フェーズ2</span>（HP &lt; 50%）: 範囲2以内に全体1ダメージ</li>
+  <li><span class="stat-noise">フェーズ3</span>（HP &lt; 25%）: 毎ターンノイズ5を発生（全体警報）</li>
+</ul>
+<div data-comment-id="spec-enemies"></div>
+</div></div>
+
+<!-- 地形 -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>地形タイプ</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<table class="mob-table">
+<thead><tr><th>タイル</th><th>ID</th><th>効果</th></tr></thead>
+<tbody>
+<tr><td style="color:#222240">床</td><td>0</td><td>通常歩行可能タイル。1歩ごとにノイズ+1。</td></tr>
+<tr><td style="color:#1a1a28">壁</td><td>1</td><td>通行不可。視線を遮断。杖の弾は壁で停止。</td></tr>
+<tr><td style="color:#2266aa">水</td><td>3</td><td>歩行可能。1歩ごとにノイズ+2。水上で雷は3倍ダメージ。水踏み込みSFX。</td></tr>
+<tr><td style="color:#44aa44">草</td><td>4</td><td>歩行可能。草を踏んだ後の次の移動はノイズ0。草はノイズ発生を半減。火/雷で着火。草踏み込みSFX。</td></tr>
+<tr><td style="color:#2a1a3a">ボス床</td><td>8</td><td>ボス部屋の特殊タイル。歩行可能。</td></tr>
+</tbody>
+</table>
+
+<h4>燃焼タイル（v1.5/v1.11）</h4>
+<ul>
+  <li>草に火/雷が命中すると生成</li>
+  <li>持続: <span class="stat-dmg">3ターン</span>、ダメージ: <span class="stat-dmg">1HP/踏み込み</span></li>
+  <li>着火した草は床に変換</li>
+  <li>拡散: 隣接する草タイルに<span class="stat-hl">50%の確率</span>で延焼</li>
+  <li>燃焼タイルを踏むと1ダメージ + 火SFX（v1.13）</li>
+</ul>
+
+<h4>崩落通路（v1.5）</h4>
+<ul>
+  <li>ターン15以降、毎ターン1つのランダムな通路タイルが崩落</li>
+  <li>通路タイルのみが崩落対象（部屋タイルは対象外）</li>
+  <li>通行を完全に遮断しないよう歩行可能な隣接タイルが必要</li>
+</ul>
+<div data-comment-id="spec-terrain"></div>
+</div></div>
+
+<!-- 部屋効果 -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>部屋効果（7種）</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<table class="mob-table">
+<thead><tr><th>名前</th><th>アイコン</th><th>効果</th><th>1回限り?</th><th>共鳴</th></tr></thead>
+<tbody>
+<tr><td>通常</td><td>-</td><td>効果なし</td><td>-</td><td>-</td></tr>
+<tr><td style="color:#44ff88">癒しの泉</td><td>水滴</td><td>入室時HP+2</td><td>はい</td><td>HP+4</td></tr>
+<tr><td style="color:#cc44ff">毒の沼地</td><td>髑髏</td><td>入室時HP-1</td><td>いいえ</td><td>HP-2</td></tr>
+<tr><td style="color:#ffaa44">反響の間</td><td>スピーカー</td><td>部屋内ノイズ2倍</td><td>いいえ</td><td>-</td></tr>
+<tr><td style="color:#6688ff">沈黙の間</td><td>ミュート</td><td>部屋内ノイズ=0</td><td>いいえ</td><td>-</td></tr>
+<tr><td style="color:#ffd700">祭壇</td><td>祠</td><td>カード1枚を無料除外</td><td>はい</td><td>-</td></tr>
+<tr><td style="color:#ffcc44">隠れ商人</td><td>商店</td><td>購入+1</td><td>はい</td><td>購入+2</td></tr>
+</tbody>
+</table>
+
+<h4>部屋効果ルール</h4>
+<ul>
+  <li>マップ生成時に最低1つずつ保証: 回復、沈黙、祭壇、反響</li>
+  <li>ボス部屋は常に「ボス部屋」効果</li>
+  <li>部屋効果は初回訪問まで非表示（発見時 = スカウトVP+1）</li>
+  <li><span class="stat-hl">共鳴</span>: 同じ効果の部屋が2つ以上あると両方が強化</li>
+  <li>探索ボーナス: <span class="stat-vp">全部屋発見でVP+3</span></li>
+</ul>
+<div data-comment-id="spec-rooms"></div>
+</div></div>
+
+<!-- シナジー -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>シナジーシステム（v1.11）</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<p>同一ターン内に特定のカードタイプの組み合わせを使用すると、ターン終了時にシナジーボーナスが発動:</p>
+<table class="mob-table" style="margin-top:8px">
+<thead><tr><th>シナジー</th><th>条件</th><th>ボーナス</th></tr></thead>
+<tbody>
+<tr><td style="color:var(--c-weapon)">待ち伏せ</td><td>武器 + 罠を同一ターンで使用</td><td><span class="stat-xp">XP+2</span></td></tr>
+<tr><td style="color:var(--c-treasure)">幸運</td><td>道具 + 財宝を同一ターンで使用</td><td><span class="stat-hl">購入+1</span></td></tr>
+<tr><td style="color:var(--c-scroll)">秘術</td><td>巻物 + 杖を同一ターンで使用</td><td><span class="stat-hl">次ターンAP+1</span></td></tr>
+</tbody>
+</table>
+
+<h4>コンボシステム</h4>
+<ul>
+  <li>コンボ数 = カード使用数 + キル数 + 部屋発見数 + 旗獲得数（1ターンあたり）</li>
+  <li>3行動以上: <span class="stat-xp">COMBO! XP 1.5倍</span></li>
+  <li>4行動以上: <span class="stat-xp">ULTRA COMBO! XP 2.0倍</span></li>
+</ul>
+
+<h4>その他のコンボ</h4>
+<ul>
+  <li><span class="stat-hl">反響+雷</span>: 反響デバフ付きの敵に<span class="stat-dmg">雷ダメージ1.5倍</span></li>
+  <li><span class="stat-hl">水+雷</span>: 水タイル上で<span class="stat-dmg">3倍ダメージ</span></li>
+  <li><span class="stat-hl">草+火</span>: 草への火/雷で燃焼タイル生成</li>
+  <li><span class="stat-hl">ステルス緩和</span>: カード0枚使用 + 1歩以下で完全ステルス（ターンノイズリセット）</li>
+</ul>
+<div data-comment-id="spec-synergy"></div>
+</div></div>
+
+<!-- 操作方法 -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>操作方法</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<h4>キーボード</h4>
+<table class="mob-table">
+<thead><tr><th>キー</th><th>操作</th></tr></thead>
+<tbody>
+<tr><td style="color:var(--accent)">WASD / 矢印キー</td><td>移動（1歩あたり1MP）</td></tr>
+<tr><td style="color:var(--accent)">スペース</td><td>待機/足踏み（1MP消費、ノイズ1発生）</td></tr>
+<tr><td style="color:var(--accent)">1-5</td><td>カード選択 / 再度押して使用</td></tr>
+<tr><td style="color:var(--accent)">Tab</td><td>使用可能カードを巡回</td></tr>
+<tr><td style="color:var(--accent)">E</td><td>ターン終了（2回押して確定）</td></tr>
+<tr><td style="color:var(--accent)">Q</td><td>サプライ/ショップを開く</td></tr>
+<tr><td style="color:var(--accent)">R</td><td>デッキビューアを開く</td></tr>
+<tr><td style="color:var(--accent)">M</td><td>ミニマップ（大）を開く</td></tr>
+<tr><td style="color:var(--accent)">L</td><td>レベルアップメニューを開く</td></tr>
+<tr><td style="color:var(--accent)">Escape</td><td>モーダルを閉じる / ターゲットキャンセル / 合成キャンセル</td></tr>
+</tbody>
+</table>
+
+<h4>マウス</h4>
+<ul>
+  <li>マップタイルをクリック: MP範囲内で自動経路歩行（A*探索、v1.15）</li>
+  <li>手札カードをクリック: 選択 / 使用</li>
+  <li>マップ上でホバー: 経路プレビュー（緑ドット）</li>
+  <li>ミニマップをクリック: カメラ移動 / ターゲット選択</li>
+  <li>ショップカードにホバー: 拡大詳細ポップアップ（デッキ内枚数付き）</li>
+</ul>
+
+<h4>タッチ操作（モバイル）</h4>
+<ul>
+  <li>キャンバスをスワイプ: スワイプ方向に移動（v1.9）</li>
+  <li>カードをタップ: 選択 / 使用</li>
+  <li>モバイルではサイドバー非表示、ミニHP/VPバーで代替</li>
+  <li>右上にミニミニマップ表示</li>
+</ul>
+<div data-comment-id="spec-controls"></div>
+</div></div>
+
+<!-- ゲームシステム -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>ゲームシステム</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+
+<h4>VP / 勝利条件</h4>
+<ul>
+  <li>通常モード: <span class="stat-vp">30 VP</span>で勝利（40x40マップ）</li>
+  <li>スプリントモード: <span class="stat-vp">15 VP</span>で勝利（25x25マップ）</li>
+  <li>VP獲得源:
+    <ul>
+      <li>VPカード: 1/3/6 VP（屋敷/公領/属州）</li>
+      <li>庭園: デッキ5枚ごとに1 VP</li>
+      <li>旗配達: <span class="stat-vp">10 VP</span>（3ターン防衛後）</li>
+      <li>プレイヤーキル: <span class="stat-vp">3 VP</span>（各）</li>
+      <li>ボス撃破: <span class="stat-vp">5 VP</span></li>
+      <li>スカウトVP: <span class="stat-vp">部屋発見ごとに1 VP</span></li>
+      <li>探索ボーナス: <span class="stat-vp">全部屋発見で3 VP</span></li>
+      <li>英雄の証カード: <span class="stat-vp">即座に5 VP</span></li>
+      <li>呪いカード: <span class="stat-dmg">-1 VP（各）</span></li>
+    </ul>
+  </li>
+</ul>
+
+<h4>ターン構造</h4>
+<ul>
+  <li>開始時: AP=1、購入=1（+クラスボーナス）、MP=3（+レベル+クラスボーナス）</li>
+  <li>XP減衰: <span class="stat-dmg">毎ターン-1</span>（最小0）</li>
+  <li>手札に5枚ドロー</li>
+  <li>フリーアクション: 移動（MP）、カード使用（AP）、サプライから購入（購入数+XP）</li>
+  <li>ターン終了: 手札を捨て、コンボ/シナジー判定後、ボット/敵のターン</li>
+  <li>自動終了: AP=0、MP=0、使用可能カードなしで発動（300msディレイ）</li>
+</ul>
+
+<h4>ノイズシステム</h4>
+<ul>
+  <li>各歩: <span class="stat-noise">ノイズ+1</span>（水: +2、草: 次の歩ノイズ0）</li>
+  <li>カードノイズ: カードごとに異なる</li>
+  <li>ノイズヒートマップ: ミニマップ上に表示（切替可能）</li>
+  <li>モブはノイズの高い地域に引き寄せられる（閾値0.3）</li>
+  <li>ノイズ閾値: 3以上 = 「モブが接近中」、5以上 = 「位置が暴露」</li>
+  <li>反響の間: ノイズ2倍、沈黙の間: ノイズ=0</li>
+  <li>残響の罠デバフ: Nターンの間行動ごとにノイズ+2</li>
+  <li>旗所持者: 常に敵に見える（大ノイズ）</li>
+</ul>
+
+<h4>戦場の霧</h4>
+<ul>
+  <li>3段階: 可視（明るい）/ 探索済み（薄暗い）/ 未探索（真っ暗）</li>
+  <li>基本視野: <span class="stat-hl">4タイル</span>（視線チェック付き）</li>
+  <li>見張り台: 4タイル半径の永続視野</li>
+  <li>偵察カード: 一時的な範囲視野（2ターン）</li>
+  <li>全知の目: 全マップ可視化（Nターン）</li>
+</ul>
+
+<h4>デッキ構築</h4>
+<ul>
+  <li>初期デッキ: 10枚（銅貨x3、小刀x2、俊足の薬x1、集中x1、見張り台x1、隠密x1、薬草x1）</li>
+  <li>手札上限: 毎ターン5枚</li>
+  <li>購入: XP + 購入権でサプライからカードを獲得</li>
+  <li>除外: 礼拝堂カードで手札から最大2枚を永久除外</li>
+  <li>改築: 手札1枚を除外し、XP+2以下のカードを獲得</li>
+  <li>祭壇: カード1枚を無料除外</li>
+  <li>デッキシャッフル: ドロー山札が空の時、捨て札をシャッフルしてデッキに</li>
+</ul>
+
+<h4>合成システム</h4>
+<ul>
+  <li>消費: 1 AP</li>
+  <li>武器 + 杖: 合計パワー、杖の射程、貫通射撃</li>
+  <li>武器 + 武器: 合計パワー、最大射程、合計ノイズ</li>
+  <li>杖 + 杖: 合成不可</li>
+  <li>合成カードは合計AP消費とノイズを持つ</li>
+  <li>合成の巻物が必要（ティア4、XP 9）</li>
+</ul>
+
+<h4>レベルアップシステム</h4>
+<ul>
+  <li>コスト: (現在レベル + 1) x 2 XP</li>
+  <li>毎ターン最大1回</li>
+  <li>成長の書カード: 無料レベルアップ</li>
+  <li>成長項目:
+    <ul>
+      <li><span class="stat-dmg">ATK</span>: 全武器/近接に+1基本ダメージ</li>
+      <li><span class="stat-hp">HP</span>: 最大HP+2 かつ 即時HP+2回復</li>
+      <li><span class="stat-hl">MP</span>: 毎ターン基本MP+1</li>
+    </ul>
+  </li>
+</ul>
+
+<h4>旗システム</h4>
+<ul>
+  <li>旗は内側リングの部屋に出現（両スタート地点から離れた場所）</li>
+  <li>取得: 旗タイルを踏む</li>
+  <li>旗所持者: 常に敵に見え、金色の軌跡</li>
+  <li>自陣に配達: 3ターン防衛開始</li>
+  <li>防衛成功: <span class="stat-vp">VP+10</span></li>
+  <li>防衛失敗: 自陣を離れると旗をドロップ</li>
+  <li>旗所持中の死亡: 死亡地点に旗をドロップ</li>
+  <li>ボス撃破時に旗をドロップ</li>
+</ul>
+
+<h4>死亡とリスポーン</h4>
+<ul>
+  <li>死亡ペナルティ: XPが0にリセット、デッキ/手札/捨て札からランダムに1枚喪失</li>
+  <li>喪失カードは墓石に（他プレイヤーが拾える）</li>
+  <li>自陣またはチェックポイント（設置済みの場合）でリスポーン</li>
+  <li>チェックポイントカード: 最大2つ有効、3つ目を設置すると最古を削除</li>
+  <li>死亡時に強制ターン終了</li>
+</ul>
+
+<h4>イベントシステム</h4>
+<ul>
+  <li>イベントは一定ターンごとに発生</li>
+  <li>ボス出現: 深淵の守護者がマップ中央に（HP 12、ATK 4）</li>
+  <li>モブウェーブ: マップ全体に30体出現</li>
+  <li>宝箱: 5個（うち1個はミミック）、各XP 2-5</li>
+  <li>マップ公開: マップ全体の地形が可視化</li>
+  <li>ショップ割引: 次の購入が半額</li>
+</ul>
+
+<h4>ゲームシード</h4>
+<ul>
+  <li>ゲームごとにランダムな6桁のシードを生成</li>
+  <li>設定画面に表示、クリックでコピー</li>
+  <li>参考/共有用のみ（決定論的リプレイには非対応）</li>
+</ul>
+
+<div data-comment-id="spec-systems"></div>
+</div></div>
+
+<!-- SFX/BGM -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>SFX / BGM（v1.15）</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+
+<h4>BGM（2曲）</h4>
+<table class="mob-table">
+<thead><tr><th>ファイル</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>Pixel Dungeon Loop1.wav</td><td>ランダム選曲、ループ再生、初回クリックで自動開始</td></tr>
+<tr><td>Pixel Dungeon Loop2.wav</td><td>再生失敗時のフォールバック、音量調整可能</td></tr>
+</tbody>
+</table>
+
+<h4>SFX（26種）</h4>
+<table class="mob-table">
+<thead><tr><th>キー</th><th>ファイル</th><th>トリガー</th></tr></thead>
+<tbody>
+<tr><td>attack</td><td>PM_GENERIC_Slash01.wav</td><td>近接/武器攻撃</td></tr>
+<tr><td>staffShoot</td><td>PM_SPELL_Cast07_Bright.wav</td><td>杖の弾を発射</td></tr>
+<tr><td>cardUse</td><td>PM_SPELL_Cast07_Bright.wav</td><td>カード使用時</td></tr>
+<tr><td>cardBuy</td><td>PM_UI_ITEM_Use.wav</td><td>サプライからカード購入</td></tr>
+<tr><td>takeDamage</td><td>PM_GENERIC_Impact01v1.wav</td><td>プレイヤーが被ダメージ</td></tr>
+<tr><td>kill</td><td>PM_GENERIC_Death_Monster01.wav</td><td>敵を撃破</td></tr>
+<tr><td>death</td><td>PM_GENERIC_Death_Boss01.wav</td><td>プレイヤー/ボス死亡</td></tr>
+<tr><td>miss</td><td>PM_GENERIC_Miss01.wav</td><td>攻撃ミス</td></tr>
+<tr><td>heal</td><td>PM_UI_ITEM_Heal01.wav</td><td>HP回復</td></tr>
+<tr><td>levelUp</td><td>PM_SPELL_Buff27_Epic.wav</td><td>レベルアップ</td></tr>
+<tr><td>vpGain</td><td>PM_SPELL_Buff10_Sparkle.wav</td><td>VP獲得</td></tr>
+<tr><td>fuse</td><td>PM_SPELL_Buff09_Transform.wav</td><td>カード合成</td></tr>
+<tr><td>turnStart</td><td>PM_UI_Button_Select.wav</td><td>新ターン開始</td></tr>
+<tr><td>flagCapture</td><td>PM_ELEM_Light08_Epic_Heal_FULL.wav</td><td>旗の取得/配達</td></tr>
+<tr><td>move</td><td>PM_GENERIC_Dash01.wav</td><td>プレイヤー移動</td></tr>
+<tr><td>waterStep</td><td>PM_ELEM_Water01_Aqua_Breath_FULL.wav</td><td>水タイル踏み込み</td></tr>
+<tr><td>fireStep</td><td>PM_ELEM_Fire01_Burst_FULL.wav</td><td>燃焼タイル踏み込み</td></tr>
+<tr><td>grassStep</td><td>PM_ELEM_Wind01_Gust.wav</td><td>草タイル踏み込み</td></tr>
+<tr><td>meteor</td><td>PM_GENERIC_Explosion_Single01.wav</td><td>隕石/爆発カード</td></tr>
+<tr><td>bossEntrance</td><td>PM_ELEM_Dark11_Doom_01_FULL.wav</td><td>ボス出現演出</td></tr>
+<tr><td>stealth</td><td>PM_SPELL_Cast22_Vanish_FULL.wav</td><td>ステルス発動</td></tr>
+<tr><td>freeze</td><td>PM_ELEM_Ice01_Freeze_FULL.wav</td><td>凍結効果</td></tr>
+<tr><td>lightning</td><td>PM_ELEM_Electric02_Lightning_Storm.wav</td><td>雷カード</td></tr>
+<tr><td>teleport</td><td>PM_SPELL_Cast27_Portal_Open.wav</td><td>テレポート/ワープ</td></tr>
+<tr><td>combo</td><td>PM_SPELL_Buff10_Sparkle.wav</td><td>コンボ発動</td></tr>
+<tr><td>gameOver</td><td>PM_ELEM_Dark12_Doom_02.wav</td><td>ゲームオーバー（敗北）</td></tr>
+<tr><td>victory</td><td>PM_ELEM_Light08_Epic_Heal_FULL.wav</td><td>ゲームオーバー（勝利）</td></tr>
+<tr><td>drawCard</td><td>PM_SPELL_Cast30_Subtle_Light_Beam.wav</td><td>カードをドロー</td></tr>
+<tr><td>trap</td><td>PM_GENERIC_Needles_FULL.wav</td><td>罠発動</td></tr>
+<tr><td>screenShake</td><td>PM_GENERIC_Explosion_Single01.wav</td><td>画面揺れイベント</td></tr>
+</tbody>
+</table>
+<p style="margin-top:8px">全SFXは<strong>Pixel Magic Sound Effects Pack</strong>より。サウンドあたり3インスタンスプールで重複再生に対応。設定で音量調整可能。</p>
+<div data-comment-id="spec-sfx"></div>
+</div></div>
+
+<!-- ビジュアルエフェクト -->
+<div class="section">
+<div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')">
+  <span>ビジュアルエフェクト（v1.14）</span><span class="arrow">&#9660;</span>
+</div>
+<div class="section-body">
+<h4>パーティクルシステム</h4>
+<ul>
+  <li>フルスクリーンcanvasオーバーレイ（pointer-events: none）</li>
+  <li>パーティクル: 丸またはスター形状、重力・減衰・速度対応</li>
+  <li>カード使用: 紫パーティクル15個（小、上昇）</li>
+  <li>キル: 金20個 + 赤30個のパーティクル（爆発）</li>
+  <li>レベルアップ: 紫40個 + 白15個のパーティクル（大バースト）</li>
+  <li>ボス出現: 赤/オレンジ60個の円形パーティクルリング（収束）</li>
+</ul>
+
+<h4>アニメーション</h4>
+<ul>
+  <li><span class="stat-dmg">画面揺れ</span>: 0.3秒のcanvas振動（被ダメージ時）</li>
+  <li><span class="stat-noise">ノイズパルス</span>: インジケーターのbox-shadowグロー</li>
+  <li><span class="stat-hl">スコアポップアップ</span>: 1.2秒の浮遊+拡大パルス（「KILL!」「BOSS KILL!」「LEVEL UP!」）</li>
+  <li><span class="stat-dmg">ボス登場</span>: 2.5秒のフルスクリーンオーバーレイ、3倍から1倍にスケール+ブラー、サブテキスト0.3秒遅延</li>
+  <li><span class="stat-dmg">クリティカル閃光</span>: 白背景の二重点滅（各0.15秒）</li>
+  <li><span class="stat-xp">レベルアップバースト</span>: 紫の拡張グローリング（box-shadow 1秒）</li>
+  <li><span class="stat-hl">カード使用演出</span>: 0.4秒のtranslateY(-100px) + scale(0.3) + フェード</li>
+  <li><span class="stat-hl">フローティングログ</span>: 2.5秒のフェードイン/アウト戦闘メッセージ（画面中央）</li>
+  <li><span class="stat-hl">フラッシュオーバーレイ</span>: 全画面カラーフラッシュ（被ダメージ赤、回復緑、旗金）</li>
+  <li><span class="stat-hl">ダメージ数字</span>: マップタイル上の浮遊「-N」テキスト（40フレーム）</li>
+  <li><span class="stat-hl">ノイズリップル</span>: ミニマップ/マップ上の拡散円</li>
+  <li><span class="stat-hl">攻撃フェード</span>: 攻撃後のタイルハイライトフェード</li>
+  <li><span class="stat-hl">旗の軌跡</span>: 旗所持者の後ろに金色タイル（3ターン）</li>
+  <li><span class="stat-hl">足跡</span>: 10ターン分の移動軌跡表示</li>
+</ul>
+<div data-comment-id="spec-vfx"></div>
+</div></div>
+
+</div>
+
+<!-- ========== タブ: 要望 ========== -->
+<div class="tab-panel" id="tab-requests">
+<button class="add-btn" onclick="openModal('request')">＋ 要望を追加</button>
+<div id="request-list"></div>
+</div>
+
+</div>
+
+<nav>
+  <button class="active" onclick="switchTab('changelog',this)"><span class="nav-icon">&#128203;</span>パッチノート</button>
+  <button onclick="switchTab('cards',this)"><span class="nav-icon">&#127183;</span>カード</button>
+  <button onclick="switchTab('specs',this)"><span class="nav-icon">&#128736;</span>仕様</button>
+  <button onclick="switchTab('requests',this)"><span class="nav-icon">&#128172;</span>要望</button>
+</nav>
+
+</div>
+
+<!-- ========== モーダル ========== -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script>
+// ========== タブ切替 ==========
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'cards' && !cardsRendered) renderAllCards();
+  if (id === 'requests') renderRequests();
+}
+
+// ========== localStorage ヘルパー ==========
+function lsGet(key, def) { try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; } }
+function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// ========== コメントシステム ==========
+function getComments() { return lsGet('raven_review_comments', {}); }
+function saveComments(data) { lsSet('raven_review_comments', data); }
+
+function getCommentCount(itemId) {
+  const comments = getComments();
+  return (comments[itemId] || []).length;
+}
+
+function renderCommentToggle(itemId) {
+  const count = getCommentCount(itemId);
+  const countBadge = count > 0 ? `<span class="count">${count}</span>` : '';
+  return `<button class="comment-toggle" onclick="toggleComment('${itemId}', this)">&#128172; コメント ${countBadge}</button><div class="comment-area" id="ca-${itemId}" style="display:none"></div>`;
+}
+
+function toggleComment(itemId, btn) {
+  const area = document.getElementById('ca-' + itemId);
+  if (area.style.display === 'none') {
+    area.style.display = 'block';
+    renderCommentArea(itemId, area);
+  } else {
+    area.style.display = 'none';
+  }
+}
+
+function renderCommentArea(itemId, area) {
+  const comments = getComments();
+  const list = comments[itemId] || [];
+  let html = `<textarea id="ct-${itemId}" placeholder="コメントを入力..."></textarea>
+    <button class="comment-save-btn" onclick="addComment('${itemId}')">保存</button>
+    <div class="comment-list">`;
+  for (let i = list.length - 1; i >= 0; i--) {
+    const c = list[i];
+    html += `<div class="comment-entry">
+      <div class="comment-time">${c.timestamp}</div>
+      <div>${escHtml(c.text)}</div>
+      <button class="comment-del" onclick="deleteComment('${itemId}',${i})">&times;</button>
+    </div>`;
+  }
+  html += '</div>';
+  area.innerHTML = html;
+}
+
+function addComment(itemId) {
+  const ta = document.getElementById('ct-' + itemId);
+  const text = (ta.value || '').trim();
+  if (!text) return;
+  const comments = getComments();
+  if (!comments[itemId]) comments[itemId] = [];
+  comments[itemId].push({ text, timestamp: new Date().toLocaleString('ja-JP') });
+  saveComments(comments);
+  const area = document.getElementById('ca-' + itemId);
+  renderCommentArea(itemId, area);
+  // Update toggle button count
+  updateCommentToggle(itemId);
+}
+
+function deleteComment(itemId, idx) {
+  const comments = getComments();
+  if (comments[itemId]) {
+    comments[itemId].splice(idx, 1);
+    if (comments[itemId].length === 0) delete comments[itemId];
+    saveComments(comments);
+  }
+  const area = document.getElementById('ca-' + itemId);
+  renderCommentArea(itemId, area);
+  updateCommentToggle(itemId);
+}
+
+function updateCommentToggle(itemId) {
+  const count = getCommentCount(itemId);
+  const area = document.getElementById('ca-' + itemId);
+  if (area && area.previousElementSibling && area.previousElementSibling.classList.contains('comment-toggle')) {
+    const btn = area.previousElementSibling;
+    const countBadge = count > 0 ? `<span class="count">${count}</span>` : '';
+    btn.innerHTML = `&#128172; コメント ${countBadge}`;
+  }
+}
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
+
+// Initialize comment placeholders in changelog / specs
+function initComments() {
+  document.querySelectorAll('[data-comment-id]').forEach(el => {
+    const id = el.dataset.commentId;
+    el.innerHTML = renderCommentToggle(id);
+  });
+}
+
+// ========== カードデータ ==========
+const CONST_SUPPLY = [
+  {id:'yashiki',name:'屋敷',type:'勝利点',ap:99,noise:0,xpCost:2,desc:'1VP',tier:'常設',stock:8},
+  {id:'kouryou',name:'公領',type:'勝利点',ap:99,noise:0,xpCost:4,desc:'3VP',tier:'常設',stock:8},
+  {id:'zoushou',name:'属州',type:'勝利点',ap:99,noise:0,xpCost:7,desc:'6VP',tier:'常設',stock:8},
+  {id:'douka',name:'銅貨',type:'財宝',ap:0,noise:0,xpCost:1,desc:'XP+1',tier:'常設',stock:10},
+  {id:'ginka',name:'銀貨',type:'財宝',ap:0,noise:0,xpCost:3,desc:'XP+2',tier:'常設',stock:8},
+  {id:'kinka',name:'金貨',type:'財宝',ap:0,noise:0,xpCost:6,desc:'XP+3',tier:'常設',stock:6},
+  {id:'checkpoint',name:'チェックポイント',type:'道具',ap:0,noise:0,xpCost:1,desc:'リスポーン地点を設置(最大2)',tier:'常設',stock:10},
+];
+
+const STARTER_DECK = [
+  {name:'銅貨',type:'財宝',ap:0,noise:0,desc:'XP+1',tier:'初期',qty:3},
+  {name:'小刀',type:'武器',ap:1,noise:1,desc:'攻撃1、射程1',tier:'初期',qty:2},
+  {name:'俊足の薬',type:'道具',ap:0,noise:0,desc:'今ターンMP+3',tier:'初期',qty:1},
+  {name:'集中',type:'道具',ap:1,noise:0,desc:'AP+2',tier:'初期',qty:1},
+  {name:'見張り台',type:'道具',ap:1,noise:0,desc:'ソナーピン（設置型監視）',tier:'初期',qty:1},
+  {name:'隠密',type:'道具',ap:0,noise:0,desc:'30%で次の行動ノイズ無効',tier:'初期',qty:1},
+  {name:'薬草',type:'道具',ap:1,noise:0,desc:'HP+2回復',tier:'初期',qty:1},
+];
+
+const ALL_RANDOM = [
+  // Tier 1 (XP 1-3), stock:12
+  {name:'村',type:'道具',ap:1,noise:1,xpCost:3,desc:'AP+2、ドロー+1',tier:1,stock:12},
+  {name:'俊足の薬',type:'道具',ap:0,noise:0,xpCost:2,desc:'今ターンのMP+3',tier:1,stock:12},
+  {name:'小刀',type:'武器',ap:1,noise:1,xpCost:1,desc:'攻撃1、射程1',tier:1,stock:12},
+  {name:'木の杖',type:'杖',ap:1,noise:1,xpCost:2,desc:'直線1ダメ、射程4、壁で停止',tier:1,stock:12},
+  {name:'見張り台',type:'道具',ap:1,noise:0,xpCost:1,desc:'ソナーピン（1回方向ヒント）',tier:1,stock:12},
+  {name:'画鋲',type:'罠',ap:1,noise:0,xpCost:1,desc:'罠設置:1ダメ+ノイズ爆発',tier:1,stock:12},
+  {name:'薬草',type:'道具',ap:1,noise:0,xpCost:1,desc:'HP+2回復',tier:1,stock:12},
+  {name:'集中',type:'道具',ap:1,noise:0,xpCost:2,desc:'AP+2',tier:1,stock:12},
+  {name:'偵察',type:'巻物',ap:1,noise:0,xpCost:2,desc:'周囲3マス可視化(2T)',tier:1,stock:12},
+  {name:'行商人',type:'道具',ap:0,noise:0,xpCost:2,desc:'購入+1',tier:1,stock:12},
+  {name:'隠密',type:'道具',ap:0,noise:0,xpCost:1,desc:'30%で次の行動ノイズ無効',tier:1,stock:12},
+  {name:'忍び足',type:'道具',ap:0,noise:0,xpCost:2,desc:'次の3歩のノイズを無効化',tier:1,stock:12},
+  {name:'早足の靴',type:'道具',ap:1,noise:0,xpCost:2,desc:'MP+4',tier:1,stock:12},
+  {name:'火炎弾',type:'巻物',ap:1,noise:2,xpCost:2,desc:'指定2x2範囲に1ダメージ',tier:1,stock:5},
+  {name:'手紙',type:'道具',ap:1,noise:0,xpCost:1,desc:'ドロー+2',tier:1,stock:5},
+  // Tier 2 (XP 2-5), stock:7
+  {name:'鍛冶屋',type:'道具',ap:1,noise:0,xpCost:4,desc:'ドロー+3',tier:2,stock:7},
+  {name:'礼拝堂',type:'道具',ap:1,noise:0,xpCost:2,desc:'手札から最大2枚除外',tier:2,stock:7},
+  {name:'魔女',type:'巻物',ap:1,noise:2,xpCost:5,desc:'全敵に呪い追加',tier:2,stock:7},
+  {name:'民兵',type:'巻物',ap:1,noise:2,xpCost:4,desc:'全敵次ターン手札上限3枚',tier:2,stock:7},
+  {name:'泥棒',type:'巻物',ap:1,noise:2,xpCost:4,desc:'直線射程3、敵デッキ2枚公開→1枚奪取',tier:2,stock:7},
+  {name:'改築',type:'道具',ap:1,noise:0,xpCost:4,desc:'手札1枚除外→XP+2以下獲得',tier:2,stock:7},
+  {name:'鉄の槍',type:'武器',ap:1,noise:2,xpCost:3,desc:'攻撃3、射程1',tier:2,stock:7},
+  {name:'とげの罠',type:'罠',ap:1,noise:0,xpCost:3,desc:'罠設置:2ダメ+1T移動不可',tier:2,stock:7},
+  {name:'商人',type:'道具',ap:0,noise:0,xpCost:4,desc:'購入+1、ドロー+1',tier:2,stock:7},
+  {name:'氷の杖',type:'杖',ap:1,noise:2,xpCost:5,desc:'直線射撃、2Tフリーズ',tier:2,stock:7},
+  {name:'成長の書',type:'巻物',ap:1,noise:0,xpCost:3,desc:'レベルアップ画面を開く',tier:2,stock:7},
+  {name:'交易師',type:'道具',ap:1,noise:0,xpCost:4,desc:'購入+2, ドロー+1',tier:2,stock:7},
+  {name:'風のマント',type:'道具',ap:0,noise:0,xpCost:3,desc:'MP+5, 次の移動ノイズ0',tier:2,stock:7},
+  {name:'入れ替えの巻物',type:'巻物',ap:1,noise:2,xpCost:4,desc:'観測範囲内の敵と位置を交換',tier:2,stock:4},
+  {name:'影の衣',type:'道具',ap:1,noise:0,xpCost:4,desc:'2ターンの間全行動ノイズ無効',tier:2,stock:4},
+  {name:'広域の罠',type:'罠',ap:1,noise:0,xpCost:3,desc:'2x2範囲に罠設置:1ダメ',tier:2,stock:4},
+  {name:'図書館',type:'道具',ap:1,noise:0,xpCost:3,desc:'ドロー+2, 手札1枚をデッキトップに戻す',tier:2,stock:4},
+  {name:'影分身',type:'道具',ap:1,noise:0,xpCost:4,desc:'デコイ設置(3T、毎Tノイズ2、敵を誘引)',tier:2,stock:4},
+  {name:'運命の選択',type:'道具',ap:1,noise:0,xpCost:3,desc:'デッキトップ5枚を見て1枚を手札に',tier:2,stock:4},
+  {name:'残響の罠',type:'罠',ap:1,noise:0,xpCost:3,desc:'罠:ダメ0、踏んだ敵に3Tノイズ+2付与+ノイズ爆発5',tier:2,stock:4},
+  // Tier 3 (XP 5-7), stock:3-4
+  {name:'雷の巻物',type:'巻物',ap:1,noise:3,xpCost:6,desc:'ランダムな敵3体に各2ダメ',tier:3,stock:4},
+  {name:'闇の大鎌',type:'武器',ap:1,noise:4,xpCost:7,desc:'周囲8マス全てに3ダメ',tier:3,stock:4},
+  {name:'地雷',type:'罠',ap:1,noise:0,xpCost:7,desc:'罠設置:4ダメ+周囲1マス2ダメ',tier:3,stock:4},
+  {name:'大地の巻物',type:'巻物',ap:1,noise:4,xpCost:6,desc:'指定3x3範囲に2ダメ',tier:3,stock:4},
+  {name:'庭園',type:'道具',ap:99,noise:0,xpCost:7,desc:'デッキ5枚ごとに1VP',tier:3,stock:4},
+  {name:'大商い',type:'道具',ap:1,noise:1,xpCost:5,desc:'購入+3, XP+2',tier:3,stock:4},
+  {name:'瞬歩',type:'道具',ap:1,noise:2,xpCost:5,desc:'指定位置にテレポート(射程5)',tier:3,stock:4},
+  {name:'業火の巻物',type:'巻物',ap:1,noise:3,xpCost:7,desc:'指定4x4範囲に2ダメージ',tier:3,stock:3},
+  {name:'総入れ替えの巻物',type:'巻物',ap:1,noise:3,xpCost:6,desc:'全キャラの位置をシャッフル',tier:3,stock:3},
+  {name:'大罠',type:'罠',ap:1,noise:0,xpCost:5,desc:'3x3範囲に罠設置:2ダメ',tier:3,stock:3},
+  {name:'知識の泉',type:'道具',ap:1,noise:0,xpCost:5,desc:'ドロー+4',tier:3,stock:3},
+  // Tier 4 (XP 8-10), stock:2
+  {name:'炎の杖',type:'杖',ap:1,noise:3,xpCost:9,desc:'直線射程5+着弾点周囲1ダメ',tier:4,stock:2},
+  {name:'全知の目',type:'巻物',ap:1,noise:0,xpCost:9,desc:'マップ全体3T可視化',tier:4,stock:2},
+  {name:'帰還の巻物',type:'巻物',ap:1,noise:5,xpCost:9,desc:'自陣にテレポート(旗持ち中不可)',tier:4,stock:2},
+  {name:'死の吐息',type:'巻物',ap:1,noise:4,xpCost:9,desc:'周囲2マス全てに2ダメ',tier:4,stock:2},
+  {name:'黄金の杯',type:'道具',ap:1,noise:0,xpCost:10,desc:'AP+2、ドロー+2、XP+2',tier:4,stock:2},
+  {name:'死神の鎌',type:'武器',ap:1,noise:4,xpCost:10,desc:'攻撃5+射程2+周囲1ダメ',tier:4,stock:2},
+  {name:'隕石の巻物',type:'巻物',ap:1,noise:5,xpCost:10,desc:'ランダム3箇所に3x3で3ダメ',tier:4,stock:2},
+  {name:'重奏の巻物',type:'巻物',ap:1,noise:2,xpCost:8,desc:'次に使用するカードを2回発動',tier:4,stock:2},
+  {name:'大業火の巻物',type:'巻物',ap:1,noise:5,xpCost:9,desc:'指定8x8範囲に3ダメージ',tier:4,stock:2},
+  {name:'巨大罠',type:'罠',ap:1,noise:0,xpCost:8,desc:'4x4範囲に罠設置:3ダメ',tier:4,stock:2},
+  {name:'合成の巻物',type:'巻物',ap:1,noise:0,xpCost:9,desc:'武器同士または武器と杖を合成',tier:4,stock:2},
+  // Tier 5 Legend (XP 12-13), stock:1
+  {name:'天罰の雷',type:'巻物',ap:2,noise:5,xpCost:12,desc:'全マップの全敵に3ダメージ',tier:5,stock:1},
+  {name:'時の砂時計',type:'道具',ap:0,noise:0,xpCost:13,desc:'追加ターン獲得',tier:5,stock:1},
+  {name:'龍脈の杖',type:'杖',ap:1,noise:4,xpCost:13,desc:'指定直線の全マスに4ダメ（貫通）',tier:5,stock:1},
+  {name:'虚無の門',type:'巻物',ap:1,noise:5,xpCost:12,desc:'全モブ即死（ボス/敵プレイヤー無効）',tier:5,stock:1},
+  {name:'英雄の証',type:'道具',ap:0,noise:0,xpCost:13,desc:'即座に5VP獲得（使用後除外）',tier:5,stock:1},
+  {name:'転移の巻物',type:'巻物',ap:1,noise:1,xpCost:12,desc:'ランダム位置にワープ',tier:5,stock:1},
+];
+
+// ========== カード描画 ==========
+let cardsRendered = false;
+let activeFilter = 'all';
+
+function getTierColor(tier) {
+  if (tier === '初期') return 'var(--t-starter)';
+  if (tier === '常設') return 'var(--t-constant)';
+  return {1:'var(--t-1)',2:'var(--t-2)',3:'var(--t-3)',4:'var(--t-4)',5:'var(--t-5)'}[tier] || 'var(--text2)';
+}
+
+function getTierLabel(tier) {
+  if (tier === '初期') return '初期';
+  if (tier === '常設') return '常設';
+  return 'ティア ' + tier;
+}
+
+function getTypeColor(type) {
+  return {'武器':'var(--c-weapon)','杖':'var(--c-staff)','道具':'var(--c-tool)',
+    '巻物':'var(--c-scroll)','罠':'var(--c-trap)','財宝':'var(--c-treasure)',
+    '勝利点':'var(--c-vp)','HP強化':'var(--c-hp)'}[type] || 'var(--text2)';
+}
+
+function renderAllCards() {
+  cardsRendered = true;
+
+  // フィルターチップ生成
+  const filters = document.getElementById('card-filters');
+  const types = ['all','武器','杖','道具','巻物','罠','財宝','勝利点'];
+  const tiers = ['初期','常設',1,2,3,4,5];
+  filters.innerHTML = types.map(t =>
+    `<span class="chip ${t==='all'?'active':''}" data-filter="${t}" onclick="setFilter('${t}',this)">${t==='all'?'全て':t}</span>`
+  ).join('') + tiers.map(t =>
+    `<span class="chip" data-filter="tier-${t}" onclick="setFilter('tier-${t}',this)" style="border-color:${getTierColor(t)}40">${getTierLabel(t)}</span>`
+  ).join('');
+
+  renderCardTable();
+  renderCustomCards();
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterCards();
+}
+
+function renderCardTable() {
+  const container = document.getElementById('card-list');
+
+  // グループ: 初期、常設、ティア1-5
+  const groups = [
+    { label: '初期デッキ（10枚）', tier: '初期', cards: STARTER_DECK, color: 'var(--t-starter)' },
+    { label: '常設サプライ', tier: '常設', cards: CONST_SUPPLY, color: 'var(--t-constant)' },
+    { label: 'ティア1（XP 1-3）', tier: 1, cards: ALL_RANDOM.filter(c=>c.tier===1), color: 'var(--t-1)' },
+    { label: 'ティア2（XP 2-5）', tier: 2, cards: ALL_RANDOM.filter(c=>c.tier===2), color: 'var(--t-2)' },
+    { label: 'ティア3（XP 5-7）', tier: 3, cards: ALL_RANDOM.filter(c=>c.tier===3), color: 'var(--t-3)' },
+    { label: 'ティア4（XP 8-10）', tier: 4, cards: ALL_RANDOM.filter(c=>c.tier===4), color: 'var(--t-4)' },
+    { label: 'ティア5 伝説（XP 12-13）', tier: 5, cards: ALL_RANDOM.filter(c=>c.tier===5), color: 'var(--t-5)' },
+  ];
+
+  let html = '';
+  for (const g of groups) {
+    html += `<div class="section card-group" data-tier="${g.tier}">
+      <div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')" style="border-left:3px solid ${g.color}">
+        <span>${g.label}（${g.cards.length}枚）</span><span class="arrow">&#9660;</span>
+      </div>
+      <div class="section-body" style="padding:0">
+        <div class="card-table-wrap">
+          <table class="card-table">
+            <thead><tr>
+              <th>名前</th><th>タイプ</th><th>AP</th><th>ノイズ</th>
+              ${g.tier!=='初期'?'<th>XPコスト</th>':''}
+              <th>効果</th>
+              ${g.tier==='初期'?'<th>枚数</th>':'<th>在庫</th>'}
+              <th style="width:30px"></th>
+            </tr></thead>
+            <tbody>`;
+    for (let ci = 0; ci < g.cards.length; ci++) {
+      const c = g.cards[ci];
+      const apText = c.ap === 99 ? '-' : c.ap;
+      const cardId = 'card-' + g.tier + '-' + ci;
+      const ccnt = getCommentCount(cardId);
+      const cntHtml = ccnt > 0 ? `<span class="count">${ccnt}</span>` : '';
+      html += `<tr class="card-row" data-name="${c.name}" data-type="${c.type}" data-tier="${g.tier}">
+        <td style="font-weight:600;white-space:nowrap">${c.name}</td>
+        <td style="color:${getTypeColor(c.type)};white-space:nowrap">${c.type}</td>
+        <td style="color:var(--accent)">${apText}</td>
+        <td style="color:${c.noise>0?'var(--c-trap)':'var(--text2)'}">${c.noise}</td>
+        ${g.tier!=='初期'?`<td style="color:#aa88ff;font-weight:600">${c.xpCost}</td>`:''}
+        <td>${c.desc}</td>
+        <td style="text-align:center">${c.qty||c.stock}</td>
+        <td><span class="card-comment-icon" onclick="toggleCardComment('${cardId}',this)">&#128172;${cntHtml}</span></td>
+      </tr>
+      <tr class="card-comment-row" id="ccr-${cardId}" style="display:none" data-name="${c.name}" data-type="${c.type}" data-tier="${g.tier}">
+        <td colspan="${g.tier!=='初期'?8:7}">
+          <div class="comment-area" id="ca-${cardId}" style="display:block"></div>
+        </td>
+      </tr>`;
+    }
+    html += `</tbody></table></div></div></div>`;
+  }
+  container.innerHTML = html;
+}
+
+function toggleCardComment(cardId, icon) {
+  const row = document.getElementById('ccr-' + cardId);
+  if (row.style.display === 'none') {
+    row.style.display = '';
+    renderCommentArea(cardId, document.getElementById('ca-' + cardId));
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+function filterCards() {
+  const search = (document.getElementById('card-search').value || '').toLowerCase();
+  document.querySelectorAll('.card-row').forEach(row => {
+    const name = row.dataset.name.toLowerCase();
+    const type = row.dataset.type;
+    const tier = row.dataset.tier;
+    let show = true;
+
+    if (search && !name.includes(search) && !row.textContent.toLowerCase().includes(search)) show = false;
+
+    if (activeFilter !== 'all') {
+      if (activeFilter.startsWith('tier-')) {
+        const ft = activeFilter.replace('tier-','');
+        if (String(tier) !== ft) show = false;
+      } else {
+        if (type !== activeFilter) show = false;
+      }
+    }
+    row.style.display = show ? '' : 'none';
+    // Hide corresponding comment row too
+    const nextRow = row.nextElementSibling;
+    if (nextRow && nextRow.classList.contains('card-comment-row')) {
+      if (!show) nextRow.style.display = 'none';
+    }
+  });
+
+  // 空グループを非表示
+  document.querySelectorAll('.card-group').forEach(g => {
+    const visible = g.querySelectorAll('.card-row:not([style*="display: none"])').length;
+    g.style.display = visible > 0 ? '' : 'none';
+  });
+}
+
+// ========== カスタムカード ==========
+function getCustomCards() { return lsGet('raven_review_custom_cards', []); }
+function saveCustomCards(data) { lsSet('raven_review_custom_cards', data); }
+
+function renderCustomCards() {
+  const cards = getCustomCards();
+  const container = document.getElementById('custom-cards-section');
+  if (cards.length === 0) { container.innerHTML = ''; return; }
+  let html = `<div class="section" style="border-color:rgba(108,92,231,0.3)">
+    <div class="section-title" onclick="this.parentElement.classList.toggle('collapsed')" style="border-left:3px solid var(--accent2)">
+      <span>カスタムカード（${cards.length}枚）</span><span class="arrow">&#9660;</span>
+    </div>
+    <div class="section-body" style="padding:0">
+      <div class="card-table-wrap">
+        <table class="card-table">
+          <thead><tr><th>名前</th><th>タイプ</th><th>AP</th><th>ノイズ</th><th>XPコスト</th><th>効果</th><th>ティア</th><th></th></tr></thead>
+          <tbody>`;
+  cards.forEach((c, i) => {
+    const apText = c.ap === 99 ? '-' : c.ap;
+    html += `<tr>
+      <td style="font-weight:600;white-space:nowrap">${escHtml(c.name)}</td>
+      <td style="color:${getTypeColor(c.type)};white-space:nowrap">${escHtml(c.type)}</td>
+      <td style="color:var(--accent)">${apText}</td>
+      <td style="color:${c.noise>0?'var(--c-trap)':'var(--text2)'}">${c.noise}</td>
+      <td style="color:#aa88ff;font-weight:600">${c.xpCost}</td>
+      <td>${escHtml(c.desc)}</td>
+      <td>${c.tier}</td>
+      <td><button class="custom-del" onclick="deleteCustomCard(${i})">&times;</button></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div></div></div>';
+  container.innerHTML = html;
+}
+
+function deleteCustomCard(idx) {
+  const cards = getCustomCards();
+  cards.splice(idx, 1);
+  saveCustomCards(cards);
+  renderCustomCards();
+}
+
+// ========== カスタムルール ==========
+function getCustomRules() { return lsGet('raven_review_custom_rules', []); }
+function saveCustomRules(data) { lsSet('raven_review_custom_rules', data); }
+
+function renderCustomRules() {
+  const rules = getCustomRules();
+  const container = document.getElementById('custom-rules-section');
+  if (rules.length === 0) { container.innerHTML = ''; return; }
+  let html = `<div class="section" style="border-color:rgba(108,92,231,0.3)">
+    <div class="section-title" style="border-left:3px solid var(--accent2)">
+      <span>カスタムルール（${rules.length}件）</span>
+    </div>
+    <div class="section-body">`;
+  rules.forEach((r, i) => {
+    html += `<div class="custom-rule">
+      <h4 style="margin-top:0">${escHtml(r.title)}</h4>
+      <p style="white-space:pre-wrap">${escHtml(r.content)}</p>
+      <button class="custom-del" onclick="deleteCustomRule(${i})">&times;</button>
+    </div>`;
+  });
+  html += '</div></div>';
+  container.innerHTML = html;
+}
+
+function deleteCustomRule(idx) {
+  const rules = getCustomRules();
+  rules.splice(idx, 1);
+  saveCustomRules(rules);
+  renderCustomRules();
+}
+
+// ========== 要望システム ==========
+function getRequests() { return lsGet('raven_review_requests', []); }
+function saveRequests(data) { lsSet('raven_review_requests', data); }
+
+const STATUS_LABELS = { pending: '未対応', reviewing: '検討中', done: '完了' };
+const STATUS_CYCLE = ['pending', 'reviewing', 'done'];
+
+function renderRequests() {
+  const requests = getRequests();
+  const container = document.getElementById('request-list');
+  if (requests.length === 0) {
+    container.innerHTML = '<p style="color:var(--text2);text-align:center;margin-top:40px">まだ要望はありません</p>';
+    return;
+  }
+  let html = '';
+  requests.forEach((r, i) => {
+    const prClass = r.priority === '高' ? 'priority-high' : r.priority === '中' ? 'priority-mid' : 'priority-low';
+    const stClass = 'status-' + r.status;
+    html += `<div class="request-card">
+      <div class="req-title">${escHtml(r.title)}</div>
+      <div class="req-detail">${escHtml(r.detail)}</div>
+      <div class="req-meta">
+        <span class="priority-badge ${prClass}">優先度: ${escHtml(r.priority)}</span>
+        <button class="status-btn ${stClass}" onclick="cycleStatus(${i})">${STATUS_LABELS[r.status]}</button>
+        <span style="font-size:10px;color:var(--text2);margin-left:auto">${r.timestamp || ''}</span>
+      </div>
+      <button class="req-del" onclick="deleteRequest(${i})">&times;</button>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function cycleStatus(idx) {
+  const requests = getRequests();
+  const current = requests[idx].status;
+  const nextIdx = (STATUS_CYCLE.indexOf(current) + 1) % STATUS_CYCLE.length;
+  requests[idx].status = STATUS_CYCLE[nextIdx];
+  saveRequests(requests);
+  renderRequests();
+}
+
+function deleteRequest(idx) {
+  const requests = getRequests();
+  requests.splice(idx, 1);
+  saveRequests(requests);
+  renderRequests();
+}
+
+// ========== モーダル ==========
+function openModal(type) {
+  const overlay = document.getElementById('modal-overlay');
+  const content = document.getElementById('modal-content');
+  let html = '';
+
+  if (type === 'card') {
+    html = `<h3>カード追加</h3>
+      <label>名前</label><input id="m-card-name" type="text">
+      <label>タイプ</label>
+      <select id="m-card-type">
+        <option value="武器">武器</option><option value="杖">杖</option>
+        <option value="道具">道具</option><option value="巻物">巻物</option>
+        <option value="罠">罠</option><option value="財宝">財宝</option>
+        <option value="勝利点">勝利点</option>
+      </select>
+      <label>AP</label><input id="m-card-ap" type="number" value="1" min="0">
+      <label>ノイズ</label><input id="m-card-noise" type="number" value="0" min="0">
+      <label>XPコスト</label><input id="m-card-xp" type="number" value="1" min="0">
+      <label>効果説明</label><textarea id="m-card-desc"></textarea>
+      <label>ティア</label>
+      <select id="m-card-tier">
+        <option value="1">1</option><option value="2">2</option>
+        <option value="3">3</option><option value="4">4</option><option value="5">5</option>
+      </select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button class="btn-primary" onclick="saveNewCard()">追加</button>
+      </div>`;
+  } else if (type === 'rule') {
+    html = `<h3>ルール追加</h3>
+      <label>タイトル</label><input id="m-rule-title" type="text">
+      <label>内容</label><textarea id="m-rule-content" style="min-height:100px"></textarea>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button class="btn-primary" onclick="saveNewRule()">追加</button>
+      </div>`;
+  } else if (type === 'request') {
+    html = `<h3>要望を追加</h3>
+      <label>タイトル</label><input id="m-req-title" type="text">
+      <label>詳細</label><textarea id="m-req-detail" style="min-height:100px"></textarea>
+      <label>優先度</label>
+      <select id="m-req-priority">
+        <option value="高">高</option><option value="中" selected>中</option><option value="低">低</option>
+      </select>
+      <div class="modal-btns">
+        <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+        <button class="btn-primary" onclick="saveNewRequest()">追加</button>
+      </div>`;
+  }
+
+  content.innerHTML = html;
+  overlay.classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function saveNewCard() {
+  const name = document.getElementById('m-card-name').value.trim();
+  if (!name) return;
+  const card = {
+    name,
+    type: document.getElementById('m-card-type').value,
+    ap: parseInt(document.getElementById('m-card-ap').value) || 0,
+    noise: parseInt(document.getElementById('m-card-noise').value) || 0,
+    xpCost: parseInt(document.getElementById('m-card-xp').value) || 0,
+    desc: document.getElementById('m-card-desc').value.trim(),
+    tier: document.getElementById('m-card-tier').value,
+  };
+  const cards = getCustomCards();
+  cards.push(card);
+  saveCustomCards(cards);
+  closeModal();
+  renderCustomCards();
+}
+
+function saveNewRule() {
+  const title = document.getElementById('m-rule-title').value.trim();
+  if (!title) return;
+  const rule = {
+    title,
+    content: document.getElementById('m-rule-content').value.trim(),
+  };
+  const rules = getCustomRules();
+  rules.push(rule);
+  saveCustomRules(rules);
+  closeModal();
+  renderCustomRules();
+}
+
+function saveNewRequest() {
+  const title = document.getElementById('m-req-title').value.trim();
+  if (!title) return;
+  const req = {
+    title,
+    detail: document.getElementById('m-req-detail').value.trim(),
+    priority: document.getElementById('m-req-priority').value,
+    status: 'pending',
+    timestamp: new Date().toLocaleString('ja-JP'),
+  };
+  const requests = getRequests();
+  requests.push(req);
+  saveRequests(requests);
+  closeModal();
+  renderRequests();
+}
+
+// Escape key to close modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ========== 初期化 ==========
+initComments();
+renderCustomRules();
+</script>
+</body>
+</html>

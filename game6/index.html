@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>異議アリ・ザ・スパイア | Objection! The Spire v1.2</title>
+<meta name="description" content="裁判ゲーム×ローグライクデッキビルダー。証拠品カードで検察官を論破せよ。">
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi55Ww6K2w44Ki44Oq44O744K244O744K544OR44Kk44KiIiwic2hvcnRfbmFtZSI6IueVsOitsOOCouODqiIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMGEwYTE2IiwidGhlbWVfY29sb3IiOiIjMGEwYTE2In0=">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+@font-face{font-family:'GameIcon';src:url(data:application/octet-stream;base64,) format('woff2')}
+:root{
+--bg:#0a0a16;--bg2:#111128;--bg3:#1a1a3a;
+--gold:#ffd700;--gold-dim:#a08520;
+--red:#ff3344;--red-dim:#aa2233;
+--blue:#4488ff;--blue-dim:#2255aa;
+--green:#44ff88;--green-dim:#22aa55;
+--purple:#aa44ff;--purple-dim:#7722cc;
+--cyan:#44ffff;--cyan-dim:#22aaaa;
+--white:#eeeeff;--gray:#666688;--dark-gray:#333355;
+--card-w:90px;--card-h:130px;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-serif;font-size:14px;user-select:none;touch-action:manipulation}
+canvas{display:block}
+#game{width:100%;height:100%;position:relative;overflow:hidden}
+
+/* ===== SCREENS ===== */
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:10}
+.screen.active{display:flex}
+
+/* Title */
+#title-screen{background:var(--bg);text-align:center}
+#title-screen h1{font-size:clamp(28px,6vw,52px);color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,0.4);margin-bottom:8px;letter-spacing:4px}
+#title-screen .subtitle{font-size:clamp(12px,3vw,18px);color:var(--gray);margin-bottom:40px;letter-spacing:2px}
+.btn{background:linear-gradient(135deg,var(--bg3),var(--bg2));border:1px solid var(--gold-dim);color:var(--gold);padding:14px 40px;font-size:18px;border-radius:8px;cursor:pointer;transition:all .2s;font-family:inherit;letter-spacing:2px;min-width:200px;text-align:center}
+.btn:hover,.btn:active{background:linear-gradient(135deg,#2a2a5a,#1a1a4a);border-color:var(--gold);box-shadow:0 0 20px rgba(255,215,0,0.2);transform:scale(1.03)}
+.btn-small{padding:8px 16px;font-size:13px;min-width:auto}
+.btn-red{border-color:var(--red-dim);color:var(--red)}
+.btn-red:hover{border-color:var(--red);box-shadow:0 0 20px rgba(255,51,68,0.2)}
+.btn-blue{border-color:var(--blue-dim);color:var(--blue)}
+.btn-green{border-color:var(--green-dim);color:var(--green)}
+
+/* Map */
+#map-screen{background:var(--bg)}
+#map-canvas{width:100%;height:100%;display:block}
+.map-hud{position:absolute;top:0;left:0;right:0;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(10,10,22,0.95),transparent);z-index:5}
+.map-hud .info{font-size:13px;color:var(--gray)}
+.map-hud .info span{color:var(--gold)}
+.map-hud .hp-bar{display:flex;align-items:center;gap:6px}
+.map-hud .hp-bar .bar{width:120px;height:12px;background:var(--bg);border:1px solid var(--red-dim);border-radius:6px;overflow:hidden}
+.map-hud .hp-bar .bar-fill{height:100%;background:linear-gradient(90deg,var(--red),#ff6644);transition:width .3s;border-radius:6px}
+.map-hud .hp-bar .hp-text{font-size:12px;color:var(--red);min-width:50px}
+
+/* Battle */
+#battle-screen{background:var(--bg)}
+.battle-bg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0}
+.battle-ui{position:relative;z-index:2;width:100%;height:100%;display:flex;flex-direction:column}
+.battle-top{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 12px;gap:8px}
+.battle-top .player-info,.battle-top .enemy-info{flex:1}
+.battle-top .label{font-size:11px;color:var(--gray);margin-bottom:2px}
+.battle-top .name{font-size:14px;font-weight:bold;margin-bottom:4px}
+.battle-top .bars{display:flex;flex-direction:column;gap:3px}
+.bar-container{display:flex;align-items:center;gap:4px}
+.bar-container .bar{flex:1;height:10px;background:var(--bg);border:1px solid var(--dark-gray);border-radius:5px;overflow:hidden}
+.bar-container .bar-fill{height:100%;border-radius:5px;transition:width .3s}
+.bar-container .val{font-size:11px;min-width:36px;text-align:right}
+.hp-fill{background:linear-gradient(90deg,var(--red),#ff6644)}
+.mp-fill{background:linear-gradient(90deg,var(--blue),#66aaff)}
+.composure-fill{background:linear-gradient(90deg,var(--purple),#cc66ff)}
+
+.battle-middle{flex:1;display:flex;align-items:center;justify-content:center;position:relative}
+.enemy-sprite{position:relative;text-align:center}
+.enemy-canvas{image-rendering:pixelated}
+.damage-popup{position:absolute;font-size:24px;font-weight:bold;pointer-events:none;animation:dmgPop .8s ease-out forwards;z-index:99}
+@keyframes dmgPop{0%{opacity:1;transform:translateY(0) scale(1)}50%{opacity:1;transform:translateY(-40px) scale(1.3)}100%{opacity:0;transform:translateY(-70px) scale(0.8)}}
+/* v1.2: MEGA UPGRADED objection flash */
+.objection-flash{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;z-index:100;animation:objFlash 1.2s ease-out forwards;pointer-events:none}
+.objection-flash span{font-size:clamp(48px,14vw,96px);color:var(--red);font-weight:900;letter-spacing:12px;text-shadow:0 0 60px rgba(255,51,68,0.9),0 0 120px rgba(255,51,68,0.5),0 4px 0 #aa0022;transform:rotate(-5deg);animation:objTextSlam .6s cubic-bezier(.2,.8,.3,1.2) both}
+@keyframes objFlash{0%{background:rgba(255,51,68,0.5)}15%{background:rgba(255,255,255,0.4)}30%{background:rgba(255,51,68,0.15)}100%{background:transparent;opacity:0}}
+@keyframes objTextSlam{0%{transform:rotate(-5deg) scale(3);opacity:0;filter:blur(10px)}30%{transform:rotate(-5deg) scale(1.1);opacity:1;filter:blur(0)}50%{transform:rotate(-5deg) scale(0.95)}70%{transform:rotate(-5deg) scale(1.05)}100%{transform:rotate(-5deg) scale(1)}}
+
+.battle-status{display:flex;justify-content:center;gap:8px;padding:4px 10px;flex-wrap:wrap}
+.status-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:1px solid var(--dark-gray);position:relative}
+.status-icon .count{position:absolute;bottom:-2px;right:-2px;font-size:9px;background:var(--bg);border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;border:1px solid var(--dark-gray)}
+
+.battle-log{text-align:center;padding:4px 10px;font-size:12px;color:var(--gray);min-height:20px;max-height:40px;overflow:hidden}
+
+.battle-hand{padding:6px 4px 4px;overflow-x:auto;overflow-y:hidden;white-space:nowrap;display:flex;justify-content:center;gap:4px;min-height:calc(var(--card-h) + 12px);scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+
+.battle-bottom{display:flex;justify-content:space-between;align-items:center;padding:6px 12px 12px;gap:8px}
+.ap-display{display:flex;align-items:center;gap:4px}
+.ap-pip{width:22px;height:22px;border-radius:50%;border:2px solid var(--cyan-dim);display:flex;align-items:center;justify-content:center;font-size:10px;transition:all .2s}
+.ap-pip.filled{background:var(--cyan);border-color:var(--cyan);color:var(--bg);font-weight:bold}
+.ap-pip.empty{background:transparent;color:var(--cyan-dim)}
+
+/* Cards */
+.card{width:var(--card-w);height:var(--card-h);border-radius:8px;border:2px solid var(--dark-gray);background:linear-gradient(160deg,var(--bg3),var(--bg2));display:inline-flex;flex-direction:column;cursor:pointer;transition:all .15s;flex-shrink:0;position:relative;overflow:hidden;scroll-snap-align:center;padding:3px}
+.card:hover,.card.selected{transform:translateY(-8px);border-color:var(--gold);box-shadow:0 4px 20px rgba(255,215,0,0.2);z-index:5}
+.card.disabled{opacity:0.4;pointer-events:none}
+.card .card-cost{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--cyan);color:var(--bg);font-size:11px;font-weight:bold;display:flex;align-items:center;justify-content:center}
+.card .card-type-icon{position:absolute;top:2px;right:3px;font-size:11px;opacity:0.7}
+.card .card-art{width:100%;height:44px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-top:4px}
+.card .card-name{font-size:10px;font-weight:bold;text-align:center;padding:0 2px;line-height:1.2;color:var(--white);min-height:24px;display:flex;align-items:center;justify-content:center}
+.card .card-desc{font-size:8px;color:var(--gray);text-align:center;padding:0 3px;line-height:1.3;flex:1;display:flex;align-items:center;justify-content:center}
+.card .card-dmg{font-size:10px;font-weight:bold;text-align:center;color:var(--gold);padding-bottom:2px}
+
+.card.type-attack{border-color:#553333}
+.card.type-attack:hover,.card.type-attack.selected{border-color:var(--red)}
+.card.type-evidence{border-color:#335533}
+.card.type-evidence:hover,.card.type-evidence.selected{border-color:var(--green)}
+.card.type-rhetoric{border-color:#333355}
+.card.type-rhetoric:hover,.card.type-rhetoric.selected{border-color:var(--blue)}
+.card.type-special{border-color:#553355}
+.card.type-special:hover,.card.type-special.selected{border-color:var(--purple)}
+
+/* Reward / Event screens */
+#reward-screen,#event-screen,#shop-screen,#rest-screen,#gameover-screen{background:rgba(10,10,22,0.97)}
+.reward-title,.event-title{font-size:22px;color:var(--gold);margin-bottom:20px;text-align:center}
+.reward-cards{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:24px}
+.reward-cards .card{transform:scale(1.1)}
+.reward-cards .card:hover{transform:scale(1.2) translateY(-8px)}
+.event-text{max-width:360px;text-align:center;font-size:14px;line-height:1.8;color:var(--white);margin-bottom:24px;padding:0 16px}
+.event-choices{display:flex;flex-direction:column;gap:10px;width:280px}
+
+.shop-grid{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;padding:0 10px}
+.shop-item{text-align:center;cursor:pointer}
+.shop-item .price{font-size:12px;color:var(--gold);margin-top:4px}
+
+.deck-view{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,22,0.97);z-index:200;display:none;flex-direction:column;align-items:center;padding:20px;overflow-y:auto}
+.deck-view.active{display:flex}
+.deck-view h2{color:var(--gold);margin-bottom:16px}
+.deck-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-bottom:60px}
+.deck-close{position:fixed;bottom:20px;left:50%;transform:translateX(-50%)}
+
+/* Game Over */
+.go-stats{display:flex;flex-direction:column;gap:8px;margin:20px 0;align-items:center}
+.go-stats div{font-size:14px;color:var(--gray)}
+.go-stats div span{color:var(--gold)}
+
+/* Animations */
+@keyframes cardDraw{from{opacity:0;transform:translateY(60px) rotate(10deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+.shake{animation:shake .3s ease-in-out}
+.pulse{animation:pulse 1s infinite}
+
+/* v1.2: VISUAL MEGA UPGRADE */
+@keyframes composureBreak{0%{filter:none}10%{filter:brightness(2) contrast(1.5)}20%{filter:none}30%{filter:brightness(1.5)}100%{filter:none}}
+@keyframes screenCrack{0%{opacity:0}20%{opacity:1}100%{opacity:0.4}}
+#composure-crack{position:fixed;top:0;left:0;right:0;bottom:0;z-index:150;pointer-events:none;display:none}
+#composure-crack.active{display:block}
+#composure-crack svg{width:100%;height:100%}
+.composure-break-flash{animation:composureBreak .6s ease-out}
+@keyframes gavelSlam{0%{transform:translateY(-30px) rotate(-20deg);opacity:0}30%{transform:translateY(0) rotate(0deg);opacity:1}40%{transform:translateY(-5px) rotate(2deg)}50%{transform:translateY(0) rotate(0deg)}100%{opacity:0;transform:translateY(0) scale(0.8)}}
+#gavel-effect{position:fixed;top:40%;left:50%;transform:translateX(-50%);font-size:60px;pointer-events:none;z-index:90;display:none;animation:gavelSlam .7s ease-out forwards}
+#gavel-effect.active{display:block}
+@keyframes victoryScreen{0%{opacity:0;transform:scale(0.8)}30%{opacity:1;transform:scale(1.05)}50%{transform:scale(1)}100%{transform:scale(1)}}
+@keyframes defeatScreen{0%{opacity:0;filter:blur(10px)}100%{opacity:1;filter:blur(0)}}
+#cinematic-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:250;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+#cinematic-overlay.active{display:flex}
+#cinematic-overlay.victory{background:linear-gradient(180deg,rgba(10,10,22,.97),rgba(20,20,50,.97));animation:victoryScreen .8s ease-out}
+#cinematic-overlay.victory h1{font-size:clamp(36px,8vw,64px);color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,.6);letter-spacing:6px;margin-bottom:16px}
+#cinematic-overlay.victory .stars{font-size:48px;margin-bottom:20px}
+#cinematic-overlay.defeat{background:linear-gradient(180deg,rgba(30,10,10,.97),rgba(10,10,22,.97));animation:defeatScreen .8s ease-out}
+#cinematic-overlay.defeat h1{font-size:clamp(32px,7vw,56px);color:var(--red);text-shadow:0 0 40px rgba(255,51,68,.6);letter-spacing:4px;margin-bottom:16px}
+#cinematic-overlay .cin-stats{font-size:14px;color:var(--gray);line-height:2;margin:16px 0}
+#cinematic-overlay .cin-stats span{color:var(--gold)}
+@keyframes cardPlayFly{0%{transform:translateY(0) scale(1);opacity:1}50%{transform:translateY(-80px) scale(0.7);opacity:0.8}100%{transform:translateY(-150px) scale(0.3);opacity:0}}
+.card-play-fly{animation:cardPlayFly .4s ease-in forwards}
+
+/* Responsive */
+@media(max-width:400px){
+:root{--card-w:76px;--card-h:110px}
+.card .card-art{height:36px;font-size:22px}
+.card .card-name{font-size:9px}
+.card .card-desc{font-size:7px}
+.btn{padding:10px 24px;font-size:15px;min-width:160px}
+}
+@media(min-width:600px){
+:root{--card-w:100px;--card-h:145px}
+.card .card-art{height:50px;font-size:32px}
+.card .card-name{font-size:11px}
+.card .card-desc{font-size:9px}
+}
+
+/* Scrollbar */
+::-webkit-scrollbar{height:4px;width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--dark-gray);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="composure-crack"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50 0 L48 20 L52 25 L47 40 L53 45 L46 60 L54 65 L45 80 L55 85 L50 100" stroke="rgba(255,51,68,0.6)" stroke-width="0.3" fill="none"/><path d="M50 0 L55 15 L50 30 L57 35 L48 50 L56 55 L47 70 L55 75 L50 100" stroke="rgba(255,51,68,0.4)" stroke-width="0.2" fill="none"/></svg></div>
+<div id="gavel-effect"></div>
+<div id="cinematic-overlay"></div>
+<div id="game">
+<!-- TITLE -->
+<div id="title-screen" class="screen active">
+<h1>異議アリ</h1>
+<h1 style="font-size:clamp(16px,3.5vw,28px);color:var(--red);margin-bottom:4px;letter-spacing:6px">ザ・スパイア</h1>
+<div class="subtitle">― 法廷ローグライクデッキビルダー ―</div>
+<div style="margin-bottom:12px;font-size:12px;color:var(--gray);max-width:300px;line-height:1.6;padding:0 20px">
+証拠品カードを集め、検察官を論破し、<br>最高裁への階段を登れ。
+</div>
+<button class="btn" onclick="startRun()">開廷する</button>
+<div style="margin-top:16px;display:flex;gap:10px">
+<button class="btn btn-small" onclick="showDeckView()">デッキ確認</button>
+<button class="btn btn-small" onclick="showHelp()">遊び方</button>
+</div>
+<div style="margin-top:24px;font-size:10px;color:var(--dark-gray)">RAVEN PORTAL / Game #6 v1.2</div>
+</div>
+
+<!-- MAP -->
+<div id="map-screen" class="screen">
+<div class="map-hud">
+<div class="info">第<span id="map-floor">1</span>審 ─ <span id="map-court">地方裁判所</span></div>
+<div style="display:flex;align-items:center;gap:12px">
+<div class="info" style="font-size:12px">💰<span id="map-gold">0</span></div>
+<div class="hp-bar">
+<div class="bar"><div class="bar-fill" id="map-hp-bar" style="width:100%"></div></div>
+<div class="hp-text" id="map-hp-text">50/50</div>
+</div>
+</div>
+</div>
+<canvas id="map-canvas"></canvas>
+</div>
+
+<!-- BATTLE -->
+<div id="battle-screen" class="screen">
+<div class="battle-bg"><canvas id="battle-bg-canvas"></canvas></div>
+<div class="battle-ui">
+<div class="battle-top">
+<div class="player-info">
+<div class="label">弁護士</div>
+<div class="name" style="color:var(--cyan)">あなた</div>
+<div class="bars">
+<div class="bar-container"><div class="bar"><div class="bar-fill hp-fill" id="p-hp-bar"></div></div><div class="val" id="p-hp-val" style="color:var(--red)"></div></div>
+</div>
+</div>
+<div class="enemy-info" style="text-align:right">
+<div class="label" id="e-label">検察官</div>
+<div class="name" id="e-name" style="color:var(--red)"></div>
+<div class="bars">
+<div class="bar-container"><div class="bar"><div class="bar-fill hp-fill" id="e-hp-bar"></div></div><div class="val" id="e-hp-val" style="color:var(--red)"></div></div>
+<div class="bar-container"><div class="bar"><div class="bar-fill composure-fill" id="e-comp-bar"></div></div><div class="val" id="e-comp-val" style="color:var(--purple)"></div></div>
+</div>
+</div>
+</div>
+
+<div class="battle-middle">
+<div class="enemy-sprite">
+<canvas id="enemy-canvas" class="enemy-canvas" width="120" height="120"></canvas>
+<div id="e-intent" style="font-size:12px;color:var(--gray);margin-top:4px"></div>
+</div>
+</div>
+
+<div class="battle-status" id="battle-status"></div>
+<div class="battle-log" id="battle-log"></div>
+
+<div class="battle-hand" id="battle-hand"></div>
+
+<div class="battle-bottom">
+<div class="ap-display" id="ap-display"></div>
+<div style="display:flex;gap:6px">
+<button class="btn btn-small" onclick="showDeckView()" style="font-size:11px">📋</button>
+<button class="btn btn-small btn-red" onclick="endPlayerTurn()">ターン終了</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- REWARD -->
+<div id="reward-screen" class="screen">
+<div class="reward-title">🏆 勝訴！</div>
+<div id="reward-subtitle" style="font-size:13px;color:var(--gray);margin-bottom:16px"></div>
+<div class="reward-cards" id="reward-cards"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+<button class="btn btn-small" onclick="skipReward()">スキップ</button>
+</div>
+</div>
+
+<!-- EVENT -->
+<div id="event-screen" class="screen">
+<div class="event-title" id="event-title"></div>
+<div class="event-text" id="event-text"></div>
+<div class="event-choices" id="event-choices"></div>
+</div>
+
+<!-- SHOP -->
+<div id="shop-screen" class="screen">
+<div class="reward-title">⚖️ 法律事務所</div>
+<div style="font-size:13px;color:var(--gray);margin-bottom:16px">所持金: <span id="shop-gold" style="color:var(--gold)">0</span>G</div>
+<div class="shop-grid" id="shop-grid"></div>
+<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+<button class="btn btn-small btn-red" onclick="shopRemoveCard()">カード除去 (50G)</button>
+<button class="btn btn-small" onclick="leaveShop()">退出</button>
+</div>
+</div>
+
+<!-- REST -->
+<div id="rest-screen" class="screen">
+<div class="reward-title">☕ 休憩室</div>
+<div class="event-text">束の間の休息を取る...</div>
+<div class="event-choices">
+<button class="btn" onclick="restHeal()">回復 (HP 30%回復)</button>
+<button class="btn btn-blue" onclick="restUpgrade()">研鑽 (カード強化)</button>
+</div>
+</div>
+
+<!-- GAMEOVER -->
+<div id="gameover-screen" class="screen">
+<div class="reward-title" id="go-title">敗訴...</div>
+<div class="go-stats" id="go-stats"></div>
+<button class="btn" onclick="returnToTitle()">タイトルへ</button>
+</div>
+
+<!-- DECK VIEW -->
+<div class="deck-view" id="deck-view">
+<h2>現在のデッキ</h2>
+<div class="deck-grid" id="deck-grid"></div>
+<button class="btn btn-small deck-close" onclick="closeDeckView()">閉じる</button>
+</div>
+
+<!-- HELP -->
+<div class="deck-view" id="help-view">
+<h2>遊び方</h2>
+<div style="max-width:400px;text-align:left;line-height:1.8;font-size:13px;color:var(--gray);padding:0 16px">
+<p style="color:var(--gold);font-weight:bold;margin-bottom:8px">■ 基本ルール</p>
+<p>証拠品カードや弁論カードを使って検察官のHPと冷静さを削り、<strong style="color:var(--white)">論破</strong>を目指すローグライクデッキビルダーです。</p>
+<br>
+<p style="color:var(--cyan);font-weight:bold;margin-bottom:8px">■ カードタイプ</p>
+<p><span style="color:var(--red)">⚔️ 弁論</span> ─ 直接ダメージを与える攻撃カード</p>
+<p><span style="color:var(--green)">🔍 証拠</span> ─ 防御やバフなどの補助カード</p>
+<p><span style="color:var(--blue)">📜 修辞</span> ─ ドローやエナジー回復の戦術カード</p>
+<p><span style="color:var(--purple)">⚡ 必殺</span> ─ 「異議あり！」などの強力な切り札</p>
+<br>
+<p style="color:var(--gold);font-weight:bold;margin-bottom:8px">■ 勝利条件</p>
+<p>検察官のHP（体力）を0にするか、<span style="color:var(--purple)">冷静度</span>を0にして論破勝ちできます。冷静度が0の敵はダメージ2倍！</p>
+<br>
+<p style="color:var(--gold);font-weight:bold;margin-bottom:8px">■ マップ</p>
+<p>ノードをタップして進みます。⚔️戦闘、❓イベント、🏪ショップ、☕休憩、💀ボスがあります。3つの裁判所を突破すれば最高裁で最終弁論！</p>
+</div>
+<button class="btn btn-small deck-close" onclick="closeHelp()">閉じる</button>
+</div>
+</div>
+
+<script>
+// ============================================================
+// 異議アリ・ザ・スパイア - FULL GAME ENGINE
+// ============================================================
+
+// ----- UTILS -----
+const $ = id => document.getElementById(id);
+const rng = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const pick = arr => arr[rng(0,arr.length-1)];
+const shuffle = a => {for(let i=a.length-1;i>0;i--){const j=rng(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+const clamp = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+// ----- AUDIO (tiny synth) -----
+let audioCtx;
+function initAudio(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)()}
+function playTone(freq,dur=0.1,type='square',vol=0.08){
+  if(!audioCtx)return;
+  const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type;o.frequency.value=freq;g.gain.value=vol;
+  o.connect(g);g.connect(audioCtx.destination);
+  o.start();g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.stop(audioCtx.currentTime+dur);
+}
+function sfx(name){
+  initAudio();
+  switch(name){
+    case'click':playTone(800,.05);break;
+    case'card':playTone(600,.08,'triangle');break;
+    case'hit':playTone(200,.15,'sawtooth',0.1);break;
+    case'crit':playTone(400,.06);setTimeout(()=>playTone(600,.06),60);setTimeout(()=>playTone(900,.1),120);break;
+    case'objection':playTone(880,.1,'sawtooth',0.12);setTimeout(()=>playTone(1100,.15,'sawtooth',0.12),100);break;
+    case'heal':playTone(400,.1,'sine');setTimeout(()=>playTone(600,.1,'sine'),100);setTimeout(()=>playTone(800,.15,'sine'),200);break;
+    case'win':playTone(523,.1,'sine');setTimeout(()=>playTone(659,.1,'sine'),120);setTimeout(()=>playTone(784,.2,'sine'),240);break;
+    case'lose':playTone(300,.2,'sawtooth',0.1);setTimeout(()=>playTone(200,.3,'sawtooth',0.1),200);break;
+    case'block':playTone(300,.06,'triangle');break;
+    case'draw':playTone(500,.04,'triangle',0.05);break;
+  }
+}
+
+// ----- CARD DATABASE -----
+const CARDS = {
+  // === ATTACK (弁論) ===
+  strike:{name:'反論',type:'attack',cost:1,dmg:6,desc:'6ダメージ',art:'⚔️',rarity:0},
+  cross:{name:'反対尋問',type:'attack',cost:1,dmg:8,compDmg:3,desc:'8ダメージ\n冷静-3',art:'❓',rarity:0},
+  pressure:{name:'追及',type:'attack',cost:2,dmg:14,desc:'14ダメージ',art:'🔥',rarity:1},
+  bluff:{name:'揺さぶり',type:'attack',cost:1,dmg:4,compDmg:6,desc:'4ダメージ\n冷静-6',art:'😰',rarity:1},
+  combo:{name:'連続反論',type:'attack',cost:1,dmg:4,hits:2,desc:'4ダメージ×2',art:'⚡',rarity:1},
+  expose:{name:'暴露',type:'attack',cost:2,dmg:10,draw:1,desc:'10ダメージ\n1枚ドロー',art:'💣',rarity:2},
+  devastate:{name:'論破一閃',type:'attack',cost:3,dmg:28,desc:'28ダメージ',art:'💥',rarity:2},
+  chain:{name:'追撃論法',type:'attack',cost:1,dmg:3,hits:3,desc:'3ダメージ×3',art:'⛓️',rarity:2},
+  ambush:{name:'不意打ち',type:'attack',cost:0,dmg:4,desc:'4ダメージ\n(0コスト)',art:'🗡️',rarity:1},
+  hemorrhage:{name:'矛盾追及',type:'attack',cost:2,dmg:6,poisonApply:3,desc:'6ダメージ\n矛盾3付与',art:'🩸',rarity:1},
+
+  // === EVIDENCE (証拠) ===
+  defend:{name:'異議申立',type:'evidence',cost:1,block:5,desc:'防御+5',art:'🛡️',rarity:0},
+  document:{name:'物的証拠',type:'evidence',cost:1,block:8,desc:'防御+8',art:'📄',rarity:1},
+  alibi:{name:'アリバイ',type:'evidence',cost:2,block:14,desc:'防御+14',art:'🕐',rarity:1},
+  witness:{name:'証人喚問',type:'evidence',cost:1,block:4,draw:1,desc:'防御+4\n1枚ドロー',art:'👤',rarity:1},
+  fortify:{name:'法的根拠',type:'evidence',cost:2,block:10,strUp:2,desc:'防御+10\n弁論力+2',art:'📚',rarity:2},
+  ironclad:{name:'鉄壁の証拠',type:'evidence',cost:3,block:24,desc:'防御+24',art:'🏰',rarity:2},
+  photo:{name:'決定的写真',type:'evidence',cost:1,block:3,compDmg:4,desc:'防御+3\n冷静-4',art:'📸',rarity:1},
+  autopsy:{name:'鑑定書',type:'evidence',cost:1,block:6,heal:3,desc:'防御+6\nHP+3回復',art:'🔬',rarity:2},
+
+  // === RHETORIC (修辞) ===
+  think:{name:'熟考',type:'rhetoric',cost:1,draw:2,desc:'2枚ドロー',art:'🤔',rarity:0},
+  prepare:{name:'法廷準備',type:'rhetoric',cost:0,draw:1,block:2,desc:'1枚ドロー\n防御+2',art:'📋',rarity:0},
+  strategy:{name:'弁護戦略',type:'rhetoric',cost:1,draw:2,strUp:1,desc:'2枚ドロー\n弁論力+1',art:'🧠',rarity:1},
+  surge:{name:'異議連鎖',type:'rhetoric',cost:0,apGain:1,desc:'AP+1',art:'⚡',rarity:1},
+  insight:{name:'閃き',type:'rhetoric',cost:1,draw:3,desc:'3枚ドロー',art:'💡',rarity:2},
+  recycle:{name:'再審請求',type:'rhetoric',cost:1,reshuffleDiscard:true,draw:1,desc:'捨て札を山に戻す\n1枚ドロー',art:'♻️',rarity:1},
+  focus:{name:'集中',type:'rhetoric',cost:0,strUp:2,desc:'弁論力+2',art:'🎯',rarity:2},
+  galvanize:{name:'鼓舞',type:'rhetoric',cost:1,apGain:1,draw:1,desc:'AP+1\n1枚ドロー',art:'🌟',rarity:2},
+
+  // === SPECIAL (必殺) ===
+  objection:{name:'異議あり！',type:'special',cost:2,dmg:12,compDmg:8,objection:true,desc:'12ダメージ\n冷静-8\n異議演出',art:'📢',rarity:2},
+  turnabout:{name:'逆転',type:'special',cost:3,dmg:0,turnabout:true,desc:'受けた被害分の\nダメージを返す',art:'🔄',rarity:3},
+  verdict:{name:'最終弁論',type:'special',cost:4,dmg:40,desc:'40ダメージ\n(4コスト)',art:'⚖️',rarity:3},
+  mistrial:{name:'審理無効',type:'special',cost:1,clearDebuffs:true,draw:2,desc:'デバフ全解除\n2枚ドロー',art:'❌',rarity:2},
+  closing:{name:'結審陳述',type:'special',cost:2,dmg:8,heal:8,desc:'8ダメージ\nHP+8回復',art:'📖',rarity:2},
+};
+
+function makeCard(id, upgraded=false){
+  const base = CARDS[id];
+  if(!base) return null;
+  const c = {...base, id, upgraded};
+  if(upgraded){
+    c.name = base.name + '+';
+    if(c.dmg) c.dmg = Math.ceil(c.dmg * 1.4);
+    if(c.block) c.block = Math.ceil(c.block * 1.4);
+    if(c.compDmg) c.compDmg = Math.ceil(c.compDmg * 1.3);
+    if(c.draw) c.draw += (base.draw >= 2 ? 1 : 0);
+    if(c.heal) c.heal = Math.ceil(c.heal * 1.5);
+    if(c.hits) c.hits += 1;
+    if(c.poisonApply) c.poisonApply += 1;
+  }
+  c.uid = Math.random().toString(36).slice(2,10);
+  return c;
+}
+
+const STARTER_DECK = ['strike','strike','strike','strike','cross','defend','defend','defend','prepare','think'];
+
+// ----- ENEMIES -----
+const ENEMIES = {
+  // Floor 1
+  rookie_prosecutor:{name:'新米検察官',hp:38,comp:20,art:'👨‍⚖️',acts:[
+    {type:'attack',dmg:6,text:'論告'},
+    {type:'attack',dmg:8,text:'追及'},
+    {type:'defend',block:6,text:'反論準備'},
+    {type:'debuff',effect:'weak',val:1,text:'威圧'},
+  ],level:1},
+  clerk:{name:'書記官',hp:30,comp:25,art:'📝',acts:[
+    {type:'attack',dmg:5,text:'記録攻め'},
+    {type:'attack',dmg:5,compAtk:4,text:'手続き違反指摘'},
+    {type:'defend',block:8,text:'書類の壁'},
+  ],level:1},
+  witness_hostile:{name:'敵意ある証人',hp:34,comp:18,art:'😤',acts:[
+    {type:'attack',dmg:7,text:'虚偽証言'},
+    {type:'attack',dmg:10,text:'感情的反論'},
+    {type:'debuff',effect:'weak',val:2,text:'泣き落とし'},
+  ],level:1},
+
+  // Floor 2
+  veteran_prosecutor:{name:'敏腕検察官',hp:56,comp:30,art:'👩‍⚖️',acts:[
+    {type:'attack',dmg:10,text:'精密な論告'},
+    {type:'attack',dmg:7,compAtk:5,text:'心理的圧迫'},
+    {type:'defend',block:10,text:'法的防壁'},
+    {type:'attack',dmg:14,text:'決定的告発'},
+    {type:'buff',effect:'str',val:2,text:'気合い'},
+  ],level:2},
+  judge_stern:{name:'厳格な裁判官',hp:50,comp:35,art:'🧓',acts:[
+    {type:'attack',dmg:8,text:'発言制限'},
+    {type:'defend',block:12,text:'秩序維持'},
+    {type:'debuff',effect:'weak',val:2,text:'法廷侮辱警告'},
+    {type:'attack',dmg:12,compAtk:3,text:'却下！'},
+  ],level:2},
+  media:{name:'マスコミの圧力',hp:45,comp:28,art:'📺',acts:[
+    {type:'attack',dmg:6,compAtk:6,text:'世論操作'},
+    {type:'attack',dmg:9,text:'スクープ報道'},
+    {type:'debuff',effect:'poison',val:3,text:'風評被害'},
+    {type:'defend',block:8,text:'報道の盾'},
+  ],level:2},
+
+  // Floor 3
+  ace_prosecutor:{name:'エース検察官',hp:72,comp:35,art:'🦅',acts:[
+    {type:'attack',dmg:12,text:'鋭い論告'},
+    {type:'attack',dmg:8,compAtk:8,text:'完璧な論破'},
+    {type:'defend',block:14,text:'鉄壁の準備'},
+    {type:'attack',dmg:18,text:'必殺の告発'},
+    {type:'buff',effect:'str',val:3,text:'本気'},
+  ],level:3},
+  corrupt_judge:{name:'堕落した判事',hp:65,comp:40,art:'💰',acts:[
+    {type:'attack',dmg:10,text:'不当判決'},
+    {type:'debuff',effect:'weak',val:3,text:'司法妨害'},
+    {type:'debuff',effect:'poison',val:4,text:'裏工作'},
+    {type:'attack',dmg:15,compAtk:5,text:'権力行使'},
+    {type:'defend',block:12,text:'不正の壁'},
+  ],level:3},
+
+  // BOSSES
+  boss1:{name:'地検のエース\n白鷺 透',hp:70,comp:40,art:'🦢',isBoss:true,acts:[
+    {type:'attack',dmg:10,text:'冷徹な論告'},
+    {type:'attack',dmg:8,compAtk:6,text:'心理分析'},
+    {type:'defend',block:12,text:'完璧な準備'},
+    {type:'attack',dmg:16,text:'白鷺の一撃'},
+    {type:'buff',effect:'str',val:2,text:'威圧の眼光'},
+    {type:'debuff',effect:'weak',val:2,text:'精神攻撃'},
+  ],level:1},
+  boss2:{name:'最高検察官\n黒崎 鋼',hp:100,comp:50,art:'⚔️',isBoss:true,acts:[
+    {type:'attack',dmg:14,text:'鋼の論告'},
+    {type:'attack',dmg:10,compAtk:8,text:'完全論破'},
+    {type:'defend',block:16,text:'不動の法壁'},
+    {type:'attack',dmg:22,text:'黒崎流・断罪'},
+    {type:'buff',effect:'str',val:3,text:'覚醒'},
+    {type:'debuff',effect:'poison',val:4,text:'圧殺'},
+  ],level:2},
+  boss3:{name:'検事総長\n赤司 焔',hp:140,comp:60,art:'🔥',isBoss:true,acts:[
+    {type:'attack',dmg:16,text:'灼熱の論告'},
+    {type:'attack',dmg:12,compAtk:10,text:'精神崩壊'},
+    {type:'defend',block:20,text:'炎の法壁'},
+    {type:'attack',dmg:28,text:'赤司流・獄炎'},
+    {type:'buff',effect:'str',val:4,text:'限界突破'},
+    {type:'debuff',effect:'weak',val:3,text:'絶望の宣告'},
+    {type:'attack',dmg:10,compAtk:6,text:'業火連撃'},
+  ],level:3},
+};
+
+// ----- EVENTS -----
+const EVENTS = [
+  {
+    title:'📚 法律図書館',
+    text:'古びた法律書が山積みの図書館を見つけた。\n知識を蓄えることができそうだ。',
+    choices:[
+      {text:'熟読する (弁論力の遺物を得る)',action:g=>{g.relics.push({name:'法学の書',desc:'弁論力+1',strBonus:1});addLog('遺物「法学の書」を入手！')}},
+      {text:'速読する (2枚ドロー遺物)',action:g=>{g.relics.push({name:'速読術',desc:'毎ターン+1ドロー',drawBonus:1});addLog('遺物「速読術」を入手！')}},
+      {text:'立ち去る',action:()=>{addLog('何もせず去った。')}}
+    ]
+  },
+  {
+    title:'🎰 闇カジノ',
+    text:'怪しげな男が賭けを持ちかけてくる。\n「コイントスで勝てば報酬、負ければ代償だ」',
+    choices:[
+      {text:'賭ける (50%で100G / 50%でHP-15)',action:g=>{if(Math.random()>0.5){g.gold+=100;addLog('+100G！')}else{g.hp=Math.max(1,g.hp-15);addLog('HP-15...')}}},
+      {text:'断る (30G貰える)',action:g=>{g.gold+=30;addLog('+30G')}},
+    ]
+  },
+  {
+    title:'⛩️ 正義の祠',
+    text:'道端に小さな祠がある。\n供え物をすると何かが起こりそうだ。',
+    choices:[
+      {text:'祈る (最大HP+8)',action:g=>{g.maxHp+=8;g.hp+=8;addLog('最大HP+8！')}},
+      {text:'供え物をする (50G→ランダム遺物)',action:g=>{if(g.gold>=50){g.gold-=50;const r=pick([{name:'正義の天秤',desc:'戦闘開始時防御+4',startBlock:4},{name:'真実の鏡',desc:'冷静ダメージ+3',compBonus:3}]);g.relics.push(r);addLog(`遺物「${r.name}」を入手！`)}else{addLog('お金が足りない...')}}},
+      {text:'素通りする',action:()=>{addLog('先を急いだ。')}}
+    ]
+  },
+  {
+    title:'🎴 謎の依頼人',
+    text:'フードを被った人物が近づいてくる。\n「あなたの手札を見せてくれないか？\n　代わりに、良いものをあげよう」',
+    choices:[
+      {text:'デッキからカード1枚除去',action:g=>{g.pendingRemove=true;addLog('カードを1枚除去できる！')}},
+      {text:'HP-10で強力なカードを得る',action:g=>{g.hp=Math.max(1,g.hp-10);const pool=['objection','expose','insight','fortify','closing'];const c=makeCard(pick(pool));g.deck.push(c);addLog(`${c.name}を入手！ HP-10`)}},
+      {text:'断る (20G)',action:g=>{g.gold+=20;addLog('+20G')}},
+    ]
+  },
+  {
+    title:'💊 回復の泉',
+    text:'清らかな水が湧き出ている。\n体が癒されていくのを感じる。',
+    choices:[
+      {text:'飲む (HP全回復)',action:g=>{g.hp=g.maxHp;addLog('HPが全回復した！')}},
+      {text:'瓶に詰める (遺物: 次の戦闘開始時HP+10)',action:g=>{g.relics.push({name:'聖水',desc:'次の戦闘開始時HP+10回復',healOnBattle:10,oneUse:true});addLog('遺物「聖水」を入手！')}},
+    ]
+  },
+  {
+    title:'👻 過去の亡霊',
+    text:'かつて負けた裁判の被告人の霊が現れた。\n「あの時...もっと戦ってくれていたら...」',
+    choices:[
+      {text:'謝罪する (最大HP-5, 弁論力永続+1)',action:g=>{g.maxHp-=5;g.hp=Math.min(g.hp,g.maxHp);g.permStr=(g.permStr||0)+1;addLog('最大HP-5、永続弁論力+1')}},
+      {text:'決意を新たにする (HP+15)',action:g=>{g.hp=Math.min(g.hp+15,g.maxHp);addLog('HP+15回復')}},
+    ]
+  },
+];
+
+// ----- RELICS -----
+// Relics are gained via events and provide passive bonuses
+
+// ----- GAME STATE -----
+let G = {};
+
+function newGameState(){
+  return {
+    hp:60,maxHp:60,gold:50,
+    deck:STARTER_DECK.map(id=>makeCard(id)),
+    relics:[],
+    floor:1,act:1,
+    map:null,mapPos:-1,
+    battles:0,turns:0,
+    permStr:0,
+    pendingRemove:false,
+  };
+}
+
+// ----- MAP GENERATION -----
+const NODE_TYPES = ['battle','battle','battle','event','shop','rest','elite','boss'];
+
+function generateMap(act){
+  const rows = 8;
+  const cols = 3 + (act > 1 ? 1 : 0);
+  const nodes = [];
+
+  for(let r=0;r<rows;r++){
+    const row = [];
+    const count = r===0 ? 1 : r===rows-1 ? 1 : rng(2, Math.min(cols, 3));
+    for(let c=0;c<count;c++){
+      let type;
+      if(r===0) type='battle';
+      else if(r===rows-1) type='boss';
+      else if(r===rows-2) type='rest';
+      else {
+        const roll = Math.random();
+        if(roll < 0.40) type='battle';
+        else if(roll < 0.55) type='elite';
+        else if(roll < 0.75) type='event';
+        else if(roll < 0.88) type='shop';
+        else type='rest';
+      }
+      row.push({type, row:r, col:c, x:0, y:0, visited:false, connections:[]});
+    }
+    nodes.push(row);
+  }
+
+  // Connect nodes
+  for(let r=0;r<rows-1;r++){
+    const cur = nodes[r];
+    const next = nodes[r+1];
+    cur.forEach((node,ci) => {
+      // Each node connects to 1-2 nodes in next row
+      const targets = [];
+      if(next.length === 1) targets.push(0);
+      else {
+        const ratio = cur.length > 1 ? ci / (cur.length-1) : 0.5;
+        const target = Math.round(ratio * (next.length-1));
+        targets.push(target);
+        if(Math.random()>0.5 && target > 0) targets.push(target-1);
+        if(Math.random()>0.5 && target < next.length-1) targets.push(target+1);
+      }
+      node.connections = [...new Set(targets)];
+    });
+  }
+
+  return nodes;
+}
+
+// ----- MAP RENDERING -----
+let mapCtx, mapW, mapH;
+const NODE_ICONS = {battle:'⚔️',elite:'💀',event:'❓',shop:'🏪',rest:'☕',boss:'👹'};
+const NODE_COLORS = {battle:'#ff4444',elite:'#ff8800',event:'#44aaff',shop:'#ffdd44',rest:'#44ff88',boss:'#ff2222'};
+
+function initMap(){
+  const canvas = $('map-canvas');
+  const ow = canvas.offsetWidth || window.innerWidth;
+  const oh = canvas.offsetHeight || window.innerHeight;
+  mapW = canvas.width = ow * (window.devicePixelRatio||1);
+  mapH = canvas.height = oh * (window.devicePixelRatio||1);
+  mapCtx = canvas.getContext('2d');
+  mapCtx.scale(window.devicePixelRatio||1, window.devicePixelRatio||1);
+  renderMap();
+
+  canvas.onclick = e => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    handleMapClick(x, y);
+  };
+}
+
+function renderMap(){
+  if(!mapCtx) return;
+  const cw = mapW / (window.devicePixelRatio||1);
+  const ch = mapH / (window.devicePixelRatio||1);
+  const ctx = mapCtx;
+  ctx.clearRect(0,0,cw,ch);
+
+  const map = G.map;
+  if(!map) return;
+
+  const rows = map.length;
+  const padTop = 60;
+  const padBot = 30;
+  const rowH = (ch - padTop - padBot) / (rows - 1);
+
+  // Position nodes
+  map.forEach((row, ri) => {
+    const cols = row.length;
+    const rowW = cw - 80;
+    row.forEach((node, ci) => {
+      node.x = cols === 1 ? cw/2 : 40 + (rowW * ci / (cols-1));
+      node.y = padTop + ri * rowH;
+    });
+  });
+
+  // Draw connections
+  ctx.lineWidth = 2;
+  map.forEach((row, ri) => {
+    if(ri >= rows-1) return;
+    row.forEach(node => {
+      node.connections.forEach(ti => {
+        const target = map[ri+1][ti];
+        const canGo = (G.mapPos === -1 && ri === 0) ||
+                       (node.visited && !target.visited && isReachable(node, target));
+        ctx.strokeStyle = canGo ? 'rgba(255,215,0,0.5)' : 'rgba(60,60,100,0.4)';
+        ctx.beginPath();
+        ctx.moveTo(node.x, node.y);
+        // Bezier curve
+        const my = (node.y + target.y)/2;
+        ctx.bezierCurveTo(node.x, my, target.x, my, target.x, target.y);
+        ctx.stroke();
+      });
+    });
+  });
+
+  // Draw nodes
+  const nodeR = 18;
+  map.forEach((row, ri) => {
+    row.forEach(node => {
+      const accessible = isNodeAccessible(node);
+      ctx.globalAlpha = node.visited ? 0.4 : accessible ? 1 : 0.3;
+
+      // Glow for accessible
+      if(accessible && !node.visited){
+        ctx.shadowColor = NODE_COLORS[node.type];
+        ctx.shadowBlur = 15;
+      }
+
+      ctx.fillStyle = node.visited ? '#333355' : '#1a1a3a';
+      ctx.strokeStyle = accessible && !node.visited ? NODE_COLORS[node.type] : '#333355';
+      ctx.lineWidth = accessible && !node.visited ? 2.5 : 1.5;
+      ctx.beginPath();
+      ctx.arc(node.x, node.y, nodeR, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.globalAlpha = node.visited ? 0.4 : 1;
+      ctx.font = node.type==='boss' ? '20px serif' : '16px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(NODE_ICONS[node.type], node.x, node.y);
+      ctx.globalAlpha = 1;
+    });
+  });
+
+  // Update HUD
+  $('map-floor').textContent = G.act;
+  $('map-court').textContent = ['地方裁判所','高等裁判所','最高裁判所'][G.act-1] || '最高裁判所';
+  $('map-gold').textContent = G.gold;
+  $('map-hp-bar').style.width = (G.hp/G.maxHp*100)+'%';
+  $('map-hp-text').textContent = G.hp+'/'+G.maxHp;
+}
+
+function isReachable(fromNode, toNode){
+  return fromNode.connections.includes(G.map[toNode.row].indexOf(toNode));
+}
+
+function isNodeAccessible(node){
+  if(node.visited) return false;
+  if(G.mapPos === -1) return node.row === 0;
+
+  // Only allow advancing to the next row from the last visited node
+  const prevRow = node.row - 1;
+  if(prevRow < 0) return false;
+  if(prevRow !== G.mapPos) return false;
+  if(!G.lastVisited) return false;
+  const nodeCol = G.map[node.row].indexOf(node);
+  return G.lastVisited.connections.includes(nodeCol);
+}
+
+function handleMapClick(mx, my){
+  const map = G.map;
+  if(!map) return;
+  const nodeR = 24;
+
+  for(const row of map){
+    for(const node of row){
+      const dx = mx - node.x;
+      const dy = my - node.y;
+      if(dx*dx+dy*dy < nodeR*nodeR && isNodeAccessible(node)){
+        sfx('click');
+        visitNode(node);
+        return;
+      }
+    }
+  }
+}
+
+function visitNode(node){
+  node.visited = true;
+  G.lastVisited = node;
+  G.mapPos = node.row;
+
+  switch(node.type){
+    case 'battle': startBattle(pickEnemy(G.act, false)); break;
+    case 'elite': startBattle(pickEnemy(G.act, true)); break;
+    case 'boss': startBattle(pickBoss(G.act)); break;
+    case 'event': startEvent(); break;
+    case 'shop': startShop(); break;
+    case 'rest': showScreen('rest-screen'); break;
+  }
+}
+
+function pickEnemy(act, elite){
+  const pool = Object.entries(ENEMIES).filter(([k,e])=>e.level===act && !e.isBoss);
+  if(pool.length===0) return {...ENEMIES.rookie_prosecutor};
+  const [k,e] = pick(pool);
+  const enemy = JSON.parse(JSON.stringify(e));
+  if(elite){
+    enemy.hp = Math.ceil(enemy.hp * 1.4);
+    enemy.comp = Math.ceil(enemy.comp * 1.3);
+    enemy.isElite = true;
+    enemy.name = '精鋭 ' + enemy.name;
+  }
+  return enemy;
+}
+
+function pickBoss(act){
+  const bossKeys = ['boss1','boss2','boss3'];
+  const key = bossKeys[Math.min(act-1, bossKeys.length-1)];
+  return JSON.parse(JSON.stringify(ENEMIES[key]));
+}
+
+// ----- SCREEN MANAGEMENT -----
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+// ----- BATTLE SYSTEM -----
+let B = {}; // Battle state
+
+function startBattle(enemy){
+  initAudio();
+  clearComposureCrack();
+  B = {
+    enemy: enemy,
+    enemyMaxHp: enemy.hp,
+    enemyMaxComp: enemy.comp,
+    enemyBlock: 0,
+    enemyStr: 0,
+    enemyPoison: 0,
+    enemyActIndex: 0,
+    nextAct: null,
+
+    playerBlock: 0,
+    playerStr: G.permStr || 0,
+    playerWeak: 0,
+    playerPoison: 0,
+
+    drawPile: [],
+    hand: [],
+    discard: [],
+    exhaust: [],
+
+    ap: 3,
+    maxAp: 3,
+    turn: 1,
+    turnDamageTaken: 0,
+    handSize: 5,
+
+    animating: false,
+    battleOver: false,
+  };
+
+  // Apply relic bonuses
+  G.relics.forEach(r => {
+    if(r.strBonus) B.playerStr += r.strBonus;
+    if(r.drawBonus) B.handSize += r.drawBonus;
+  });
+
+  // Prepare draw pile
+  B.drawPile = shuffle([...G.deck]);
+
+  // Apply one-use relics
+  G.relics.forEach((r,i) => {
+    if(r.healOnBattle){
+      G.hp = Math.min(G.hp + r.healOnBattle, G.maxHp);
+    }
+    if(r.startBlock){
+      B.playerBlock += r.startBlock;
+    }
+  });
+  G.relics = G.relics.filter(r => !r.oneUse);
+
+  showScreen('battle-screen');
+  renderBattleBg();
+  rollEnemyIntent();
+  drawCards(B.handSize);
+  renderBattle();
+}
+
+function renderBattleBg(){
+  const canvas = $('battle-bg-canvas');
+  canvas.width = canvas.offsetWidth * (window.devicePixelRatio||1);
+  canvas.height = canvas.offsetHeight * (window.devicePixelRatio||1);
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio||1;
+  ctx.scale(dpr,dpr);
+  const w = canvas.width/dpr, h = canvas.height/dpr;
+
+  // Dark courtroom bg
+  const grad = ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#0d0d20');
+  grad.addColorStop(0.5,'#111130');
+  grad.addColorStop(1,'#0a0a18');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,w,h);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(68,136,255,0.06)';
+  ctx.lineWidth = 1;
+  for(let x=0;x<w;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}
+  for(let y=0;y<h;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+
+  // Pillars
+  ctx.fillStyle = 'rgba(40,40,80,0.3)';
+  ctx.fillRect(10, h*0.15, 16, h*0.6);
+  ctx.fillRect(w-26, h*0.15, 16, h*0.6);
+
+  // Bench
+  ctx.fillStyle = 'rgba(60,40,30,0.3)';
+  ctx.fillRect(w*0.2, h*0.35, w*0.6, 8);
+}
+
+function drawEnemySprite(){
+  const canvas = $('enemy-canvas');
+  const ctx = canvas.getContext('2d');
+  const s = 120;
+  canvas.width = s;
+  canvas.height = s;
+  ctx.clearRect(0,0,s,s);
+  ctx.font = '56px serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(B.enemy.art, s/2, s/2);
+
+  // Enemy block shield
+  if(B.enemyBlock > 0){
+    ctx.fillStyle = 'rgba(68,136,255,0.2)';
+    ctx.beginPath();
+    ctx.arc(s/2,s/2,50,0,Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(68,136,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+function renderBattle(){
+  if(!B.enemy) return;
+
+  // Player
+  $('p-hp-bar').style.width = (G.hp/G.maxHp*100)+'%';
+  $('p-hp-val').textContent = G.hp + '/' + G.maxHp + (B.playerBlock>0?' 🛡️'+B.playerBlock:'');
+
+  // Enemy
+  $('e-name').textContent = B.enemy.name;
+  $('e-hp-bar').style.width = (B.enemy.hp/B.enemyMaxHp*100)+'%';
+  $('e-hp-val').textContent = B.enemy.hp + '/' + B.enemyMaxHp + (B.enemyBlock>0?' 🛡️'+B.enemyBlock:'');
+  $('e-comp-bar').style.width = (B.enemy.comp/B.enemyMaxComp*100)+'%';
+  $('e-comp-val').textContent = '冷静:' + B.enemy.comp + '/' + B.enemyMaxComp;
+
+  drawEnemySprite();
+
+  // Intent
+  if(B.nextAct){
+    const a = B.nextAct;
+    let intentText = '';
+    if(a.type==='attack') intentText = `⚔️ ${a.text} (${a.dmg + B.enemyStr}${a.compAtk ? ' / 冷静-'+a.compAtk : ''})`;
+    else if(a.type==='defend') intentText = `🛡️ ${a.text} (+${a.block})`;
+    else if(a.type==='buff') intentText = `⬆️ ${a.text}`;
+    else if(a.type==='debuff') intentText = `⬇️ ${a.text}`;
+    $('e-intent').textContent = intentText;
+  }
+
+  // Status effects
+  let statusHtml = '';
+  if(B.playerStr > 0) statusHtml += `<div class="status-icon" style="background:rgba(255,100,50,0.2);border-color:#ff6432" title="弁論力+${B.playerStr}">⚔️<span class="count">${B.playerStr}</span></div>`;
+  if(B.playerBlock > 0) statusHtml += `<div class="status-icon" style="background:rgba(68,136,255,0.2);border-color:#4488ff" title="防御${B.playerBlock}">🛡️<span class="count">${B.playerBlock}</span></div>`;
+  if(B.playerWeak > 0) statusHtml += `<div class="status-icon" style="background:rgba(255,200,0,0.2);border-color:#ffc800" title="弱体${B.playerWeak}ターン">😵<span class="count">${B.playerWeak}</span></div>`;
+  if(B.playerPoison > 0) statusHtml += `<div class="status-icon" style="background:rgba(100,255,100,0.2);border-color:#66ff66" title="毒${B.playerPoison}">🧪<span class="count">${B.playerPoison}</span></div>`;
+  if(B.enemyPoison > 0) statusHtml += `<div class="status-icon" style="background:rgba(160,50,255,0.2);border-color:#aa44ff" title="敵に矛盾${B.enemyPoison}">📌<span class="count">${B.enemyPoison}</span></div>`;
+  $('battle-status').innerHTML = statusHtml;
+
+  // AP
+  let apHtml = '';
+  for(let i=0;i<B.maxAp;i++){
+    apHtml += `<div class="ap-pip ${i<B.ap?'filled':'empty'}">${i<B.ap?'◆':'◇'}</div>`;
+  }
+  $('ap-display').innerHTML = apHtml;
+
+  // Hand
+  renderHand();
+}
+
+function renderHand(){
+  const container = $('battle-hand');
+  container.innerHTML = '';
+  B.hand.forEach((card, i) => {
+    const el = createCardElement(card, i);
+    if(card.cost > B.ap) el.classList.add('disabled');
+    el.style.animation = `cardDraw 0.3s ease-out ${i*0.05}s both`;
+    container.appendChild(el);
+  });
+}
+
+function createCardElement(card, idx, clickable=true){
+  const el = document.createElement('div');
+  el.className = `card type-${card.type}`;
+  if(card.upgraded) el.style.boxShadow = '0 0 8px rgba(255,215,0,0.3)';
+
+  let dmgText = '';
+  if(card.dmg){
+    let d = card.dmg + (card.type==='attack'||card.type==='special' ? B.playerStr||0 : 0);
+    if(B.playerWeak > 0 && (card.type==='attack'||card.type==='special')) d = Math.ceil(d * 0.75);
+    const hits = card.hits || 1;
+    dmgText = hits > 1 ? `${d}×${hits}` : `${d}`;
+  }
+  if(card.block){
+    dmgText += (dmgText ? ' / ' : '') + `🛡️${card.block}`;
+  }
+
+  el.innerHTML = `
+    <div class="card-cost">${card.cost}</div>
+    <div class="card-type-icon">${card.type==='attack'?'⚔️':card.type==='evidence'?'🔍':card.type==='rhetoric'?'📜':'⚡'}</div>
+    <div class="card-art">${card.art}</div>
+    <div class="card-name">${card.name}</div>
+    <div class="card-desc">${card.desc.replace(/\n/g,'<br>')}</div>
+    ${dmgText ? `<div class="card-dmg">${dmgText}</div>` : ''}
+  `;
+
+  if(clickable && idx !== undefined){
+    el.onclick = () => playCard(idx);
+  }
+  return el;
+}
+
+function drawCards(n){
+  for(let i=0;i<n;i++){
+    if(B.drawPile.length === 0){
+      if(B.discard.length === 0) break;
+      B.drawPile = shuffle([...B.discard]);
+      B.discard = [];
+    }
+    const card = B.drawPile.pop();
+    B.hand.push(card);
+    sfx('draw');
+  }
+}
+
+async function playCard(idx){
+  if(B.animating || B.battleOver) return;
+  const card = B.hand[idx];
+  if(!card || card.cost > B.ap) return;
+
+  B.animating = true;
+  sfx('card');
+  showGavelEffect();
+  B.ap -= card.cost;
+
+  // Remove from hand
+  B.hand.splice(idx, 1);
+
+  // Apply card effects
+  let totalDmg = 0;
+  const hits = card.hits || 1;
+
+  if(card.dmg){
+    for(let h=0;h<hits;h++){
+      let d = card.dmg + (card.type==='attack'||card.type==='special' ? B.playerStr : 0);
+      if(B.playerWeak > 0 && (card.type==='attack'||card.type==='special')) d = Math.ceil(d * 0.75);
+      // Composure break bonus
+      if(B.enemy.comp <= 0) d = Math.ceil(d * 2);
+      totalDmg += dealDamageToEnemy(d);
+      if(hits > 1) await wait(150);
+    }
+  }
+
+  if(card.turnabout){
+    const d = B.turnDamageTaken;
+    if(d > 0){
+      if(B.enemy.comp <= 0) totalDmg = dealDamageToEnemy(d * 2);
+      else totalDmg = dealDamageToEnemy(d);
+      showDamagePopup(totalDmg, 'var(--gold)');
+    }
+  }
+
+  if(card.compDmg){
+    let cd = card.compDmg;
+    G.relics.forEach(r => { if(r.compBonus) cd += r.compBonus; });
+    B.enemy.comp = Math.max(0, B.enemy.comp - cd);
+    if(B.enemy.comp <= 0){
+      addLog('💥 検察官の冷静さが崩壊！ダメージ2倍！');
+      showComposureBreak();
+    }
+  }
+
+  if(card.block){
+    B.playerBlock += card.block;
+    sfx('block');
+  }
+
+  if(card.draw) drawCards(card.draw);
+  if(card.apGain) B.ap = Math.min(B.ap + card.apGain, 10);
+  if(card.strUp) B.playerStr += card.strUp;
+  if(card.heal){
+    G.hp = Math.min(G.hp + card.heal, G.maxHp);
+    sfx('heal');
+  }
+  if(card.poisonApply){
+    B.enemyPoison += card.poisonApply;
+  }
+  if(card.reshuffleDiscard){
+    B.drawPile = shuffle([...B.drawPile, ...B.discard]);
+    B.discard = [];
+    addLog('捨て札を山札に戻した！');
+  }
+  if(card.clearDebuffs){
+    B.playerWeak = 0;
+    B.playerPoison = 0;
+    addLog('デバフを全て解除！');
+  }
+
+  if(card.objection){
+    sfx('objection');
+    showObjectionFlash();
+  }
+
+  // Card to discard
+  B.discard.push(card);
+
+  // Log
+  if(totalDmg > 0) addLog(`${card.name} → ${totalDmg}ダメージ！`);
+  else if(card.block) addLog(`${card.name} → 防御+${card.block}`);
+  else addLog(`${card.name}を使用`);
+
+  renderBattle();
+
+  // Check enemy death
+  if(B.enemy.hp <= 0){
+    await wait(300);
+    battleWin();
+    B.animating = false;
+    return;
+  }
+
+  B.animating = false;
+}
+
+function dealDamageToEnemy(dmg){
+  let actual = dmg;
+  if(B.enemyBlock > 0){
+    if(B.enemyBlock >= actual){
+      B.enemyBlock -= actual;
+      actual = 0;
+    } else {
+      actual -= B.enemyBlock;
+      B.enemyBlock = 0;
+    }
+  }
+  B.enemy.hp = Math.max(0, B.enemy.hp - actual);
+  if(actual > 0){
+    sfx('hit');
+    showDamagePopup(actual, 'var(--red)');
+    // Shake enemy
+    $('enemy-canvas').classList.remove('shake');
+    void $('enemy-canvas').offsetWidth;
+    $('enemy-canvas').classList.add('shake');
+  }
+  return actual;
+}
+
+function dealDamageToPlayer(dmg){
+  let actual = dmg;
+  if(B.playerBlock > 0){
+    if(B.playerBlock >= actual){
+      B.playerBlock -= actual;
+      sfx('block');
+      actual = 0;
+    } else {
+      actual -= B.playerBlock;
+      B.playerBlock = 0;
+    }
+  }
+  G.hp = Math.max(0, G.hp - actual);
+  B.turnDamageTaken += actual;
+  if(actual > 0) sfx('hit');
+  return actual;
+}
+
+function showDamagePopup(val, color){
+  const popup = document.createElement('div');
+  popup.className = 'damage-popup';
+  popup.style.color = color;
+  popup.textContent = val;
+  popup.style.left = '50%';
+  popup.style.top = '30%';
+  popup.style.transform = 'translateX(-50%)';
+  document.querySelector('.battle-middle').appendChild(popup);
+  setTimeout(() => popup.remove(), 800);
+}
+
+function showObjectionFlash(){
+  const flash = document.createElement('div');
+  flash.className = 'objection-flash';
+  flash.innerHTML = '<span>異議あり！</span>';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 1300);
+}
+
+// v1.2: VFX SYSTEM
+function showComposureBreak(){
+  document.getElementById('composure-crack').classList.add('active');
+  document.body.classList.add('composure-break-flash');
+  setTimeout(()=>{document.body.classList.remove('composure-break-flash')},600);
+  // Crack stays visible until battle ends
+}
+function clearComposureCrack(){document.getElementById('composure-crack').classList.remove('active')}
+function showGavelEffect(){
+  const g=document.getElementById('gavel-effect');
+  g.textContent='\uD83D\uDD28';g.classList.remove('active');
+  void g.offsetWidth; // reflow
+  g.classList.add('active');
+  setTimeout(()=>g.classList.remove('active'),700);
+}
+function showCinematic(isWin,stats){
+  const cin=document.getElementById('cinematic-overlay');
+  cin.className='active '+(isWin?'victory':'defeat');
+  if(isWin){
+    cin.innerHTML=`
+      <div class="stars">\u2B50\u2B50\u2B50</div>
+      <h1>無 罪</h1>
+      <div style="font-size:18px;color:var(--white);margin-bottom:8px">全ての裁判に勝利した！</div>
+      <div class="cin-stats">${stats||''}</div>
+      <button class="btn" onclick="document.getElementById('cinematic-overlay').className='';returnToTitle()">タイトルへ</button>`;
+  } else {
+    cin.innerHTML=`
+      <h1>有 罪</h1>
+      <div style="font-size:18px;color:var(--gray);margin-bottom:8px">弁護は失敗に終わった……</div>
+      <div class="cin-stats">${stats||''}</div>
+      <button class="btn btn-red" onclick="document.getElementById('cinematic-overlay').className='';returnToTitle()">タイトルへ</button>`;
+  }
+}
+
+function addLog(text){
+  const bl=$('battle-log');
+  if(bl) bl.textContent = text;
+}
+
+function rollEnemyIntent(){
+  const acts = B.enemy.acts;
+  // Weighted selection - avoid repeating same action
+  let idx = rng(0, acts.length-1);
+  let tries = 0;
+  while(idx === B.enemyActIndex && tries < 5 && acts.length > 1){
+    idx = rng(0, acts.length-1);
+    tries++;
+  }
+  B.enemyActIndex = idx;
+  B.nextAct = {...acts[idx]};
+}
+
+async function endPlayerTurn(){
+  if(B.animating || B.battleOver) return;
+  B.animating = true;
+  sfx('click');
+
+  // Discard hand
+  B.discard.push(...B.hand);
+  B.hand = [];
+
+  // Reset player block
+  B.playerBlock = 0;
+
+  // Player poison
+  if(B.playerPoison > 0){
+    const pd = B.playerPoison;
+    G.hp = Math.max(0, G.hp - pd);
+    B.playerPoison = Math.max(0, B.playerPoison - 1);
+    addLog(`毒で${pd}ダメージ！`);
+    await wait(300);
+  }
+
+  // Player weak countdown
+  if(B.playerWeak > 0) B.playerWeak--;
+
+  renderBattle();
+  await wait(300);
+
+  // Enemy poison (矛盾)
+  if(B.enemyPoison > 0){
+    const pd = B.enemyPoison;
+    B.enemy.hp = Math.max(0, B.enemy.hp - pd);
+    B.enemyPoison = Math.max(0, B.enemyPoison - 1);
+    addLog(`矛盾で敵に${pd}ダメージ！`);
+    showDamagePopup(pd, 'var(--green)');
+    renderBattle();
+    await wait(400);
+    if(B.enemy.hp <= 0){
+      battleWin();
+      B.animating = false;
+      return;
+    }
+  }
+
+  // Check player death
+  if(G.hp <= 0){
+    battleLose();
+    B.animating = false;
+    return;
+  }
+
+  // ENEMY TURN
+  await enemyTurn();
+
+  // Check player death after enemy turn
+  if(G.hp <= 0){
+    battleLose();
+    B.animating = false;
+    return;
+  }
+
+  // NEW TURN
+  B.turn++;
+  G.turns++;
+  B.ap = B.maxAp;
+  B.enemyBlock = 0;
+  B.turnDamageTaken = 0;
+
+  // Draw new hand
+  drawCards(B.handSize);
+  rollEnemyIntent();
+  renderBattle();
+  B.animating = false;
+}
+
+async function enemyTurn(){
+  const a = B.nextAct;
+  if(!a) return;
+
+  addLog(`${B.enemy.name}: ${a.text}！`);
+  await wait(400);
+
+  switch(a.type){
+    case 'attack': {
+      let d = a.dmg + B.enemyStr;
+      const actual = dealDamageToPlayer(d);
+      if(a.compAtk){
+        // Some attacks also damage composure... but this is enemy attacking player
+        // For enemy: compAtk targets player's "morale" - we represent as extra damage
+      }
+      if(actual > 0) addLog(`${a.text}で${actual}ダメージ！`);
+      else addLog(`${a.text}は防御で防いだ！`);
+      break;
+    }
+    case 'defend':
+      B.enemyBlock += a.block;
+      addLog(`${B.enemy.name}は防御+${a.block}！`);
+      break;
+    case 'buff':
+      if(a.effect==='str') B.enemyStr += a.val;
+      addLog(`${B.enemy.name}の攻撃力が上がった！`);
+      break;
+    case 'debuff':
+      if(a.effect==='weak'){B.playerWeak += a.val; addLog(`弱体${a.val}ターン付与！`);}
+      if(a.effect==='poison'){B.playerPoison += a.val; addLog(`毒${a.val}付与！`);}
+      break;
+  }
+
+  renderBattle();
+  await wait(300);
+}
+
+function battleWin(){
+  B.battleOver = true;
+  sfx('win');
+  clearComposureCrack();
+  G.battles++;
+  const goldReward = rng(15, 25) + (B.enemy.isElite ? 20 : 0) + (B.enemy.isBoss ? 40 : 0);
+  G.gold += goldReward;
+
+  // Check if boss
+  if(B.enemy.isBoss){
+    if(G.act >= 3){
+      // GAME WIN
+      showGameOver(true);
+      return;
+    }
+    G.act++;
+    G.map = generateMap(G.act);
+    G.mapPos = -1;
+    G.lastVisited = null;
+  }
+
+  // Show reward
+  showReward(goldReward);
+}
+
+function battleLose(){
+  B.battleOver = true;
+  sfx('lose');
+  showGameOver(false);
+}
+
+// ----- REWARD -----
+function showReward(goldReward){
+  showScreen('reward-screen');
+  $('reward-subtitle').textContent = `+${goldReward}G 獲得`;
+
+  // Generate 3 card rewards
+  const pool = Object.keys(CARDS).filter(k => {
+    const c = CARDS[k];
+    return c.rarity <= (G.act + (B.enemy.isElite||B.enemy.isBoss ? 1 : 0));
+  });
+
+  const rewards = [];
+  const used = new Set();
+  for(let i=0;i<3;i++){
+    let id;
+    let tries = 0;
+    do { id = pick(pool); tries++; } while(used.has(id) && tries < 20);
+    used.add(id);
+    rewards.push(makeCard(id, Math.random() < 0.15));
+  }
+
+  const container = $('reward-cards');
+  container.innerHTML = '';
+  rewards.forEach(card => {
+    const el = createCardElement(card, undefined, false);
+    el.onclick = () => {
+      sfx('card');
+      G.deck.push(card);
+      addLog(`${card.name}をデッキに追加！`);
+      finishNode();
+    };
+    container.appendChild(el);
+  });
+}
+
+function skipReward(){
+  sfx('click');
+  finishNode();
+}
+
+function finishNode(){
+  if(G.pendingRemove){
+    G.pendingRemove = false;
+    showCardRemoval();
+    return;
+  }
+  showScreen('map-screen');
+  initMap();
+}
+
+// ----- CARD REMOVAL -----
+function showCardRemoval(){
+  const view = $('deck-view');
+  view.classList.add('active');
+  $('deck-grid').innerHTML = '';
+  document.querySelector('.deck-close').textContent = 'キャンセル';
+
+  G.deck.forEach((card, i) => {
+    const el = createCardElement(card, undefined, false);
+    el.onclick = () => {
+      sfx('card');
+      G.deck.splice(i, 1);
+      addLog(`${card.name}を除去！`);
+      closeDeckView();
+      showScreen('map-screen');
+      initMap();
+    };
+    $('deck-grid').appendChild(el);
+  });
+}
+
+// ----- EVENT -----
+function startEvent(){
+  const event = pick(EVENTS);
+  showScreen('event-screen');
+  $('event-title').textContent = event.title;
+  $('event-text').textContent = event.text;
+
+  const container = $('event-choices');
+  container.innerHTML = '';
+  event.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-small';
+    btn.textContent = choice.text;
+    btn.onclick = () => {
+      sfx('click');
+      choice.action(G);
+      finishNode();
+    };
+    container.appendChild(btn);
+  });
+}
+
+// ----- SHOP -----
+function startShop(){
+  showScreen('shop-screen');
+  $('shop-gold').textContent = G.gold;
+
+  const pool = Object.keys(CARDS).filter(k => CARDS[k].rarity >= 1);
+  const items = [];
+  const used = new Set();
+  for(let i=0;i<5;i++){
+    let id;
+    let tries=0;
+    do{id=pick(pool);tries++}while(used.has(id)&&tries<20);
+    used.add(id);
+    const card = makeCard(id, Math.random() < 0.2);
+    const price = card.rarity <= 1 ? rng(30,50) : card.rarity === 2 ? rng(60,90) : rng(100,140);
+    items.push({card, price});
+  }
+
+  const grid = $('shop-grid');
+  grid.innerHTML = '';
+  items.forEach(item => {
+    const wrap = document.createElement('div');
+    wrap.className = 'shop-item';
+    const el = createCardElement(item.card, undefined, false);
+    const priceEl = document.createElement('div');
+    priceEl.className = 'price';
+    priceEl.textContent = item.price + 'G';
+    wrap.appendChild(el);
+    wrap.appendChild(priceEl);
+
+    wrap.onclick = () => {
+      if(G.gold >= item.price){
+        sfx('card');
+        G.gold -= item.price;
+        G.deck.push(item.card);
+        wrap.style.opacity = '0.3';
+        wrap.style.pointerEvents = 'none';
+        $('shop-gold').textContent = G.gold;
+        addLog(`${item.card.name}を購入！`);
+      }
+    };
+    grid.appendChild(wrap);
+  });
+}
+
+function shopRemoveCard(){
+  if(G.gold < 50){addLog('お金が足りない！');return}
+  sfx('click');
+  G.gold -= 50;
+
+  // Show card removal overlay
+  const view = $('deck-view');
+  view.classList.add('active');
+  $('deck-grid').innerHTML = '';
+  document.querySelector('.deck-close').textContent = 'キャンセル';
+
+  G.deck.forEach((card, i) => {
+    const el = createCardElement(card, undefined, false);
+    el.onclick = () => {
+      sfx('card');
+      G.deck.splice(i, 1);
+      closeDeckView();
+      $('shop-gold').textContent = G.gold;
+    };
+    $('deck-grid').appendChild(el);
+  });
+}
+
+function leaveShop(){
+  sfx('click');
+  finishNode();
+}
+
+// ----- REST -----
+function restHeal(){
+  sfx('heal');
+  const heal = Math.ceil(G.maxHp * 0.3);
+  G.hp = Math.min(G.hp + heal, G.maxHp);
+  addLog(`HP ${heal} 回復！`);
+  finishNode();
+}
+
+function restUpgrade(){
+  sfx('click');
+  // Show deck to pick card to upgrade
+  const view = $('deck-view');
+  view.classList.add('active');
+  const grid = $('deck-grid');
+  grid.innerHTML = '';
+  document.querySelector('.deck-close').textContent = 'キャンセル';
+
+  G.deck.forEach((card, i) => {
+    if(card.upgraded) return;
+    const el = createCardElement(card, undefined, false);
+    el.onclick = () => {
+      sfx('crit');
+      G.deck[i] = makeCard(card.id, true);
+      addLog(`${card.name}を強化！→ ${G.deck[i].name}`);
+      closeDeckView();
+      finishNode();
+    };
+    grid.appendChild(el);
+  });
+}
+
+// ----- DECK VIEW -----
+function showDeckView(){
+  sfx('click');
+  const view = $('deck-view');
+  view.classList.add('active');
+  const grid = $('deck-grid');
+  grid.innerHTML = '';
+  document.querySelector('.deck-close').textContent = '閉じる';
+
+  const deck = G.deck || STARTER_DECK.map(id=>makeCard(id));
+  deck.forEach(card => {
+    grid.appendChild(createCardElement(card, undefined, false));
+  });
+}
+
+function closeDeckView(){
+  $('deck-view').classList.remove('active');
+}
+
+function showHelp(){
+  sfx('click');
+  $('help-view').classList.add('active');
+}
+function closeHelp(){
+  $('help-view').classList.remove('active');
+}
+
+// ----- GAME OVER -----
+function showGameOver(won){
+  clearComposureCrack();
+  showScreen('gameover-screen');
+  $('go-title').textContent = won ? '🎉 無罪判決！全裁判突破！' : '💀 敗訴...';
+  $('go-title').style.color = won ? 'var(--gold)' : 'var(--red)';
+
+  const statsHtml = `
+    <div>到達: <span>${['地方裁判所','高等裁判所','最高裁判所'][G.act-1]}${won?' (クリア)':''}</span></div>
+    <div>勝訴数: <span>${G.battles}</span></div>
+    <div>総ターン: <span>${G.turns}</span></div>
+    <div>最終デッキ: <span>${G.deck.length}枚</span></div>
+    <div>所持金: <span>${G.gold}G</span></div>
+    <div>遺物: <span>${G.relics.length}個</span></div>
+  `;
+  $('go-stats').innerHTML = statsHtml;
+
+  // v1.2: Cinematic overlay
+  showCinematic(won, statsHtml);
+}
+
+function returnToTitle(){
+  sfx('click');
+  showScreen('title-screen');
+}
+
+// ----- START RUN -----
+function startRun(){
+  initAudio();
+  sfx('click');
+  G = newGameState();
+  G.map = generateMap(1);
+  G.lastVisited = null;
+  showScreen('map-screen');
+  setTimeout(initMap, 50);
+}
+
+// ----- RESIZE -----
+window.addEventListener('resize', () => {
+  if($('map-screen').classList.contains('active')){
+    setTimeout(initMap, 50);
+  }
+  if($('battle-screen').classList.contains('active')){
+    renderBattleBg();
+  }
+});
+
+// ----- INIT -----
+// Title particles
+(function titleEffect(){
+  const c = document.createElement('canvas');
+  c.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0';
+  $('title-screen').insertBefore(c, $('title-screen').firstChild);
+  let w, h, ctx;
+  const particles = [];
+
+  function resize(){
+    w = c.width = c.offsetWidth;
+    h = c.height = c.offsetHeight;
+    ctx = c.getContext('2d');
+  }
+
+  function addP(){
+    particles.push({
+      x: Math.random()*w, y: h+10,
+      vx: (Math.random()-0.5)*0.3,
+      vy: -Math.random()*1.5-0.5,
+      size: Math.random()*2+1,
+      alpha: Math.random()*0.5+0.2,
+      color: pick(['#ffd700','#ff3344','#4488ff','#aa44ff']),
+      life: 1,
+    });
+  }
+
+  function animate(){
+    if(!$('title-screen').classList.contains('active')){requestAnimationFrame(animate);return}
+    ctx.clearRect(0,0,w,h);
+    if(Math.random()>0.7) addP();
+    for(let i=particles.length-1;i>=0;i--){
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.003;
+      if(p.life <= 0 || p.y < -10){particles.splice(i,1);continue}
+      ctx.globalAlpha = p.alpha * p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(animate);
+  }
+
+  resize();
+  window.addEventListener('resize', resize);
+  animate();
+})();
+
+// Prevent double-tap zoom on mobile
+document.addEventListener('touchstart', e => {
+  if(e.touches.length > 1) e.preventDefault();
+}, {passive:false});
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => {
+  const now = Date.now();
+  if(now - lastTouchEnd <= 300) e.preventDefault();
+  lastTouchEnd = now;
+}, false);
+</script>
+</body>
+</html>

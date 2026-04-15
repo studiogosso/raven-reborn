@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>嘘つき商館 — Liar's Bazaar v1.2</title>
+<meta name="description" content="闇市場のブラフカードゲーム。偽物を見抜け、あるいは騙し通せ。">
+<meta name="theme-color" content="#0a0a16">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoi5Zau44Gk44GN5ZWG6aSoIiwic2hvcnRfbmFtZSI6IkxpYXIncyBCYXphYXIiLCJzdGFydF91cmwiOiIuIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBhMGExNiIsInRoZW1lX2NvbG9yIjoiIzBhMGExNiJ9">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a16;--bg2:#12122a;--bg3:#1a1a3e;
+  --gold:#d4a634;--gold-dim:#8a6a1e;--gold-bright:#f0c040;
+  --red:#c0392b;--red-glow:#e74c3c;
+  --green:#27ae60;--green-glow:#2ecc71;
+  --blue:#2980b9;--blue-glow:#3498db;
+  --purple:#8e44ad;--purple-glow:#9b59b6;
+  --text:#e8e0d0;--text-dim:#8a8070;
+  --card-w:88px;--card-h:126px;
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
+  font-family:'Hiragino Sans','Noto Sans JP','Segoe UI',sans-serif;
+  overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center}
+
+/* bg canvas */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+#fx-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:50;pointer-events:none}
+
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;height:100%;position:absolute;top:0;left:0;z-index:10}
+.screen.active{display:flex}
+
+/* Title */
+#title-screen{background:transparent}
+#title-screen h1{font-size:clamp(2.2rem,9vw,4.5rem);color:var(--gold);
+  text-shadow:0 0 40px rgba(212,166,52,0.35),0 2px 0 #2a1a00;letter-spacing:.18em;margin-bottom:.15em}
+#title-screen .subtitle{font-size:clamp(.75rem,2.8vw,1.1rem);color:var(--text-dim);letter-spacing:.35em;margin-bottom:.5em}
+#title-screen .tagline{font-size:clamp(.65rem,2.2vw,.9rem);color:var(--purple-glow);margin-bottom:2em;letter-spacing:.08em}
+.btn{background:linear-gradient(135deg,var(--gold-dim),var(--gold));color:var(--bg);border:none;
+  padding:.75em 2.2em;font-size:clamp(.9rem,2.8vw,1.2rem);font-weight:bold;border-radius:4px;
+  cursor:pointer;letter-spacing:.08em;transition:all .2s;margin:.35em;min-width:180px;text-align:center}
+.btn:hover,.btn:active{transform:scale(1.05);filter:brightness(1.15)}
+.btn.secondary{background:transparent;border:1px solid var(--gold-dim);color:var(--gold)}
+.btn.small{padding:.4em 1em;font-size:.8rem;min-width:auto}
+.btn.danger{background:linear-gradient(135deg,#5a1a1a,var(--red));color:#fff}
+
+/* Game screen */
+#game-screen{flex-direction:column;justify-content:flex-start;padding:6px;gap:3px;background:transparent}
+.top-bar{display:flex;justify-content:space-between;align-items:center;width:100%;padding:5px 10px;
+  background:rgba(18,18,42,.85);border-radius:6px;font-size:.82rem;flex-shrink:0;backdrop-filter:blur(4px)}
+.top-bar .round-info{color:var(--gold);font-weight:bold}
+.top-bar .coins{color:var(--gold-bright)}
+.top-bar .rep{color:var(--green-glow)}
+
+.meter-row{display:flex;gap:8px;width:100%;padding:0 4px;flex-shrink:0}
+.meter{flex:1;display:flex;flex-direction:column;gap:1px}
+.meter-label{font-size:.6rem;color:var(--text-dim);display:flex;justify-content:space-between}
+.meter-bar{height:6px;background:#1a1a2e;border-radius:3px;overflow:hidden}
+.meter-fill{height:100%;border-radius:3px;transition:width .5s}
+.meter-fill.suspicion{background:linear-gradient(90deg,var(--green),var(--gold),var(--red))}
+.meter-fill.market{background:linear-gradient(90deg,var(--blue),var(--purple-glow))}
+
+.phase-area{flex:1;width:100%;display:flex;flex-direction:column;align-items:center;
+  justify-content:flex-start;min-height:0;overflow-y:auto;padding:4px 0;
+  -webkit-overflow-scrolling:touch}
+.phase-title{font-size:clamp(.95rem,3.5vw,1.4rem);color:var(--gold);margin:6px 0 4px;text-align:center}
+.phase-desc{font-size:clamp(.7rem,2.2vw,.88rem);color:var(--text-dim);margin-bottom:8px;text-align:center;max-width:92%;line-height:1.5}
+
+/* Cards */
+.card-row{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;padding:6px;max-width:100%}
+.card{width:var(--card-w);height:var(--card-h);border-radius:8px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;transition:all .22s;position:relative;
+  font-size:.72rem;flex-shrink:0}
+.card.face-up{background:linear-gradient(145deg,#1c1c3e,#282858);border:2px solid #3a3a6a;
+  box-shadow:0 3px 14px rgba(0,0,0,.55)}
+.card.face-down{background:repeating-linear-gradient(45deg,#1a1a3e,#1a1a3e 4px,#22224a 4px,#22224a 8px);
+  border:2px solid #3a3a6a;box-shadow:0 3px 14px rgba(0,0,0,.55)}
+.card:hover{transform:translateY(-4px)}
+.card.selected{border-color:var(--gold);box-shadow:0 0 18px rgba(212,166,52,.5);transform:translateY(-6px)}
+.card.genuine{border-color:var(--green)}
+.card.fake{border-color:var(--red)}
+.card.revealed.genuine{background:linear-gradient(145deg,#142a1c,#1c3a26)}
+.card.revealed.fake{background:linear-gradient(145deg,#2a1414,#3a1c1c)}
+.card .c-icon{font-size:1.7rem;margin-bottom:3px}
+.card .c-name{font-size:.6rem;text-align:center;color:var(--text);font-weight:bold;line-height:1.2;padding:0 2px}
+.card .c-price{font-size:.58rem;color:var(--gold);margin-top:2px}
+.card .c-tier{position:absolute;top:3px;left:4px;font-size:.5rem;color:var(--text-dim)}
+.card .c-quality{position:absolute;top:3px;right:3px;font-size:.5rem;padding:1px 4px;border-radius:3px;font-weight:bold}
+.card .c-quality.real{background:var(--green);color:#fff}
+.card .c-quality.fake{background:var(--red);color:#fff}
+.card .c-seal{position:absolute;bottom:3px;font-size:.5rem;color:var(--purple-glow);background:rgba(142,68,173,.2);padding:1px 5px;border-radius:3px}
+.card .c-trend{position:absolute;bottom:3px;right:3px;font-size:.55rem}
+.card.disabled{opacity:.35;pointer-events:none}
+
+.slot-area{display:flex;gap:7px;justify-content:center;align-items:center;padding:6px;flex-wrap:wrap}
+.slot{width:var(--card-w);height:var(--card-h);border:2px dashed #333366;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;color:var(--text-dim);font-size:.65rem;opacity:.5}
+
+/* Merchant */
+.merchant-row{display:flex;align-items:center;gap:10px;padding:6px;
+  background:rgba(18,18,42,.6);border-radius:8px;margin:4px 0}
+.merchant-icon{width:42px;height:42px;border-radius:50%;border:2px solid var(--purple);
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:var(--bg3)}
+.merchant-info{display:flex;flex-direction:column;gap:2px}
+.merchant-name{font-size:.85rem;color:var(--purple-glow);font-weight:bold}
+.merchant-trait{font-size:.65rem;color:var(--text-dim)}
+
+/* Skills */
+.skills-row{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;padding:3px}
+.skill-badge{padding:3px 8px;border-radius:12px;font-size:.62rem;background:var(--bg3);
+  border:1px solid var(--purple);color:var(--purple-glow);cursor:pointer;transition:all .15s}
+.skill-badge:hover{border-color:var(--gold);color:var(--gold)}
+.skill-badge.cd{opacity:.35;cursor:default}
+
+/* Shop */
+.shop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;padding:8px;width:100%;max-width:440px}
+.shop-item{background:rgba(26,26,62,.7);border:1px solid #3a3a6a;border-radius:8px;padding:10px;
+  text-align:center;cursor:pointer;transition:all .2s}
+.shop-item:hover{border-color:var(--gold);background:rgba(26,26,62,.9)}
+.shop-item .si-icon{font-size:1.4rem}
+.shop-item .si-name{font-size:.78rem;color:var(--text);margin:3px 0;font-weight:bold}
+.shop-item .si-cost{font-size:.72rem;color:var(--gold)}
+.shop-item .si-desc{font-size:.6rem;color:var(--text-dim);margin-top:3px}
+.shop-item.cant{opacity:.4;cursor:default}
+
+/* Actions */
+.action-bar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding:6px;flex-shrink:0}
+
+/* Log */
+.game-log{width:100%;max-height:72px;overflow-y:auto;background:rgba(18,18,42,.8);
+  border-radius:6px;padding:5px 10px;font-size:.68rem;color:var(--text-dim);flex-shrink:0;
+  scroll-behavior:smooth;backdrop-filter:blur(4px)}
+.log-entry{margin-bottom:2px}
+.log-entry.good{color:var(--green-glow)}.log-entry.bad{color:var(--red-glow)}
+.log-entry.info{color:var(--blue-glow)}.log-entry.gold{color:var(--gold-bright)}
+
+/* Overlays */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,22,.93);
+  display:none;flex-direction:column;align-items:center;justify-content:center;z-index:80;padding:20px}
+.overlay.active{display:flex}
+.ov-title{font-size:clamp(1.5rem,6vw,3rem);margin-bottom:.5em}
+.ov-stats{font-size:clamp(.78rem,2.5vw,1rem);color:var(--text-dim);text-align:center;line-height:2;margin-bottom:1.5em}
+.tutorial-box{max-width:480px;width:92%;background:var(--bg2);border:1px solid var(--gold-dim);
+  border-radius:12px;padding:22px;max-height:78vh;overflow-y:auto}
+.tutorial-box h2{color:var(--gold);margin-bottom:14px;font-size:1.2rem}
+.tutorial-box h3{color:var(--purple-glow);margin:12px 0 6px;font-size:.95rem}
+.tutorial-box p{margin-bottom:10px;font-size:.85rem;line-height:1.6;color:var(--text)}
+.hl{color:var(--gold);font-weight:bold}
+.warn{color:var(--red-glow)}.good{color:var(--green-glow)}
+
+/* Event banner */
+.event-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(10,10,22,.95);border:2px solid var(--gold);border-radius:12px;
+  padding:24px 32px;text-align:center;z-index:70;display:none;max-width:90%;
+  box-shadow:0 0 40px rgba(212,166,52,.2)}
+.event-banner.active{display:block;animation:fadeIn .4s ease-out}
+.event-banner h3{color:var(--gold);font-size:1.1rem;margin-bottom:8px}
+.event-banner p{color:var(--text);font-size:.85rem;margin-bottom:12px;line-height:1.5}
+
+/* Anims */
+@keyframes fadeIn{from{opacity:0;transform:translate(-50%,-50%) scale(.95)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes fadeInSimple{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+@keyframes glow{0%,100%{box-shadow:0 0 5px rgba(212,166,52,.3)}50%{box-shadow:0 0 25px rgba(212,166,52,.6)}}
+@keyframes cardFlip{0%{transform:scaleX(1)}50%{transform:scaleX(0)}100%{transform:scaleX(1)}}
+.anim-in{animation:fadeInSimple .35s ease-out}
+.anim-pulse{animation:pulse .5s ease-in-out}
+.anim-shake{animation:shake .4s ease-in-out}
+.anim-glow{animation:glow 1.4s ease-in-out infinite}
+.anim-flip{animation:cardFlip .5s ease-in-out}
+
+/* v1.2: VISUAL MEGA UPGRADE */
+@keyframes card3dFlip{0%{transform:perspective(800px) rotateY(0deg);filter:brightness(1)}49%{transform:perspective(800px) rotateY(90deg);filter:brightness(1.5)}51%{transform:perspective(800px) rotateY(90deg);filter:brightness(1.5)}100%{transform:perspective(800px) rotateY(0deg);filter:brightness(1)}}
+.card-3d-flip{animation:card3dFlip .6s ease-in-out}
+@keyframes suspicionPulse{0%,100%{box-shadow:0 0 5px rgba(192,57,43,.2);border-color:rgba(192,57,43,.3)}50%{box-shadow:0 0 25px rgba(192,57,43,.6),0 0 50px rgba(192,57,43,.2);border-color:rgba(231,76,60,.8)}}
+.suspicion-high .meter-fill.suspicion{animation:suspicionPulse 1s ease-in-out infinite}
+@keyframes marketCrash{0%{transform:translate(0,0)}10%{transform:translate(-8px,4px)}20%{transform:translate(8px,-4px)}30%{transform:translate(-6px,6px)}40%{transform:translate(6px,-2px)}50%{transform:translate(-4px,3px)}60%{transform:translate(4px,-4px)}70%{transform:translate(-3px,2px)}80%{transform:translate(3px,-3px)}90%{transform:translate(-2px,1px)}100%{transform:translate(0,0)}}
+.market-crash{animation:marketCrash .6s ease-out}
+@keyframes coinPop{0%{transform:translateY(0) scale(0);opacity:1}50%{transform:translateY(-30px) scale(1.3);opacity:1}100%{transform:translateY(-60px) scale(.6);opacity:0}}
+.coin-pop{position:fixed;font-size:24px;pointer-events:none;z-index:90;animation:coinPop .8s ease-out forwards}
+@keyframes bigReveal{0%{background:rgba(0,0,0,0)}15%{background:rgba(255,255,255,.3)}100%{background:rgba(0,0,0,0)}}
+.big-reveal{animation:bigReveal .4s ease-out}
+
+@media(max-width:380px){:root{--card-w:72px;--card-h:104px}.card .c-icon{font-size:1.3rem}.card .c-name{font-size:.52rem}}
+@media(min-width:600px){:root{--card-w:100px;--card-h:142px}}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="fx-canvas"></canvas>
+
+<!-- TITLE -->
+<div id="title-screen" class="screen active">
+  <h1>嘘つき商館</h1>
+  <div class="subtitle">LIAR'S BAZAAR</div>
+  <div class="tagline">― 闇市場の商人として、偽物を混ぜて売りつけろ ―</div>
+  <div style="position:fixed;bottom:8px;right:12px;font-size:10px;color:var(--text-dim);opacity:.5;z-index:1">v1.2</div>
+  <button class="btn" onclick="G_startGame()">商売を始める</button>
+  <button class="btn secondary" onclick="G_showTutorial()">遊び方</button>
+</div>
+
+<!-- TUTORIAL -->
+<div id="tutorial-overlay" class="overlay">
+  <div class="tutorial-box">
+    <h2>🏪 闇市場の掟</h2>
+    <p>あなたは闇市場「<span class="hl">嘘つき商館</span>」に集う商人の一人。<span class="hl">本物と偽物を巧みに混ぜて</span>他の商人に売りつけ、<span class="hl">10夜</span>で最も多くの金貨を稼げ。</p>
+
+    <h3>🔶 売りフェーズ</h3>
+    <p>手札から商品を選んで相手に提示。本物を混ぜれば信頼が維持されるが、<span class="warn">偽物を混ぜれば利益が大幅に増す</span>。相手が鑑定してきたら偽物がバレるかも。</p>
+
+    <h3>🔶 買いフェーズ</h3>
+    <p>今度は相手の品を評価する番。<span class="good">偽物を見抜いて告発すれば報奨金</span>。<span class="warn">誤告発は罰金＋信用低下</span>。全て買えば転売益が得られるが、偽物が混じっていれば損。</p>
+
+    <h3>🔶 二重封印</h3>
+    <p><span class="hl">封印</span>したカードは鑑定不可。偽物を封印すれば安全に売り抜けられるが、使い過ぎると疑われる。</p>
+
+    <h3>🔶 市場変動</h3>
+    <p>毎ラウンド、特定の商品の相場が変動する。<span class="hl">高騰品を上手く売り、暴落品を避けろ</span>。</p>
+
+    <h3>🔶 信用と疑惑</h3>
+    <p><span class="good">信用</span>がゼロになると追放。<span class="warn">疑惑</span>が高いと鑑定される確率が上がる。正直な取引で疑惑を下げ、ここぞという時に嘘をつけ。</p>
+
+    <h3>🔶 闇市場（ショップ）</h3>
+    <p>各ラウンド終了時に道具を購入可能。封印の追加、鑑定レンズ、疑惑操作など、戦略の幅が広がる。</p>
+
+    <button class="btn" onclick="G_hideTutorial()" style="margin-top:14px">閉じる</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="game-screen" class="screen">
+  <div class="top-bar">
+    <span class="round-info" id="ui-round">第1夜</span>
+    <span class="coins" id="ui-coins">💰 50</span>
+    <span class="rep" id="ui-rep">信用 80</span>
+  </div>
+  <div class="meter-row">
+    <div class="meter">
+      <div class="meter-label"><span>疑惑</span><span id="ui-susp-val">15</span></div>
+      <div class="meter-bar"><div class="meter-fill suspicion" id="ui-susp-bar" style="width:15%"></div></div>
+    </div>
+    <div class="meter">
+      <div class="meter-label"><span>市場活況</span><span id="ui-market-val">中</span></div>
+      <div class="meter-bar"><div class="meter-fill market" id="ui-market-bar" style="width:50%"></div></div>
+    </div>
+  </div>
+  <div class="phase-area" id="phase-area"></div>
+  <div class="action-bar" id="action-bar"></div>
+  <div class="game-log" id="game-log"></div>
+</div>
+
+<!-- RESULT -->
+<div id="result-overlay" class="overlay">
+  <div class="ov-title" id="ov-title"></div>
+  <div class="ov-stats" id="ov-stats"></div>
+  <button class="btn" onclick="G_startGame()">もう一度挑む</button>
+  <button class="btn secondary" onclick="G_showTitle()">タイトルへ</button>
+</div>
+
+<!-- EVENT BANNER -->
+<div id="event-banner" class="event-banner"></div>
+
+<script>
+// ==================== UTILS ====================
+const $=id=>document.getElementById(id);
+const CE=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!==undefined)e.innerHTML=html;return e};
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const shuffle=arr=>{for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr};
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+// ==================== BG CANVAS (floating lanterns) ====================
+const bgC=$('bg-canvas'), bgX=bgC.getContext('2d');
+let lanterns=[];
+function initBg(){
+  bgC.width=innerWidth; bgC.height=innerHeight;
+  lanterns=[];
+  for(let i=0;i<18;i++){
+    lanterns.push({
+      x:Math.random()*bgC.width, y:Math.random()*bgC.height,
+      vx:(Math.random()-.5)*.3, vy:-(.15+Math.random()*.25),
+      size:3+Math.random()*5, alpha:.08+Math.random()*.12,
+      hue:30+Math.random()*20
+    });
+  }
+}
+function drawBg(){
+  bgX.fillStyle='#0a0a16';
+  bgX.fillRect(0,0,bgC.width,bgC.height);
+  // Subtle radial gradient
+  const g=bgX.createRadialGradient(bgC.width/2,bgC.height*.3,0,bgC.width/2,bgC.height*.3,bgC.width*.6);
+  g.addColorStop(0,'rgba(26,26,62,.4)');g.addColorStop(1,'rgba(10,10,22,0)');
+  bgX.fillStyle=g;bgX.fillRect(0,0,bgC.width,bgC.height);
+  // Lanterns
+  lanterns.forEach(l=>{
+    l.x+=l.vx;l.y+=l.vy;
+    if(l.y<-20){l.y=bgC.height+20;l.x=Math.random()*bgC.width}
+    if(l.x<-20)l.x=bgC.width+20;if(l.x>bgC.width+20)l.x=-20;
+    bgX.beginPath();
+    bgX.arc(l.x,l.y,l.size,0,Math.PI*2);
+    bgX.fillStyle=`hsla(${l.hue},70%,55%,${l.alpha+Math.sin(Date.now()*.001+l.x)*.03})`;
+    bgX.fill();
+    // Glow
+    bgX.beginPath();bgX.arc(l.x,l.y,l.size*3,0,Math.PI*2);
+    bgX.fillStyle=`hsla(${l.hue},70%,55%,${l.alpha*.25})`;bgX.fill();
+  });
+  requestAnimationFrame(drawBg);
+}
+window.addEventListener('resize',()=>{bgC.width=innerWidth;bgC.height=innerHeight;fxC.width=innerWidth;fxC.height=innerHeight});
+initBg();drawBg();
+
+// ==================== FX CANVAS (particles) ====================
+const fxC=$('fx-canvas'), fxX=fxC.getContext('2d');
+fxC.width=innerWidth;fxC.height=innerHeight;
+let particles=[];
+function spawnP(x,y,color,n=15){
+  for(let i=0;i<n;i++) particles.push({x,y,vx:(Math.random()-.5)*7,vy:(Math.random()-.5)*7-2,
+    life:1,decay:.012+Math.random()*.025,size:2+Math.random()*5,color});
+}
+function coinBurst(x,y){spawnP(x,y,'#d4a634',28)}
+function badBurst(x,y){spawnP(x,y,'#c0392b',22)}
+(function fxLoop(){
+  fxX.clearRect(0,0,fxC.width,fxC.height);
+  particles=particles.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.life-=p.decay;
+    if(p.life<=0)return false;
+    fxX.globalAlpha=p.life;fxX.fillStyle=p.color;
+    fxX.beginPath();fxX.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);fxX.fill();
+    return true;
+  });
+  fxX.globalAlpha=1;requestAnimationFrame(fxLoop);
+})();
+
+// ==================== AUDIO ====================
+let aCtx;
+function initA(){if(!aCtx)aCtx=new(window.AudioContext||window.webkitAudioContext)()}
+function tone(f,d=.12,t='sine',v=.13){
+  initA();const o=aCtx.createOscillator(),g=aCtx.createGain();
+  o.type=t;o.frequency.value=f;g.gain.setValueAtTime(v,aCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,aCtx.currentTime+d);
+  o.connect(g).connect(aCtx.destination);o.start();o.stop(aCtx.currentTime+d);
+}
+const sfx={
+  coin(){tone(880,.1);setTimeout(()=>tone(1100,.15),80)},
+  bad(){tone(200,.3,'sawtooth',.08)},
+  reveal(){tone(440,.08);setTimeout(()=>tone(660,.12),60)},
+  seal(){tone(330,.2,'triangle');setTimeout(()=>tone(550,.3,'triangle'),100)},
+  accuse(){tone(300,.15,'square',.07);setTimeout(()=>tone(150,.3,'square',.07),100)},
+  buy(){tone(520,.1,'triangle');setTimeout(()=>tone(660,.08,'triangle'),60)},
+  win(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,.25,'triangle',.11),i*120))},
+  lose(){[400,350,300,200].forEach((f,i)=>setTimeout(()=>tone(f,.3,'sawtooth',.07),i*150))},
+  event(){tone(660,.15,'triangle',.1);setTimeout(()=>tone(880,.2,'triangle',.08),120)},
+};
+document.addEventListener('touchstart',()=>initA(),{once:true});
+document.addEventListener('click',()=>initA(),{once:true});
+
+// v1.2: VFX HELPERS
+function showCoinPop(x,y,count=5){for(let i=0;i<count;i++){const d=document.createElement('div');d.className='coin-pop';d.textContent='\uD83E\uDE99';d.style.left=(x-12+Math.random()*30)+'px';d.style.top=(y+Math.random()*20)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),800)}}
+function marketCrashShake(){document.querySelector('#game-screen')?.classList.add('market-crash');setTimeout(()=>document.querySelector('#game-screen')?.classList.remove('market-crash'),600)}
+function suspicionGlowCheck(){const mtr=document.querySelector('.meter-row');if(mtr&&S.susp>=60)mtr.classList.add('suspicion-high');else if(mtr)mtr.classList.remove('suspicion-high');}
+function doCardFlip3d(el){if(el)el.classList.add('card-3d-flip');setTimeout(()=>{if(el)el.classList.remove('card-3d-flip')},600)}
+
+// ==================== DATA ====================
+const GOODS=[
+  {name:'翡翠の勾玉',icon:'🟢',base:12,tier:1,cat:'宝石'},
+  {name:'銀の短刀',icon:'🗡️',base:15,tier:1,cat:'武具'},
+  {name:'絹の反物',icon:'🧵',base:10,tier:1,cat:'布'},
+  {name:'香木',icon:'🪵',base:9,tier:1,cat:'薬'},
+  {name:'朱塗りの盃',icon:'🍶',base:11,tier:1,cat:'器'},
+  {name:'古銭の束',icon:'🪙',base:14,tier:1,cat:'貨幣'},
+  {name:'白磁の壺',icon:'🏺',base:13,tier:1,cat:'器'},
+  {name:'龍涎香',icon:'✨',base:22,tier:2,cat:'薬'},
+  {name:'星鉄の護符',icon:'🛡️',base:25,tier:2,cat:'武具'},
+  {name:'鬼の牙',icon:'🦷',base:20,tier:2,cat:'素材'},
+  {name:'曜変天目',icon:'🫖',base:30,tier:2,cat:'器'},
+  {name:'霊狐の尾',icon:'🦊',base:28,tier:2,cat:'素材'},
+  {name:'紫水晶の数珠',icon:'📿',base:24,tier:2,cat:'宝石'},
+  {name:'月光珠',icon:'🌙',base:35,tier:3,cat:'宝石'},
+  {name:'竜骨の笛',icon:'🎵',base:40,tier:3,cat:'楽器'},
+  {name:'天女の羽衣',icon:'🪶',base:45,tier:3,cat:'布'},
+  {name:'不死鳥の涙',icon:'💧',base:50,tier:3,cat:'薬'},
+  {name:'封印の巻物',icon:'📜',base:55,tier:3,cat:'呪物'},
+  {name:'黄金の面',icon:'🎭',base:48,tier:3,cat:'呪物'},
+];
+
+const MERCHANTS=[
+  {name:'妖狐の雪女',icon:'🦊',bluff:.45,eye:.3,aggr:.4,voice:[
+    '「ふふ…良い品でしょう？」','「信じるも信じないも、あなた次第」','「あら、お目が高い」']},
+  {name:'鉄仮面の源蔵',icon:'🎭',bluff:.22,eye:.7,aggr:.6,voice:[
+    '「品には自信がある」','「その目…何か疑っているな？」','「正直な商売を心がけている」']},
+  {name:'毒婦のお蓮',icon:'🐍',bluff:.55,eye:.2,aggr:.3,voice:[
+    '「うふふ、特別に安くしてあげる」','「騙す？滅相もない」','「信じて…ね？」']},
+  {name:'隻眼の弥兵衛',icon:'👁️',bluff:.28,eye:.5,aggr:.8,voice:[
+    '「怪しい物は即告発だ」','「この眼は誤魔化せんぞ」','「取引は公正にやれ」']},
+  {name:'影踏みの月夜',icon:'🌑',bluff:.4,eye:.55,aggr:.5,voice:[
+    '「…………（値踏みしている）」','「取引しよう」','「面白い品だ」']},
+];
+
+const CATEGORIES=['宝石','武具','布','薬','器','素材','貨幣','楽器','呪物'];
+
+// ==================== STATE ====================
+let S={};
+
+function resetState(){
+  S={
+    round:1, maxRounds:10, coins:50, rep:80, susp:15,
+    hand:[], offer:[], maxSlots:3,
+    phase:'',
+    merchants:[], activeMerch:null,
+    enemyOffer:[],
+    market:{boom:null,bust:null,heat:50}, // market conditions
+    skills:{seals:2, lens:false, tongue:false, nose:false, cloak:false},
+    shopBought:[],
+    combo:0, maxCombo:0,
+    stats:{earned:0,spent:0,fakesSold:0,caughtCount:0,accOk:0,accFail:0,rounds:0},
+    eventQueue:[],
+    lensUsed:false,
+  };
+}
+
+// ==================== CARD FACTORY ====================
+function mkCard(tier,forceReal){
+  const pool=GOODS.filter(g=>g.tier<=tier);
+  const base=pick(pool);
+  const real=forceReal!==undefined?forceReal:Math.random()>.42;
+  let priceMul=real?(.88+Math.random()*.3):(.25+Math.random()*.35);
+  // Market modifier
+  if(S.market.boom===base.cat) priceMul*=1.4;
+  if(S.market.bust===base.cat) priceMul*=.65;
+  return{id:Math.random().toString(36).slice(2,9),
+    name:base.name,icon:base.icon,base:base.base,cat:base.cat,
+    price:Math.round(base.base*priceMul),real,sealed:false,revealed:false,tier:base.tier,
+    trending:S.market.boom===base.cat?'↑':S.market.bust===base.cat?'↓':''};
+}
+
+function dealHand(n,tier){
+  n=Math.max(3,n);
+  const h=[mkCard(tier,true),mkCard(tier,true),mkCard(tier,false)];
+  for(let i=3;i<n;i++)h.push(mkCard(tier));
+  return shuffle(h);
+}
+
+// ==================== MARKET SYSTEM ====================
+function rollMarket(){
+  const cats=[...CATEGORIES];
+  S.market.boom=pick(cats);
+  S.market.bust=pick(cats.filter(c=>c!==S.market.boom));
+  S.market.heat=clamp(S.market.heat+Math.round((Math.random()-.45)*20),20,90);
+}
+
+// ==================== MERCHANT AI ====================
+function initMerchants(){
+  S.merchants=shuffle([...MERCHANTS]).slice(0,3).map(m=>({...m,alive:true,coins:50,rep:80,anger:0}));
+}
+
+function aiWillInspect(m,offer){
+  let ch=m.eye*.35 + S.susp*.007 + m.aggr*.12 + m.anger*.05;
+  if(S.combo>2)ch+=.12;
+  const sealed=offer.filter(c=>c.sealed).length;
+  ch+=sealed*.14;
+  if(S.skills.tongue)ch-=.1;
+  if(S.skills.cloak)ch-=.08;
+  return Math.random()<clamp(ch,0.05,.88);
+}
+
+function aiPickInspect(offer){
+  const pool=offer.filter(c=>!c.sealed);
+  if(!pool.length)return null;
+  // Weighted by price
+  const tot=pool.reduce((s,c)=>s+c.price,0);
+  let r=Math.random()*tot;
+  for(const c of pool){r-=c.price;if(r<=0)return c}
+  return pool[pool.length-1];
+}
+
+function aiMakeOffer(m,tier){
+  const n=2+Math.floor(Math.random()*2);
+  const bc=m.bluff+(S.round*.018);
+  const cards=[];
+  for(let i=0;i<n;i++) cards.push(mkCard(tier,Math.random()>=bc));
+  return cards;
+}
+
+// ==================== UI HELPERS ====================
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active')}
+function log(txt,type=''){const el=$('game-log');el.appendChild(CE('div','log-entry '+type,txt));el.scrollTop=el.scrollHeight}
+function clearLog(){$('game-log').innerHTML=''}
+
+function updateHUD(){
+  $('ui-round').textContent=`第${S.round}夜 / ${S.maxRounds}`;
+  $('ui-coins').textContent=`💰 ${S.coins}`;
+  $('ui-rep').textContent=`信用 ${S.rep}`;
+  $('ui-susp-val').textContent=S.susp;
+  $('ui-susp-bar').style.width=`${clamp(S.susp,0,100)}%`;
+  const mh=S.market.heat;
+  $('ui-market-val').textContent=mh>70?'高':mh>40?'中':'低';
+  $('ui-market-bar').style.width=`${mh}%`;
+  suspicionGlowCheck();
+}
+
+function setPhase(html){$('phase-area').innerHTML=html}
+function phaseEl(){return $('phase-area')}
+function setActions(btns){
+  const bar=$('action-bar');bar.innerHTML='';
+  btns.forEach(b=>{
+    const el=CE('button',`btn ${b.cls||''}`.trim(),b.text);
+    if(b.disabled){el.disabled=true;el.style.opacity='.35'}
+    else el.addEventListener('click',b.fn);
+    bar.appendChild(el);
+  });
+}
+
+function renderCard(c,opts={}){
+  const d=CE('div','card anim-in');
+  d.dataset.id=c.id;
+  if(opts.faceDown&&!c.revealed){
+    d.classList.add('face-down');
+    d.innerHTML=`<div class="c-icon">❓</div><div class="c-name">未鑑定品</div>`;
+  } else {
+    d.classList.add('face-up');
+    if(c.revealed){d.classList.add('revealed',c.real?'genuine':'fake')}
+    let qH='';
+    if(opts.showQ||c.revealed){
+      qH=c.real?'<span class="c-quality real">本物</span>':'<span class="c-quality fake">偽物</span>';
+    }
+    const sH=c.sealed?'<span class="c-seal">🔒封印</span>':'';
+    const tH=c.trending?`<span class="c-trend">${c.trending}</span>`:'';
+    const tierS='★'.repeat(c.tier);
+    d.innerHTML=`${qH}<span class="c-tier">${tierS}</span>
+      <div class="c-icon">${c.icon}</div>
+      <div class="c-name">${c.name}</div>
+      <div class="c-price">💰${c.price}</div>${sH}${tH}`;
+  }
+  if(opts.sel){
+    const handler=(e)=>{e.stopPropagation();if(opts.onSel)opts.onSel(c,d)};
+    d.addEventListener('click',handler);
+  }
+  if(opts.selected)d.classList.add('selected');
+  if(opts.disabled)d.classList.add('disabled');
+  if(opts.hint)d.style.borderColor='rgba(192,57,43,.35)';
+  return d;
+}
+
+function showEventBanner(title,msg,dur=2500){
+  const b=$('event-banner');
+  b.innerHTML=`<h3>${title}</h3><p>${msg}</p>`;
+  b.classList.add('active');
+  sfx.event();
+  setTimeout(()=>b.classList.remove('active'),dur);
+}
+
+// ==================== GAME FLOW ====================
+function G_startGame(){
+  initA();resetState();initMerchants();
+  showScreen('game-screen');clearLog();
+  $('result-overlay').classList.remove('active');
+  log('嘘つき商館へようこそ。10夜を生き延びろ。','info');
+  startRound();
+}
+function G_showTitle(){$('result-overlay').classList.remove('active');showScreen('title-screen')}
+function G_showTutorial(){$('tutorial-overlay').classList.add('active')}
+function G_hideTutorial(){$('tutorial-overlay').classList.remove('active')}
+
+function startRound(){
+  S.phase='sell';
+  S.offer=[];
+  S.lensUsed=false;
+  const tier=S.round<=3?1:S.round<=7?2:3;
+  const handN=5+Math.min(3,Math.floor(S.round/3));
+  rollMarket();
+  S.hand=dealHand(handN,tier);
+  // Pick merchant
+  const alive=S.merchants.filter(m=>m.alive);
+  if(!alive.length){gameOver(true);return}
+  S.activeMerch=pick(alive);
+  S.maxSlots=S.round<=3?3:S.round<=6?4:5;
+  updateHUD();
+  log(`━━━ 第${S.round}夜 ━━━`,'gold');
+  log(`${S.activeMerch.icon} ${S.activeMerch.name} が取引相手`,'info');
+  if(S.market.boom)log(`📈 ${S.market.boom}が高騰中！`,'gold');
+  if(S.market.bust){log(`📉 ${S.market.bust}が暴落中…`,'bad');marketCrashShake();badBurst(innerWidth/2,innerHeight/2)}
+  renderSell();
+}
+
+// ==================== SELL PHASE ====================
+function renderSell(){
+  const a=phaseEl();a.innerHTML='';
+
+  // Merchant info
+  const mr=CE('div','merchant-row');
+  mr.innerHTML=`<div class="merchant-icon">${S.activeMerch.icon}</div>
+    <div class="merchant-info"><div class="merchant-name">${S.activeMerch.name}</div>
+    <div class="merchant-trait">${pick(S.activeMerch.voice)}</div></div>`;
+  a.appendChild(mr);
+
+  a.appendChild(CE('div','phase-title','🏪 売りフェーズ'));
+  a.appendChild(CE('div','phase-desc',`手札から最大${S.maxSlots}枚を選んで提示せよ`));
+
+  // Offer slots
+  const sa=CE('div','slot-area');
+  for(let i=0;i<S.maxSlots;i++){
+    if(S.offer[i]){
+      sa.appendChild(renderCard(S.offer[i],{showQ:true,selected:true,sel:true,onSel:c=>{
+        S.offer=S.offer.filter(x=>x.id!==c.id);S.hand.push(c);renderSell();
+      }}));
+    } else {
+      sa.appendChild(CE('div','slot',`枠${i+1}`));
+    }
+  }
+  a.appendChild(sa);
+
+  const divider=CE('div','');divider.style.cssText='width:85%;height:1px;background:#3a3a6a;margin:6px auto';
+  a.appendChild(divider);
+
+  a.appendChild(CE('div','phase-desc','▼ 手札（タップで配置）'));
+
+  const hr=CE('div','card-row');
+  S.hand.forEach(c=>{
+    hr.appendChild(renderCard(c,{showQ:true,sel:true,onSel:c2=>{
+      if(S.offer.length<S.maxSlots){
+        S.hand=S.hand.filter(x=>x.id!==c2.id);S.offer.push(c2);tone(600,.06);renderSell();
+      }
+    }}));
+  });
+  a.appendChild(hr);
+
+  // Skills
+  const sk=CE('div','skills-row');
+  if(S.skills.seals>0&&S.offer.some(c=>!c.sealed)){
+    const b=CE('span','skill-badge',`🔒 封印 (残${S.skills.seals})`);
+    b.addEventListener('click',()=>enterSealMode());
+    sk.appendChild(b);
+  }
+  a.appendChild(sk);
+
+  // Action
+  const tv=S.offer.reduce((s,c)=>s+c.price,0);
+  const fc=S.offer.filter(c=>!c.real).length;
+  setActions([{
+    text:`提示する（${S.offer.length}枚 💰${tv}${fc?` ⚠偽${fc}`:''}）`,
+    fn:()=>submitOffer(),disabled:!S.offer.length
+  }]);
+}
+
+function enterSealMode(){
+  const a=phaseEl();a.innerHTML='';
+  a.appendChild(CE('div','phase-title','🔒 封印するカードを選べ'));
+  a.appendChild(CE('div','phase-desc','封印されたカードは鑑定不可'));
+  const r=CE('div','card-row');
+  S.offer.filter(c=>!c.sealed).forEach(c=>{
+    r.appendChild(renderCard(c,{showQ:true,sel:true,onSel:c2=>{
+      c2.sealed=true;S.skills.seals--;sfx.seal();
+      log(`${c2.name} に封印を施した`,'info');renderSell();
+    }}));
+  });
+  a.appendChild(r);
+  setActions([{text:'戻る',fn:()=>renderSell(),cls:'secondary'}]);
+}
+
+async function submitOffer(){
+  if(!S.offer.length)return;
+  tone(440,.1);
+  const tv=S.offer.reduce((s,c)=>s+c.price,0);
+  const fc=S.offer.filter(c=>!c.real).length;
+  const m=S.activeMerch;
+
+  const a=phaseEl();a.innerHTML='';
+  a.appendChild(CE('div','phase-title',`${m.icon} ${m.name} が品を見ている…`));
+  const cr=CE('div','card-row');
+  S.offer.forEach(c=>cr.appendChild(renderCard(c,{showQ:true})));
+  a.appendChild(cr);
+  setActions([]);
+
+  await wait(1000+Math.random()*600);
+
+  const willInspect=aiWillInspect(m,S.offer);
+
+  if(willInspect){
+    const target=aiPickInspect(S.offer);
+    if(target){
+      await doInspection(target,tv,fc,m);
+    } else {
+      // All sealed
+      log(`${m.name}：「全て封印品か…仕方ない」`,'info');
+      S.susp=clamp(S.susp+10,0,100);
+      m.anger=clamp((m.anger||0)+2,0,10);
+      await completeSale(tv,fc);
+    }
+  } else {
+    log(`${m.name}：${pick(m.voice)}`,'info');
+    await completeSale(tv,fc);
+  }
+}
+
+async function doInspection(card,tv,fc,m){
+  sfx.accuse();
+  log(`${m.name}：「この${card.name}…鑑定させてもらう」`,'bad');
+
+  const a=phaseEl();a.innerHTML='';
+  a.appendChild(CE('div','phase-title','🔍 鑑定中…'));
+  const cw=CE('div','card-row');
+  const ce=renderCard(card,{showQ:true});ce.classList.add('anim-glow');
+  cw.appendChild(ce);a.appendChild(cw);
+
+  await wait(1500);
+  card.revealed=true;
+  a.innerHTML='';
+
+  if(!card.real){
+    // CAUGHT
+    sfx.bad();
+    a.appendChild(CE('div','phase-title anim-shake','💥 偽物発覚！'));
+    const penalty=Math.round(card.price*1.5);
+    S.coins=Math.max(0,S.coins-penalty);
+    S.rep=Math.max(0,S.rep-15);
+    S.susp=clamp(S.susp+20,0,100);
+    S.combo=0;
+    S.stats.caughtCount++;
+    m.anger=clamp((m.anger||0)+3,0,10);
+    log(`偽物発覚！罰金 💰${penalty}、信用-15`,'bad');
+    badBurst(innerWidth/2,innerHeight/2);
+
+    // Sell remaining
+    const rem=S.offer.filter(c=>c.id!==card.id);
+    const rv=rem.reduce((s,c)=>s+c.price,0);
+    if(rem.length>0){
+      S.coins+=rv;S.stats.earned+=rv;
+      log(`残りの品は売れた: +💰${rv}`,'info');
+    }
+
+    const cr2=CE('div','card-row');
+    S.offer.forEach(c=>{c.revealed=true;cr2.appendChild(renderCard(c,{showQ:true}))});
+    a.appendChild(cr2);
+  } else {
+    // Wrongly inspected genuine
+    sfx.coin();
+    a.appendChild(CE('div','phase-title','✅ 本物確認！'));
+    const bonus=Math.round(card.price*.3);
+    S.coins+=tv+bonus;S.stats.earned+=tv+bonus;
+    S.susp=Math.max(0,S.susp-10);
+    S.rep=clamp(S.rep+5,0,100);
+    m.anger=Math.max(0,(m.anger||0)-1);
+    log(`${m.name}：「失礼した…」 売却 +💰${tv} + 謝罪金 💰${bonus}`,'good');
+    coinBurst(innerWidth/2,innerHeight/2);
+
+    const cr2=CE('div','card-row');
+    S.offer.forEach(c=>{c.revealed=true;cr2.appendChild(renderCard(c,{showQ:true}))});
+    a.appendChild(cr2);
+  }
+
+  updateHUD();
+  setActions([{text:'次へ → 買いフェーズ',fn:()=>startBuy()}]);
+}
+
+async function completeSale(tv,fc){
+  S.coins+=tv;S.stats.earned+=tv;
+
+  if(fc>0){
+    S.stats.fakesSold+=fc;
+    S.combo++;S.maxCombo=Math.max(S.maxCombo,S.combo);
+    const cbonus=S.combo>=3?Math.round(tv*.25):0;
+    if(cbonus){S.coins+=cbonus;S.stats.earned+=cbonus;log(`🔥 連続詐欺 x${S.combo}! +💰${cbonus}`,'gold')}
+    S.susp=clamp(S.susp+fc*5-(S.skills.tongue?3:0)-(S.skills.cloak?2:0),0,100);
+    log(`偽物${fc}枚を売り抜けた！ +💰${tv}`,'good');
+  } else {
+    S.susp=Math.max(0,S.susp-4);
+    log(`正直に売却。+💰${tv}`,'info');
+    S.combo=0;
+  }
+  sfx.coin();coinBurst(innerWidth/2,innerHeight/3);showCoinPop(innerWidth/2,innerHeight/3,Math.min(tv/5,8));
+  updateHUD();suspicionGlowCheck();
+  setActions([{text:'次へ → 買いフェーズ',fn:()=>startBuy()}]);
+}
+
+// ==================== BUY PHASE ====================
+function startBuy(){
+  S.phase='buy';
+  const tier=S.round<=3?1:S.round<=7?2:3;
+  S.enemyOffer=aiMakeOffer(S.activeMerch,tier);
+  S.lensUsed=false;
+  renderBuy();
+}
+
+function renderBuy(){
+  const a=phaseEl();a.innerHTML='';
+  const m=S.activeMerch;
+  const cost=S.enemyOffer.reduce((s,c)=>s+c.price,0);
+
+  a.appendChild(CE('div','phase-title',`🔎 買いフェーズ`));
+  a.appendChild(CE('div','phase-desc',`${m.icon} ${m.name} の品を見極めろ（合計 💰${cost}）`));
+
+  const mr=CE('div','merchant-row');
+  mr.innerHTML=`<div class="merchant-icon">${m.icon}</div>
+    <div class="merchant-info"><div class="merchant-name">${m.name}</div>
+    <div class="merchant-trait">${pick(m.voice)}</div></div>`;
+  a.appendChild(mr);
+
+  const cr=CE('div','card-row');
+  S.enemyOffer.forEach(c=>{
+    const showHint=S.skills.nose&&!c.real&&Math.random()<.5;
+    cr.appendChild(renderCard(c,{
+      faceDown:!c.revealed,showQ:c.revealed,
+      sel:true,hint:showHint,
+      onSel:(c2,el)=>{
+        document.querySelectorAll('.card.selected').forEach(e=>e.classList.remove('selected'));
+        el.classList.add('selected');
+      }
+    }));
+  });
+  a.appendChild(cr);
+
+  // Skills
+  const sk=CE('div','skills-row');
+  if(S.skills.lens&&!S.lensUsed){
+    const b=CE('span','skill-badge','🔮 鑑定レンズ');
+    b.addEventListener('click',()=>{useLens()});
+    sk.appendChild(b);
+  }
+  a.appendChild(sk);
+
+  setActions([
+    {text:`全て買う (💰${cost})`,fn:()=>buyAll(),disabled:S.coins<cost},
+    {text:'告発する',fn:()=>enterAccuse(),cls:'secondary'},
+    {text:'見送る',fn:()=>skipBuy(),cls:'secondary small'},
+  ]);
+}
+
+function useLens(){
+  const unrevealed=S.enemyOffer.filter(c=>!c.revealed);
+  if(!unrevealed.length)return;
+  S.lensUsed=true;
+  const c=pick(unrevealed);
+  c.revealed=true;
+  sfx.reveal();
+  log(`鑑定レンズ: ${c.name} は${c.real?'本物':'偽物'}！`,c.real?'good':'bad');
+  renderBuy();
+}
+
+async function buyAll(){
+  const cost=S.enemyOffer.reduce((s,c)=>s+c.price,0);
+  if(S.coins<cost)return;
+  S.coins-=cost;S.stats.spent+=cost;
+  sfx.buy();
+
+  const a=phaseEl();a.innerHTML='';
+  a.appendChild(CE('div','phase-title','📦 購入結果'));
+
+  // Reveal all
+  const fakes=S.enemyOffer.filter(c=>!c.real);
+  const cr=CE('div','card-row');
+  S.enemyOffer.forEach(c=>{c.revealed=true;cr.appendChild(renderCard(c,{showQ:true}))});
+  a.appendChild(cr);
+
+  if(fakes.length){
+    sfx.bad();
+    const loss=fakes.reduce((s,c)=>s+c.price,0);
+    log(`偽物${fakes.length}枚！ 💰${loss}の損失！`,'bad');
+    badBurst(innerWidth/2,innerHeight/2);
+    S.rep=Math.max(0,S.rep-3);
+  } else {
+    sfx.coin();
+    const genuineVal=S.enemyOffer.filter(c=>c.real).reduce((s,c)=>s+Math.round(c.base*1.3),0);
+    const bonus=Math.round(genuineVal*.35);
+    S.coins+=bonus;S.stats.earned+=bonus;
+    log(`全て本物！転売益 +💰${bonus}`,'good');
+    coinBurst(innerWidth/2,innerHeight/2);
+  }
+  updateHUD();
+  setActions([{text:'次へ → 闇市場',fn:()=>startShop()}]);
+}
+
+function enterAccuse(){
+  const a=phaseEl();a.innerHTML='';
+  a.appendChild(CE('div','phase-title','⚠️ 告発 — 偽物を選べ'));
+  a.appendChild(CE('div','phase-desc','正解で報奨金、誤りで罰金'));
+
+  const cr=CE('div','card-row');
+  S.enemyOffer.forEach(c=>{
+    cr.appendChild(renderCard(c,{
+      faceDown:!c.revealed,showQ:c.revealed,sel:true,
+      onSel:c2=>resolveAccuse(c2)
+    }));
+  });
+  a.appendChild(cr);
+  setActions([{text:'戻る',fn:()=>renderBuy(),cls:'secondary'}]);
+}
+
+async function resolveAccuse(card){
+  sfx.accuse();card.revealed=true;document.body.classList.add('big-reveal');setTimeout(()=>document.body.classList.remove('big-reveal'),400);
+  const a=phaseEl();a.innerHTML='';
+
+  if(!card.real){
+    sfx.coin();
+    const rew=Math.round(card.price*1.5);
+    S.coins+=rew;S.stats.earned+=rew;S.stats.accOk++;
+    S.rep=clamp(S.rep+8,0,100);S.susp=Math.max(0,S.susp-5);
+    S.activeMerch.anger=clamp((S.activeMerch.anger||0)+2,0,10);
+    a.appendChild(CE('div','phase-title','🎯 的中！偽物だ！'));
+    log(`告発成功！報奨金 +💰${rew}`,'good');
+    coinBurst(innerWidth/2,innerHeight/2);
+  } else {
+    sfx.bad();
+    const pen=Math.round(card.price*.8);
+    S.coins=Math.max(0,S.coins-pen);S.stats.accFail++;
+    S.rep=Math.max(0,S.rep-10);S.susp=clamp(S.susp+10,0,100);
+    a.appendChild(CE('div','phase-title anim-shake','❌ 誤告発！'));
+    log(`誤告発！${card.name}は本物。罰金 -💰${pen}`,'bad');
+    badBurst(innerWidth/2,innerHeight/2);
+  }
+
+  const cr=CE('div','card-row');cr.appendChild(renderCard(card,{showQ:true}));
+  a.appendChild(cr);
+  updateHUD();
+  setActions([{text:'次へ → 闇市場',fn:()=>startShop()}]);
+}
+
+function skipBuy(){
+  log('品を見送った。','info');
+  setActions([{text:'次へ → 闇市場',fn:()=>startShop()}]);
+}
+
+// ==================== SHOP PHASE ====================
+const SHOP=[
+  {id:'seal',name:'封印の墨',icon:'🔒',cost:18,desc:'封印+2回',fn:()=>{S.skills.seals+=2}},
+  {id:'tongue',name:'銀の舌',icon:'👅',cost:35,desc:'疑惑上昇-30%',once:true,fn:()=>{S.skills.tongue=true}},
+  {id:'lens',name:'鑑定レンズ',icon:'🔮',cost:22,desc:'買いフェーズで毎ラウンド1枚公開',once:true,fn:()=>{S.skills.lens=true}},
+  {id:'nose',name:'黄金の鼻',icon:'👃',cost:40,desc:'偽物にヒント表示',once:true,fn:()=>{S.skills.nose=true}},
+  {id:'rep',name:'信用回復薬',icon:'💊',cost:28,desc:'信用+20',fn:()=>{S.rep=clamp(S.rep+20,0,100)}},
+  {id:'forget',name:'忘却の香',icon:'💨',cost:22,desc:'疑惑リセット',fn:()=>{S.susp=5}},
+  {id:'dseal',name:'二重封印の術',icon:'🔐',cost:45,desc:'封印+3、提示枠+1',once:true,fn:()=>{S.skills.seals+=3;S.maxSlots++}},
+  {id:'cloak',name:'隠密の外套',icon:'🧥',cost:38,desc:'鑑定確率を常時低下',once:true,fn:()=>{S.skills.cloak=true}},
+  {id:'bribe',name:'賄賂の小袋',icon:'💰',cost:15,desc:'相手の怒りを下げる',fn:()=>{S.merchants.forEach(m=>m.anger=Math.max(0,(m.anger||0)-3))}},
+  {id:'intel',name:'情報屋の耳',icon:'👂',cost:20,desc:'次の相手のブラフ率を表示',fn:()=>{S.nextIntel=true}},
+];
+
+function startShop(){
+  S.phase='shop';
+  const a=phaseEl();a.innerHTML='';
+  a.appendChild(CE('div','phase-title','🏮 闇市場'));
+  a.appendChild(CE('div','phase-desc',`所持金 💰${S.coins} ｜ 封印残 ${S.skills.seals}`));
+
+  const avail=SHOP.filter(it=>!(it.once&&S.shopBought.includes(it.id)));
+  const items=shuffle([...avail]).slice(0,4);
+
+  const grid=CE('div','shop-grid');
+  items.forEach(it=>{
+    const can=S.coins>=it.cost;
+    const el=CE('div',`shop-item${can?'':' cant'}`,`
+      <div class="si-icon">${it.icon}</div>
+      <div class="si-name">${it.name}</div>
+      <div class="si-cost">💰 ${it.cost}</div>
+      <div class="si-desc">${it.desc}</div>`);
+    if(can){
+      el.addEventListener('click',()=>{
+        S.coins-=it.cost;S.stats.spent+=it.cost;
+        it.fn();
+        if(it.once)S.shopBought.push(it.id);
+        sfx.coin();log(`${it.name} を購入！`,'good');
+        startShop();
+      });
+    }
+    grid.appendChild(el);
+  });
+  a.appendChild(grid);
+  updateHUD();
+  setActions([{text:'ラウンド終了 →',fn:()=>endRound()}]);
+}
+
+// ==================== EVENTS ====================
+const EVENTS=[
+  {name:'闇市の噂',msg:'あなたの評判が広まった。',fn:()=>{const b=5+Math.floor(Math.random()*12);S.coins+=b;return`+💰${b}`}},
+  {name:'役人の巡回',msg:'疑わしい商人が検挙された。',fn:()=>{S.susp=clamp(S.susp+12,0,100);return'疑惑+12'}},
+  {name:'大商人の来訪',msg:'次のラウンドの売値が上がる。',fn:()=>{S.market.heat=clamp(S.market.heat+20,0,100);return'市場活況UP'}},
+  {name:'盗人の夜',msg:'商品が一部盗まれた。',fn:()=>{const l=Math.min(S.coins,8+Math.floor(Math.random()*8));S.coins-=l;return`-💰${l}`}},
+  {name:'祭りの夜',msg:'市場が賑わい、信用が回復。',fn:()=>{S.rep=clamp(S.rep+10,0,100);return'信用+10'}},
+  {name:'密告者',msg:'誰かがあなたの不正を密告した。',fn:()=>{S.susp=clamp(S.susp+15,0,100);S.rep=Math.max(0,S.rep-5);return'疑惑+15 信用-5'}},
+  {name:'恩人の施し',msg:'かつての恩人が封印を分けてくれた。',fn:()=>{S.skills.seals+=1;return'封印+1'}},
+  {name:'相場暴落',msg:'市場が冷え込んだ。',fn:()=>{S.market.heat=clamp(S.market.heat-25,0,100);return'市場活況DOWN'}},
+];
+
+function triggerEvent(){
+  if(Math.random()>.45)return; // 45% chance
+  const ev=pick(EVENTS);
+  const result=ev.fn();
+  showEventBanner(ev.name,`${ev.msg}（${result}）`,2800);
+  log(`【${ev.name}】${ev.msg} ${result}`,'gold');
+}
+
+// ==================== MERCHANT FATE ====================
+function merchantFate(){
+  if(S.round<=2)return;
+  S.merchants.forEach(m=>{
+    if(!m.alive||m===S.activeMerch)return;
+    if(m.anger>=8&&Math.random()<.3){
+      m.alive=false;
+      log(`💀 ${m.name} が怒りのあまり市場を去った…`,'bad');
+    } else if(Math.random()<.08){
+      m.alive=false;
+      log(`💀 ${m.name} が闇取引のもつれで消えた…`,'bad');
+    }
+  });
+}
+
+// ==================== ROUND END ====================
+function endRound(){
+  S.stats.rounds=S.round;
+  S.susp=Math.max(0,S.susp-5);
+
+  if(S.rep<=0){gameOver(false,'信用が地に落ちた。闇市場から追放された。');return}
+  if(S.coins<=0&&S.round>2){gameOver(false,'一文無しになった。闇市場では生きていけない。');return}
+
+  const income=5+Math.floor(S.rep/20)+Math.floor(S.market.heat/30);
+  S.coins+=income;
+  log(`ラウンド報酬: +💰${income}`,'info');
+
+  if(S.round>=S.maxRounds){gameOver(true);return}
+
+  triggerEvent();
+  merchantFate();
+
+  // Intel display if purchased
+  if(S.nextIntel){
+    S.nextIntel=false;
+    const alive=S.merchants.filter(m=>m.alive);
+    if(alive.length){
+      const next=pick(alive);
+      log(`情報屋：「次の相手は${next.name}。ブラフ率は約${Math.round(next.bluff*100)}%だ」`,'info');
+    }
+  }
+
+  S.round++;
+  updateHUD();
+  startRound();
+}
+
+// ==================== GAME OVER ====================
+function gameOver(win,reason){
+  const t=$('ov-title'),st=$('ov-stats');
+  if(win){
+    sfx.win();
+    const sc=S.coins+S.stats.fakesSold*10+S.stats.accOk*15-S.stats.caughtCount*10-S.stats.accFail*5+S.rep;
+    const grade=sc>=350?'S':sc>=280?'A':sc>=200?'B':sc>=120?'C':'D';
+    t.innerHTML=`<span style="color:var(--gold)">🏆 商売完遂！</span>`;
+    st.innerHTML=`
+      ランク: <span style="color:var(--gold);font-size:1.5em">${grade}</span> (スコア ${sc})<br>
+      最終所持金: 💰 ${S.coins}<br>
+      総売上: 💰 ${S.stats.earned}<br>
+      偽物売却成功: ${S.stats.fakesSold}枚<br>
+      偽物発覚: ${S.stats.caughtCount}回<br>
+      告発成功: ${S.stats.accOk}回 / 誤告発: ${S.stats.accFail}回<br>
+      最大連続詐欺: ${S.maxCombo}回<br>
+      最終信用: ${S.rep}`;
+    coinBurst(innerWidth/2,innerHeight/3);
+    setTimeout(()=>coinBurst(innerWidth/3,innerHeight/2),300);
+    setTimeout(()=>coinBurst(innerWidth*2/3,innerHeight/2),600);
+  } else {
+    sfx.lose();
+    t.innerHTML=`<span style="color:var(--red)">💀 追放</span>`;
+    st.innerHTML=`${reason||''}<br><br>
+      到達: 第${S.round}夜<br>
+      所持金: 💰 ${S.coins}<br>
+      総売上: 💰 ${S.stats.earned}<br>
+      偽物売却: ${S.stats.fakesSold}枚<br>
+      告発成功: ${S.stats.accOk}回`;
+    badBurst(innerWidth/2,innerHeight/3);
+  }
+  $('result-overlay').classList.add('active');
+}
+</script>
+</body>
+</html>
