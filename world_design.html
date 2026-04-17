@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世界設計書 — 死んだ神の最後の大陸</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&family=Cinzel:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0a0908;--text:#d0c8bc;--muted:#8a8074;--accent:#b08840;--bone:#c8bfa8;--blood:#8b2020;--deep:#2a1818}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;line-height:2;overflow-x:hidden}
+
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem;position:relative;background:url('sprites/ui/kv_a.png') center/cover no-repeat}
+  .hero::before{content:'';position:absolute;inset:0;background:rgba(10,9,8,0.7)}
+  .hero *{position:relative;z-index:1}
+  .hero .label{font-size:0.65rem;letter-spacing:0.8em;color:var(--muted);text-transform:uppercase;margin-bottom:1.5rem}
+  .hero h1{font-family:'Cinzel',serif;font-size:clamp(2rem,5vw,3.6rem);font-weight:700;letter-spacing:0.06em;background:linear-gradient(180deg,#d8c8a0 0%,#b08840 50%,#6b4420 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.3;margin-bottom:0.5rem}
+  .hero .sub{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--bone);font-style:italic;margin-bottom:2rem}
+  .hero .desc{font-size:0.85rem;color:var(--muted);max-width:600px;line-height:2.2}
+
+  .section{max-width:960px;margin:0 auto;padding:5rem 3rem;border-top:1px solid rgba(176,136,64,0.08)}
+  .section-label{font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.6em;color:rgba(176,136,64,0.3);text-transform:uppercase;margin-bottom:1.5rem}
+  .section h2{font-family:'Cinzel',serif;font-size:clamp(1.3rem,3vw,1.8rem);color:var(--bone);margin-bottom:0.3rem;line-height:1.4}
+  .section .sub-h2{font-family:'Cormorant Garamond',serif;font-size:0.95rem;color:var(--accent);font-style:italic;margin-bottom:2rem}
+  .section p{font-size:0.88rem;color:#a09888;margin-bottom:1.2rem;line-height:2.2}
+  .section p strong{color:var(--bone);font-weight:400}
+
+  .art-full{width:100%;border-radius:4px;margin:2rem 0;border:1px solid rgba(176,136,64,0.1)}
+  .art-half{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:2rem 0}
+  .art-half img{width:100%;border-radius:4px;border:1px solid rgba(176,136,64,0.1);cursor:zoom-in}
+  .art-caption{font-size:0.7rem;color:var(--muted);text-align:center;margin-top:-1rem;margin-bottom:2rem;font-style:italic}
+
+  .quote{padding:1.5rem 2rem;margin:2rem 0;border-left:2px solid rgba(176,136,64,0.3);background:rgba(176,136,64,0.02)}
+  .quote p{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-style:italic;color:var(--bone);line-height:2}
+  .quote .cite{display:block;margin-top:0.8rem;font-size:0.75rem;font-style:normal;color:var(--muted)}
+
+  .layer-card{margin:3rem 0;padding:2rem;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.04);border-radius:4px}
+  .layer-card h3{font-family:'Cinzel',serif;font-size:1.1rem;color:var(--bone);margin-bottom:0.5rem}
+  .layer-card .depth{font-size:0.65rem;letter-spacing:0.3em;color:var(--accent);text-transform:uppercase;margin-bottom:1rem;opacity:0.7}
+  .layer-card table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:0.82rem}
+  .layer-card th{text-align:left;padding:0.6rem;border-bottom:1px solid rgba(176,136,64,0.15);color:var(--accent);font-weight:400;letter-spacing:0.1em;font-size:0.65rem;text-transform:uppercase}
+  .layer-card td{padding:0.6rem;border-bottom:1px solid rgba(255,255,255,0.03);color:#a09888;line-height:1.7}
+  .layer-card td:first-child{color:var(--bone);white-space:nowrap}
+
+  .npc-card{display:grid;grid-template-columns:200px 1fr;gap:2rem;margin:2.5rem 0;padding:2rem;background:rgba(255,255,255,0.015);border:1px solid rgba(255,255,255,0.04);border-radius:4px}
+  .npc-card img{width:100%;border-radius:4px;border:1px solid rgba(176,136,64,0.1)}
+  .npc-card h3{font-family:'Cinzel',serif;font-size:1rem;color:var(--bone);margin-bottom:0.3rem}
+  .npc-card .role{font-size:0.75rem;color:var(--accent);margin-bottom:1rem;font-style:italic}
+  .npc-card p{font-size:0.82rem;color:#a09888;line-height:2}
+  .npc-card .game-note{margin-top:1rem;padding:0.8rem;background:rgba(139,32,32,0.06);border-left:2px solid rgba(139,32,32,0.3);font-size:0.78rem;color:var(--text)}
+
+  .story-beat{display:flex;gap:1.5rem;padding:1.5rem 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .story-beat .num{font-family:'Cinzel',serif;font-size:1.2rem;color:var(--accent);opacity:0.4;min-width:2rem;text-align:right;padding-top:0.3rem}
+  .story-beat .content h4{font-size:0.9rem;color:var(--bone);margin-bottom:0.5rem}
+  .story-beat .content p{font-size:0.82rem;color:#a09888;line-height:2}
+
+  .choice-box{margin:2rem 0;padding:2rem;background:linear-gradient(135deg,rgba(176,136,64,0.04),rgba(139,32,32,0.04));border:1px solid rgba(176,136,64,0.15);border-radius:4px;text-align:center}
+  .choice-box h4{font-family:'Cinzel',serif;font-size:0.7rem;letter-spacing:0.4em;color:var(--accent);margin-bottom:1rem}
+  .choice-box .options{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:1.5rem}
+  .choice-box .opt{padding:1.5rem;border:1px solid rgba(255,255,255,0.06);border-radius:4px}
+  .choice-box .opt h5{font-size:0.9rem;color:var(--bone);margin-bottom:0.5rem}
+  .choice-box .opt p{font-size:0.78rem;color:var(--muted);line-height:1.8}
+
+  footer{text-align:center;padding:4rem 2rem 3rem;font-size:0.6rem;color:rgba(138,128,116,0.25);letter-spacing:0.4em}
+  @media(max-width:768px){.npc-card{grid-template-columns:1fr}.art-half{grid-template-columns:1fr}.choice-box .options{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero">
+  <p class="label">World Design Document</p>
+  <h1>THE LAST CONTINENT<br>OF THE DEAD GOD</h1>
+  <p class="sub">死んだ神の最後の大陸</p>
+  <p class="desc">
+    遥かな過去、神は自らの存在に倦み、自殺した。<br>
+    宇宙は神の死骸から生まれ、全ての存在は神の断片である。<br>
+    太陽は暗く曇り、最後の大陸ゾティークだけが残った。<br>
+    あなたは、神の遺体の最深部——心臓——を目指して降りていく。
+  </p>
+</section>
+
+<!-- ==================== PROLOGUE ==================== -->
+<section class="section">
+  <p class="section-label">Prologue</p>
+  <h2>あなたは誰か</h2>
+  <p class="sub-h2">The Seeker — 探求者</p>
+
+  <div class="npc-card">
+    <img src="sprites/ui/npc_seeker.png" onclick="window.open(this.src)">
+    <div>
+      <h3>探求者（名前はプレイヤーが決める）</h3>
+      <p class="role">元・タサイドン神殿の墓守</p>
+      <p>
+        あなたはかつてウンマオスの神殿で<strong>屍の神モルディギアンに死者を捧げる墓守</strong>だった。<br>
+        毎日、死者を神殿の奥へ運び、灰色の屍衣を纏う僧侶たちに引き渡す。<br>
+        それが秩序であり、疑う者はいなかった。
+      </p>
+      <p>
+        ある夜、あなたは<strong>死者の一人が目を開く</strong>のを見た。<br>
+        その瞳は暗く、遠く、そして——<strong>「ここは神の体内だ」</strong>と囁いた。<br>
+        死者はそれだけ言って、再び動かなくなった。
+      </p>
+      <p>
+        その日から、あなたは眠れなくなった。<br>
+        大地のひび割れ。石壁の脈動。暗い太陽。全てが意味を変えた。<br>
+        あなたは神殿を去り、<strong>神の心臓を探す旅</strong>に出た。<br>
+        そこに何があるのかはわからない。だが、真実があるなら——最も深い場所にあるはずだ。
+      </p>
+      <div class="game-note">
+        <strong>ゲーム的意味：</strong>プレイヤーは元墓守＝死者の扱いを知っている。死霊術にある程度耐性がある。しかし戦闘の専門家ではない。クラス選択で方向性が決まる。
+      </div>
+    </div>
+  </div>
+
+  <div class="quote">
+    <p>「世界の向こう側には安息の場所もなく、苦悩の場所もなく、ただ虚無があるだけだ。」</p>
+    <span class="cite">— フィリップ・マインレンダー「救済の哲学」</span>
+  </div>
+</section>
+
+<!-- ==================== LAYER 1: SURFACE ==================== -->
+<section class="section">
+  <p class="section-label">Layer I — Surface</p>
+  <h2>黄昏の大陸</h2>
+  <p class="sub-h2">Zothique — The Twilight Continent</p>
+
+  <img class="art-full" src="sprites/ui/world_L1_surface.png" onclick="window.open(this.src)">
+  <p class="art-caption">地球最後の大陸。太陽は血の蒸気のように暗く曇っている。</p>
+
+  <p>
+    太陽はもはや白い光を放たない。<strong>血の蒸気のように暗く、曇った琥珀色</strong>で空を塗りつぶす。<br>
+    無数の新しい星が天に出現し、無限の闇が近づいている。<br>
+    かつての大陸は全て海に沈み、残ったのはこの一つの陸塊——<strong>ゾティーク</strong>。<br>
+    科学はとうの昔に忘れ去られ、代わりに死霊術と暗黒魔術が世界を支えている。
+  </p>
+
+  <div class="layer-card">
+    <p class="depth">地表の主要都市と地域</p>
+    <h3>ゾティークの地理</h3>
+    <table>
+      <thead><tr><th>地名</th><th>特徴</th><th>ゲーム内の役割</th></tr></thead>
+      <tbody>
+        <tr><td>ウンマオス</td><td>ジラック帝国の首都。崩壊した宮殿と暴虐の歴史</td><td>ゲーム開始地点。チュートリアル。最初の降下口</td></tr>
+        <tr><td>ズル＝バ＝シャイア</td><td>屍の神モルディギアンの都。全ての死者は神に捧げられる</td><td>プレイヤーの故郷。死者系カードの入手先</td></tr>
+        <tr><td>タスーン</td><td>南の砂漠。隠者の魔術師が住む。ナミルラの修行地</td><td>高レベル魔術の習得エリア</td></tr>
+        <tr><td>オロスの港</td><td>黒河への入口となる港。船乗りたちが噂を語る</td><td>中層への移行ポイント</td></tr>
+        <tr><td>ウッカストログ</td><td>拷問者の島。残虐な文化が栄える</td><td>呪い系装備・カードの入手先</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="quote">
+    <p>
+      On Zothique, the last continent on Earth, the sun no longer shone
+      with the whiteness of its prime, but was dim and tarnished
+      as if with a vapor of blood.
+    </p>
+    <span class="cite">— Clark Ashton Smith, "The Dark Eidolon"</span>
+  </div>
+</section>
+
+<!-- ==================== LAYER 2: THE DESCENT ==================== -->
+<section class="section">
+  <p class="section-label">Layer II — The Threshold</p>
+  <h2>崩壊した大聖堂</h2>
+  <p class="sub-h2">The Shattered Cathedral — Where the Skin Breaks</p>
+
+  <img class="art-full" src="sprites/ui/world_L2_cathedral.png" onclick="window.open(this.src)">
+  <p class="art-caption">神の皮膚が裂けた場所。かつてここは信仰の中心だった。</p>
+
+  <p>
+    ウンマオスの中心に、<strong>かつて「永遠の大聖堂」と呼ばれた建造物</strong>がある。<br>
+    数世紀前に地震で崩壊し、その床の下に<strong>大地そのものの裂け目</strong>が露出した。<br>
+    石畳の下に、石ではないものが見える。<strong>白く、滑らかで、わずかに温かい</strong>。<br>
+    骨だ。巨大な骨。人々はそれを見なかったことにした。
+  </p>
+  <p>
+    しかし探求者たちは知っている。<br>
+    大聖堂の裂け目から降りていくと、やがて石は途切れ、<strong>有機的な何かが始まる</strong>。<br>
+    これが「降下」の入口。<strong>神の皮膚が裂けた場所</strong>。
+  </p>
+
+  <div class="layer-card">
+    <p class="depth">第二層の構造</p>
+    <h3>大聖堂地下</h3>
+    <table>
+      <thead><tr><th>要素</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>環境</td><td>崩壊した宗教建築 → 地下墓地 → 自然洞窟 → 有機的通路への遷移</td></tr>
+        <tr><td>光源</td><td>砕けたステンドグラスからの最後の太陽光。下層に行くほど暗くなる</td></tr>
+        <tr><td>敵</td><td>崩壊に巻き込まれた死者の群れ。信仰を失った僧侶の亡霊</td></tr>
+        <tr><td>ボス</td><td><strong>最後の司教</strong> — 裂け目を塞ごうとして失敗した聖職者。今は半分石、半分肉</td></tr>
+        <tr><td>テーマ</td><td>「信仰が嘘だと気づいた瞬間」。大聖堂は神の上に建てられていたが、誰もそれを知らなかった</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== LAYER 3: THE FLESH ==================== -->
+<section class="section">
+  <p class="section-label">Layer III — The Flesh</p>
+  <h2>神の肉</h2>
+  <p class="sub-h2">The Living Walls — Where Decay Breathes</p>
+
+  <img class="art-full" src="sprites/ui/world_L3_flesh.png" onclick="window.open(this.src)">
+  <p class="art-caption">壁は脈動する。死んだはずなのに。</p>
+
+  <p>
+    石の世界が終わり、<strong>肉の世界が始まる</strong>。<br>
+    壁面は暗紫色の組織で覆われ、赤い血管の筋が蛍光を放つ。<br>
+    床は柔らかく、足跡が残る。天井からは<strong>歯か骨のような鍾乳石</strong>が垂れ下がる。<br>
+    空気は温かく湿り、呼吸のような風が周期的に吹く。
+  </p>
+  <p>
+    死んでいるはずの肉が、なぜ動くのか。<br>
+    マインレンダーはこう答えるだろう：<strong>「力の弱体化は瞬時ではない。神の死は今も進行中だ」</strong>と。<br>
+    この層は、神がまだ完全には死んでいない証拠。最後の生物的反応が惰性で続いている。
+  </p>
+
+  <div class="layer-card">
+    <p class="depth">第三層の構造</p>
+    <h3>肉の迷宮</h3>
+    <table>
+      <thead><tr><th>要素</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>環境</td><td>有機的な洞窟。壁が脈動する。蛍光菌が光源。毒の胞子が漂う区域あり</td></tr>
+        <tr><td>特殊ルール</td><td><strong>腐食</strong>：金属装備が徐々に劣化する。酸性の体液が原因</td></tr>
+        <tr><td>敵</td><td>神の免疫系の残骸。白血球のような異形の存在が「侵入者」を排除しようとする</td></tr>
+        <tr><td>ボス</td><td><strong>腫瘍の王</strong> — 神の肉が変異して自我を持った癌のような存在。部屋ごと膨張する</td></tr>
+        <tr><td>NPC</td><td><strong>寄生者たち</strong> — 神の肉を食べて長寿を得た原始的な部族。彼らにとってここは「楽園」</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== LAYER 4: THE BONES ==================== -->
+<section class="section">
+  <p class="section-label">Layer IV — The Bones</p>
+  <h2>骨の回廊</h2>
+  <p class="sub-h2">The Crystal Ossuary — Where Structure Remains</p>
+
+  <img class="art-full" src="sprites/ui/world_L4_bones.png" onclick="window.open(this.src)">
+  <p class="art-caption">巨大な肋骨がゴシックのアーチを形成している。冷たい白い光。</p>
+
+  <p>
+    肉を抜けると、<strong>骨の世界が広がる</strong>。<br>
+    巨大な肋骨がゴシック大聖堂のアーチのように架かり、椎骨が柱として立ち並ぶ。<br>
+    骨は白く結晶化し、内部から淡い冷光を放っている。<br>
+    骨髄からは鉱物的な結晶が成長し、数千年の時間がここでは鉱石になった。
+  </p>
+  <p>
+    この層は<strong>神の構造そのもの</strong>。肉が腐っても骨は残る。<br>
+    ここに降りた者は、世界が「誰か」の内部であるという事実に直面する。<br>
+    否定はもはや不可能。
+  </p>
+
+  <div class="layer-card">
+    <p class="depth">第四層の構造</p>
+    <h3>結晶骨格</h3>
+    <table>
+      <thead><tr><th>要素</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>環境</td><td>巨大な骨のアーキテクチャ。結晶が光源。反響する音</td></tr>
+        <tr><td>特殊ルール</td><td><strong>共鳴</strong>：ノイズが増幅される。ステルスが極めて困難。音が武器にもなる</td></tr>
+        <tr><td>敵</td><td>結晶化した古代の探求者たち。骨に取り込まれて動けなくなった先人の怨念</td></tr>
+        <tr><td>ボス</td><td><strong>骨髄の番人</strong> — 神の骨格の修復を試みる自動機構。骨を再生し、侵入者を封じ込める</td></tr>
+        <tr><td>発見</td><td><strong>碑文</strong> — 骨の表面に刻まれた文字。神が生きていた時代の記憶の断片</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="quote">
+    <p>「宇宙の根本法則は力の弱体化である。」</p>
+    <span class="cite">— Mainländer, Metaphysics §3</span>
+  </div>
+</section>
+
+<!-- ==================== LAYER 5: THE BLOOD ==================== -->
+<section class="section">
+  <p class="section-label">Layer V — The Blood</p>
+  <h2>暗黒の血流</h2>
+  <p class="sub-h2">The Dark River — Where Memory Flows</p>
+
+  <img class="art-full" src="sprites/ui/world_L5_blood.png" onclick="window.open(this.src)">
+  <p class="art-caption">かつての生命力が暗い河となって流れている。幽霊船が漂う。</p>
+
+  <p>
+    骨の隙間から、<strong>暗い液体が流れている</strong>。<br>
+    かつての神の血液。今はほとんどの生命力を失い、暗い燐光を放つだけの河。<br>
+    しかしこの液体には<strong>記憶</strong>がある。触れた者は神の生前の幻視を見る。<br>
+    世界が創られる前の、統一体としての神の知覚。圧倒的な孤独と、存在への倦怠。
+  </p>
+  <p>
+    黒河はここに繋がっている。<br>
+    地表のオロス港から西へ流れ続ける海流は、<strong>世界の縁から落ちるのではなく、ここに注ぎ込む</strong>。<br>
+    ナートの死霊術師たちが使役する死者は、この河から力を汲んでいた。<br>
+    全ての死が流れ着く場所。
+  </p>
+
+  <div class="layer-card">
+    <p class="depth">第五層の構造</p>
+    <h3>記憶の河</h3>
+    <table>
+      <thead><tr><th>要素</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>環境</td><td>暗い河と峡谷。幽霊船が漂う。古い石橋。対岸は霧に隠れている</td></tr>
+        <tr><td>特殊ルール</td><td><strong>記憶の浸食</strong>：河に近づくほどプレイヤーのステータスが変動。過去の記憶が混濁する</td></tr>
+        <tr><td>敵</td><td>河に溺れた無数の死者たち。形を失い、液体に溶けかけた存在</td></tr>
+        <tr><td>ボス</td><td><strong>記憶の暴君</strong> — 神が生きていた時代の記憶が人格を持った存在。「戻れ。ここから先は空虚だけだ」</td></tr>
+        <tr><td>NPC</td><td><strong>ナートの渡し守</strong> — 死霊術師の最後の弟子。河を渡す代わりに「あなたの最も大切な記憶」を要求する</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ==================== LAYER 6: THE HEART ==================== -->
+<section class="section">
+  <p class="section-label">Layer VI — The Heart</p>
+  <h2>止まった心臓</h2>
+  <p class="sub-h2">The Still Heart — Where the Question Waits</p>
+
+  <img class="art-full" src="sprites/ui/world_L6_heart.png" onclick="window.open(this.src)">
+  <p class="art-caption">最深部。鼓動を止めた巨大な心臓。中心に最後の光。</p>
+
+  <p>
+    最深部。<br>
+    巨大な心臓型の空洞。乾いた筋肉の壁。石灰化した弁。<br>
+    床は結晶化した血液で覆われ、赤い琥珀のように光る。<br>
+    壁には古い武器と鎖が埋まっている。<strong>ここに辿り着いた先人たち</strong>の痕跡。<br>
+    誰一人として戻っていない。
+  </p>
+  <p>
+    中心に、<strong>微かな光</strong>がある。<br>
+    それは神の意識の最後の欠片。まだ完全には消えていない最後の思考。<br>
+    それはあなたに問いかける。
+  </p>
+
+  <div class="choice-box">
+    <h4>The Final Question — 最後の問い</h4>
+    <p style="font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--bone);font-style:italic">
+      「存在か、非存在か。」
+    </p>
+    <div class="options">
+      <div class="opt">
+        <h5>救済 — Erlösung</h5>
+        <p>
+          非存在を選ぶ。神の最後の意識を消し、世界を「力の弱体化」の自然な帰結へ委ねる。<br>
+          全てはゆっくりと虚無へ溶けていく。苦痛は終わる。存在も終わる。<br>
+          <strong>静かなエンディング。</strong>
+        </p>
+      </div>
+      <div class="opt">
+        <h5>抗い — Widerstand</h5>
+        <p>
+          存在を選ぶ。神の最後の火を自分の中に取り込み、地表に戻る。<br>
+          世界は死に続ける。太陽は暗くなり続ける。しかしあなたは存在する。<br>
+          苦痛とともに。意味がなくとも。<br>
+          <strong>孤独なエンディング。</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="quote">
+    <p>「神は死んだ、そしてその死が世界の生であった。」</p>
+    <span class="cite">— Mainländer, "Gott ist gestorben und sein Tod war das Leben der Welt."</span>
+  </div>
+</section>
+
+<!-- ==================== KEY NPCs ==================== -->
+<section class="section">
+  <p class="section-label">Key Characters</p>
+  <h2>主要NPC</h2>
+  <p class="sub-h2">Those Who Dwell in the Dying World</p>
+
+  <div class="npc-card">
+    <img src="sprites/ui/npc_thasaidon.png" onclick="window.open(this.src)">
+    <div>
+      <h3>タサイドンの神像</h3>
+      <p class="role">七つの地獄の主 / 暗黒の託宣者</p>
+      <p>
+        甲冑の戦士の姿をした黒い像。七つの馬の頭蓋骨のランプが青と紫と深紅に燃える。<br>
+        像の口から、時折<strong>声</strong>が響く。それは神託であり、警告であり、時に皮肉。<br>
+        「好きにしろ。だが結果は私のせいにするな」
+      </p>
+      <div class="game-note">
+        <strong>ゲーム機能：</strong>各層に1体。プレイヤーの行動に応じて異なる神託を発する。ヒントにもなり、ミスリードにもなる。タサイドンは嘘をつかないが、真実の全ては教えない。
+      </div>
+    </div>
+  </div>
+
+  <div class="npc-card">
+    <img src="sprites/ui/npc_necromancer.png" onclick="window.open(this.src)">
+    <div>
+      <h3>ナートの最後の弟子</h3>
+      <p class="role">死霊術師 / 第五層の渡し守</p>
+      <p>
+        かつてナート島の死霊術師ヴァハーンに仕えた末弟子。主人の死後、地上を捨て、<br>
+        <strong>記憶の河のほとりに隠棲</strong>した。死者を操る術を知るが、もはや使う意志がない。<br>
+        「死者を起こすことはできる。だが起こしてどうする？ 彼らはもう答えを知っているのだから」
+      </p>
+      <div class="game-note">
+        <strong>ゲーム機能：</strong>第五層で河を渡す条件を出す。「最も大切な記憶」を対価に要求。渡すと一部のステータスが永続的に変化する。拒否すると別ルートを探す必要がある。
+      </div>
+    </div>
+  </div>
+
+  <div class="npc-card">
+    <img src="sprites/ui/npc_dead_bride.png" onclick="window.open(this.src)">
+    <div>
+      <h3>黒真珠の花嫁</h3>
+      <p class="role">死者 / 第五層の亡霊</p>
+      <p>
+        河のほとりに佇む死者の女。生前は誰かの婚約者だった。今は記憶が断片化し、<br>
+        <strong>「あなたを知っている気がする」</strong>と全ての来訪者に言う。<br>
+        手に持つ黒真珠は、ナートの海底から採ったもの。死者にとっての唯一の所有物。
+      </p>
+      <div class="game-note">
+        <strong>ゲーム機能：</strong>黒真珠を受け取ると「影の愛」イベントが発生。マインレンダー的な問い——死者として穏やかに在ることは、生者として苦しむことより良いのか。選択によって最終層の選択肢に影響する。
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== WORLD RULES ==================== -->
+<section class="section">
+  <p class="section-label">World Rules</p>
+  <h2>世界の法則</h2>
+  <p class="sub-h2">The Laws of the Dead God's Body</p>
+
+  <div class="layer-card">
+    <h3>力の弱体化（Schwächung der Kraft）</h3>
+    <p class="depth">Mainländer's Fundamental Law</p>
+    <p style="font-size:0.88rem;color:#a09888;line-height:2.2">
+      全ての力は使われるたびに弱まる。これは宇宙の根本法則。<br>
+      ゲーム内では以下の形で現れる：
+    </p>
+    <table>
+      <thead><tr><th>要素</th><th>弱体化の表現</th></tr></thead>
+      <tbody>
+        <tr><td>装備</td><td>使用するたびに劣化。修理は不完全にしか行えない。深層の装備ほど強いが、より速く崩壊する</td></tr>
+        <tr><td>カード</td><td>一部のカードは使用回数制限あり。「力を消費する」とフレーバーテキストに</td></tr>
+        <tr><td>環境</td><td>降りるほど光が弱くなる。最深部では松明も限られた時間しか持たない</td></tr>
+        <tr><td>NPC</td><td>深層のNPCは会話が短く、意志が希薄。「力の弱体化」が精神にも及んでいる</td></tr>
+        <tr><td>プレイヤー</td><td>長期間深層にいるとステータスに「倦怠」が蓄積。地表に戻ると回復するが、戻れない</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="layer-card">
+    <h3>死の三形態</h3>
+    <p class="depth">Three Forms of Death</p>
+    <table>
+      <thead><tr><th>形態</th><th>内容</th><th>ゲーム内</th></tr></thead>
+      <tbody>
+        <tr><td>通常の死</td><td>肉体の停止。意識の消滅</td><td>リスポーン。同じ層の安全な場所に戻る。ペナルティあり</td></tr>
+        <tr><td>死霊術の蘇生</td><td>意識を持ったまま奴隷化</td><td>特定のイベントで発生。自由意志を一時的に失う</td></tr>
+        <tr><td>真の死（救済）</td><td>完全なる非存在</td><td>ゲーム終了。最終選択でのみ到達可能</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="layer-card">
+    <h3>不可逆の降下</h3>
+    <p class="depth">No Return</p>
+    <p style="font-size:0.88rem;color:#a09888;line-height:2.2">
+      一度降りた層には戻れない。<br>
+      黒河が世界の縁から落ちるように、深淵への降下は一方通行。<br>
+      各層で取れるリソースは限られている。<br>
+      <strong>「持っていくものを選べ。戻ることはできない」</strong>
+    </p>
+  </div>
+</section>
+
+<footer>
+  WORLD DESIGN DOCUMENT v1.0 — THE LAST CONTINENT OF THE DEAD GOD — 2026.04.17<br>
+  Based on: Mainländer "Die Philosophie der Erlösung" (1876) × Clark Ashton Smith "Zothique" (1932-1948)
+</footer>
+
+</body>
+</html>
