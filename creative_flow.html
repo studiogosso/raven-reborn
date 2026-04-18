@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原典駆動クリエイティブフロー</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0a0908;--text:#d0c8bc;--muted:#8a8074;--accent:#b08840;--bone:#c8bfa8}
+  body{background:var(--bg);color:var(--text);font-family:'Noto Sans JP',sans-serif;line-height:2.2}
+
+  .hero{min-height:60vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:4rem 2rem}
+  .hero .label{font-size:0.6rem;letter-spacing:1em;color:var(--muted);margin-bottom:2rem}
+  .hero h1{font-family:'Cinzel',serif;font-size:clamp(1.6rem,4vw,2.8rem);background:linear-gradient(180deg,#d8c8a0,#b08840,#6b4420);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.4;margin-bottom:1rem}
+  .hero .sub{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--bone);font-style:italic;max-width:600px}
+
+  .content{max-width:740px;margin:0 auto;padding:0 2rem 4rem}
+
+  .thesis{text-align:center;padding:3rem 2rem;margin:2rem 0;border-top:1px solid rgba(176,136,64,0.1);border-bottom:1px solid rgba(176,136,64,0.1)}
+  .thesis p{font-family:'Cormorant Garamond',serif;font-size:1.15rem;color:var(--bone);font-style:italic;line-height:2}
+
+  .flow-line{text-align:center;padding:2rem;margin:2rem 0;font-family:'Courier New',monospace;font-size:0.75rem;color:var(--accent);letter-spacing:0.1em;opacity:0.6}
+
+  .step{padding:2.5rem 0;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .step-num{font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.6em;color:rgba(176,136,64,0.3);margin-bottom:1rem}
+  .step h2{font-size:1.1rem;color:var(--bone);margin-bottom:0.3rem}
+  .step .en{font-family:'Cormorant Garamond',serif;font-size:0.85rem;color:var(--accent);font-style:italic;margin-bottom:1.5rem}
+  .step p{font-size:0.88rem;color:#a09888;margin-bottom:1rem}
+  .step p strong{color:var(--bone);font-weight:400}
+
+  .example{padding:1rem 1.5rem;margin:1rem 0;background:rgba(176,136,64,0.03);border-left:2px solid rgba(176,136,64,0.2);font-size:0.8rem;color:var(--muted)}
+  .example strong{color:var(--bone);font-weight:400}
+
+  .wrong{color:#8b4040}
+  .right{color:#6b8b40}
+
+  .quote{padding:1.5rem 2rem;margin:2rem 0;border-left:2px solid rgba(176,136,64,0.3);background:rgba(176,136,64,0.02)}
+  .quote p{font-family:'Cormorant Garamond',serif;font-size:1rem;font-style:italic;color:var(--bone);line-height:2}
+
+  .principles{margin:3rem 0;padding:2rem 0;border-top:1px solid rgba(176,136,64,0.1)}
+  .principles h2{font-family:'Cinzel',serif;font-size:1rem;color:var(--bone);text-align:center;margin-bottom:2rem}
+  .principle{padding:1rem 0;display:grid;grid-template-columns:2rem 1fr;gap:1rem;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .principle .n{color:var(--accent);font-family:'Cinzel',serif;opacity:0.5;text-align:right}
+  .principle p{color:#a09888}.principle p strong{color:var(--bone);font-weight:400}
+
+  .result{text-align:center;padding:3rem 0;margin:2rem 0;border-top:1px solid rgba(176,136,64,0.1)}
+  .result p{font-size:0.85rem;color:var(--muted);margin-bottom:0.8rem}
+  .result .big{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--bone);font-style:italic}
+
+  footer{text-align:center;padding:3rem;font-size:0.55rem;color:rgba(138,128,116,0.2);letter-spacing:0.5em}
+</style>
+</head>
+<body>
+
+<section class="hero">
+  <p class="label">Method Document</p>
+  <h1>Reference-Driven<br>Creative Flow</h1>
+  <p class="sub">原典駆動クリエイティブフロー<br>— 忘れられた本がAIの出力を変える —</p>
+</section>
+
+<div class="content">
+
+  <div class="thesis">
+    <p>AI画像生成の品質は、モデルではなく<br><strong>プロンプトの思想的解像度</strong>で決まる。<br>「絵が物足りない」の正体は画力不足ではなく、<br><strong>思想の不在</strong>である。</p>
+  </div>
+
+  <div class="flow-line">
+    技術 → 適用 → 不満 → 参考文献 → 読み込み → 世界観 → ビジュアル → テキスト → 循環
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <p class="step-num">STEP I</p>
+    <h2>技術の土台を作る</h2>
+    <p class="en">Build the Foundation</p>
+    <p>ツールを動かせる状態にする。品質は問わない。<br>「出力できる」ことだけが目的。完璧を目指さない。</p>
+    <div class="example">例: ComfyUIをセットアップし、SDXLで1枚出せる状態にした。所要30分。</div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <p class="step-num">STEP II</p>
+    <h2>既存プロダクトに適用する</h2>
+    <p class="en">Apply to Real Work</p>
+    <p>実際の制作物に使ってみる。量を出す。<br>「動く」感覚と「足りない」感覚の<strong>両方</strong>が生まれる。</p>
+    <div class="example">例: RAVENに70枚のカードアート、11体のスプライト、UI一式を一気に生成。</div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <p class="step-num">STEP III</p>
+    <h2>不満を正しく診断する</h2>
+    <p class="en">Diagnose the Dissatisfaction</p>
+    <p>「何か違う」を具体的な言葉にする。<strong>ここが最も重要な分岐点。</strong></p>
+    <p>
+      <span class="wrong">❌ 「モデルが悪い」→ モデルを変えても同じ</span><br>
+      <span class="wrong">❌ 「解像度が足りない」→ 大きくしても空虚なまま</span><br>
+      <span class="wrong">❌ 「プロンプトが下手」→ 技術的に正しくても深みが出ない</span>
+    </p>
+    <p>
+      <span class="right">✅ 「自分がこの世界について何も知らないから、指示が浅い」</span><br>
+      <span class="right">✅ 「ビジュアルの前に思想が必要」</span>
+    </p>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+    <p class="step-num">STEP IV</p>
+    <h2>忘れられた原典を探す</h2>
+    <p class="en">Find the Forgotten Source</p>
+    <p><strong>ここが核心。</strong>「この空気に最も近い、忘れられた本は何か」を問う。</p>
+    <p>
+      作りたいものの「空気」を3つの形容詞で表す。<br>
+      その形容詞に近い作家・思想家を連想する。<br>
+      その作家の<strong>最も無名な作品</strong>を探す。
+    </p>
+    <p>
+      <strong>なぜ無名な本が良いか：</strong><br>
+      既存のビジュアルイメージに汚染されていない。<br>
+      読んだ人が少ないから、AIの学習データにも直接は反映されていない。<br>
+      結果として、プロンプトに変換したときに<strong>「見たことがない絵」</strong>が出る。
+    </p>
+    <div class="example">
+      例: <strong>マインレンダー「救済の哲学」(1876)</strong> — 出版翌日に著者が自殺した哲学書。「神は自殺して、宇宙は神の死体から生まれた」<br>
+      例: <strong>C.A.スミス「ゾティーク」(1932-48)</strong> — ラヴクラフトの陰に隠れた作家の、死にゆく最後の大陸
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+    <p class="step-num">STEP V</p>
+    <h2>全文を読む</h2>
+    <p class="en">Read the Full Text</p>
+    <p><strong>要約ではなく全文。</strong></p>
+    <p>
+      要約は「結論」しか残さない。創作に必要なのは<strong>過程の質感</strong>。<br>
+      文体そのものがインスピレーションになる。<br>
+      著者が意図しなかった細部に、最も豊かなイメージが眠っている。
+    </p>
+    <div class="quote">
+      <p>His eyes were bleak and cold as distant stars in the hollows wrought by strange fearful vigils. His lips were like a pale-red seal on a shut parchment of doom.</p>
+    </div>
+    <p>この一文が、キャラクターのビジュアル全体を決定する。要約からは絶対に出てこない。</p>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step">
+    <p class="step-num">STEP VI</p>
+    <h2>自分の文脈に翻訳する</h2>
+    <p class="en">Translate to Your Context</p>
+    <p>
+      原典のイメージを、自分のプロジェクトに落とし込む。<br>
+      <strong>抽象 → 具象 → 感覚</strong>の順に翻訳すると解像度が上がる。
+    </p>
+    <div class="example">
+      「神が自己を分解して宇宙を創った」(抽象)<br>
+      → 「ダンジョンは神の死体の内部」(具象)<br>
+      → 「壁が脈動する。骨がアーチを形成する」(感覚)<br>
+      → SDXLプロンプトへ
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step">
+    <p class="step-num">STEP VII</p>
+    <h2>絵とテキストの循環</h2>
+    <p class="en">The Cycle of Image and Word</p>
+    <p>
+      絵を出す。絵を見て新しい文章を書く。文章から新しい絵を出す。<br>
+      この循環が始まると、<strong>原典を超えた独自の世界</strong>が生まれ始める。
+    </p>
+    <div class="example">
+      「死者が漕ぐ船」の絵 → 「一筋の青い涙」を発見 → 「死者にも涙はあるのか」 → 新しいNPC → 「黒真珠の花嫁」→ さらに絵を出す → …
+    </div>
+  </div>
+
+  <!-- PRINCIPLES -->
+  <div class="principles">
+    <h2>Seven Principles</h2>
+
+    <div class="principle">
+      <span class="n">1</span>
+      <p><strong>AIの限界はプロンプトの深さで決まる。</strong>モデルの性能ではない。</p>
+    </div>
+    <div class="principle">
+      <span class="n">2</span>
+      <p><strong>「見たことがある絵」は、見たことがある言葉から生まれる。</strong>見たことがない言葉を使え。</p>
+    </div>
+    <div class="principle">
+      <span class="n">3</span>
+      <p><strong>忘れられた本ほど価値がある。</strong>有名な参考文献は既にイメージが固定されている。</p>
+    </div>
+    <div class="principle">
+      <span class="n">4</span>
+      <p><strong>要約ではなく全文を読め。</strong>細部にこそ宝がある。</p>
+    </div>
+    <div class="principle">
+      <span class="n">5</span>
+      <p><strong>哲学が「なぜ」を、文学が「何が起きるか」を提供する。</strong>両方必要。</p>
+    </div>
+    <div class="principle">
+      <span class="n">6</span>
+      <p><strong>抽象→具象→感覚の順に翻訳する</strong>と、プロンプトの解像度が上がる。</p>
+    </div>
+    <div class="principle">
+      <span class="n">7</span>
+      <p><strong>絵とテキストは互いを強化する。</strong>どちらかだけでは不十分。</p>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result">
+    <p>同じモデル。同じGPU。同じツール。</p>
+    <p>変わったのは、プロンプトに流れ込む<strong>思想の量</strong>だけ。</p>
+    <p class="big">「絵が変わったのではない。問いが変わったのだ。」</p>
+  </div>
+
+</div>
+
+<footer>
+  REFERENCE-DRIVEN CREATIVE FLOW — METHOD DOCUMENT v1.0 — 2026.04.18
+</footer>
+
+</body>
+</html>
